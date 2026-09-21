@@ -9,3 +9,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 include(Dependencies)
+
+include(UnisonDeterminism)
+
+add_subdirectory(core)
+add_subdirectory(sim)
+add_subdirectory(net)
+add_subdirectory(session)
+add_subdirectory(view)
