@@ -65,3 +65,11 @@ target_link_libraries(enet PUBLIC winmm ws2_32)
 target_compile_options(enet PRIVATE /wd5287)
 
 target_compile_definitions(enet PRIVATE _WINSOCK_DEPRECATED_NO_WARNINGS)
+
+CPMAddPackage(NAME xxHash GITHUB_REPOSITORY Cyan4973/xxHash VERSION 0.8.4 DOWNLOAD_ONLY YES)
+
+add_library(xxhash INTERFACE)
+
+target_include_directories(xxhash INTERFACE "${xxHash_SOURCE_DIR}")
+
+target_compile_definitions(xxhash INTERFACE XXH_INLINE_ALL)
