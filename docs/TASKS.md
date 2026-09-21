@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **0.1.3**. Last finished: 0.1.2 (CPM 0.43.1 vendored, `.cpm-cache` as the default source cache).
+- Next up: **0.1.4**. Last finished: 0.1.3 (determinism flags, verified through `tests/cmake/determinism_flags`).
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
-| 0 Bootstrap | 2 | 14 | 4 |
+| 0 Bootstrap | 2 | 14 | 5 |
 | 1 Deterministic simulation core | 7 | 52 | 0 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **163** | **4** |
+| **Total** | **31** | **163** | **5** |
 
 ## Charter amendments made while planning
 
@@ -57,7 +57,7 @@ needs from earlier tasks is ticked.
 ### 0.1 Repository skeleton
 - [x] 0.1.1 Root `CMakeLists.txt` (project `unison`, C++20, no compiler extensions, one folder per module) and `CMakePresets.json` with `msvc-debug` / `msvc-release` (Ninja, x64). Done when: both presets configure.
 - [x] 0.1.2 `cmake/CPM.cmake` pinned, `CPM_SOURCE_CACHE` honoured, `cmake/Dependencies.cmake` as the single place for versions. Done when: configure succeeds with an empty dependency list.
-- [ ] 0.1.3 `cmake/UnisonDeterminism.cmake` with `unison_apply_determinism(target)`: `/fp:precise`, no `/fp:contract`, SSE2 baseline, `/EHs-c-`, `/GR-`, `/permissive-`, `/W4 /WX`. Done when: the flags appear in `compile_commands.json` for a probe target.
+- [x] 0.1.3 `cmake/UnisonDeterminism.cmake` with `unison_apply_determinism(target)`: `/fp:precise`, no `/fp:contract`, SSE2 baseline, `/EHs-c-`, `/GR-`, `/permissive-`, `/W4 /WX`. Done when: the flags appear in `compile_commands.json` for a probe target.
 - [ ] 0.1.4 `determinism_guard.hpp`: compile error under `_M_FP_FAST` or `_M_FP_CONTRACT`, included by every deterministic library. Done when: a negative `try_compile` with `/fp:fast` fails as expected.
 - [ ] 0.1.5 Static library skeletons `unison_core`, `unison_sim`, `unison_session`, `unison_net`, `unison_view` with the `include/unison/<module>/` layout; determinism applied to `core` and `sim`. Done when: all build empty.
 - [x] 0.1.6 `.gitignore` (build dirs, CPM cache, IDE files, UE artefacts), `LICENSE` (MIT, copyright holder `facelessdiplomat`), `README.md` pointing to the docs.
