@@ -1,0 +1,17 @@
+build/
+out/
+.cpm-cache/
+
+.vs/
+.vscode/
+.idea/
+CMakeUserPresets.json
+*.VC.db
+*.sln
+*.suo
+*.user
+
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
