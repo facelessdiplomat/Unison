@@ -20,12 +20,27 @@ endif()
 set(deterministicModules core sim)
 set(plainModules session net view)
 set(seenModules "")
+set(joltSeen FALSE)
 
 math(EXPR lastEntry "${entryCount} - 1")
 
 foreach(entryIndex RANGE ${lastEntry})
     string(JSON entryFile GET "${compileCommands}" ${entryIndex} file)
     string(JSON entryCommand GET "${compileCommands}" ${entryIndex} command)
+
+    if(entryFile MATCHES "joltphysics")
+        set(joltSeen TRUE)
+
+        foreach(flag IN ITEMS "/fp:precise" "/arch:SSE2")
+            if(NOT entryCommand MATCHES "${flag}")
+                message(FATAL_ERROR "jolt is built without ${flag}")
+            endif()
+        endforeach()
+
+        if(entryCommand MATCHES "/EHsc")
+            message(FATAL_ERROR "jolt is built with exceptions enabled")
+        endif()
+    endif()
 
     foreach(module IN LISTS deterministicModules plainModules)
         if(NOT entryFile MATCHES "/${module}/src/")
@@ -58,4 +73,8 @@ foreach(module IN LISTS deterministicModules plainModules)
     endif()
 endforeach()
 
-message(STATUS "determinism applied to ${deterministicModules}, kept off ${plainModules}")
+if(NOT joltSeen)
+    message(FATAL_ERROR "no compile command for jolt")
+endif()
+
+message(STATUS "determinism applied to ${deterministicModules} and jolt, kept off ${plainModules}")
