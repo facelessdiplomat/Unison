@@ -29,6 +29,10 @@ foreach(flag IN LISTS requiredFlags)
     endif()
 endforeach()
 
+if(NOT probeCommand MATCHES "/FI[^\"]*determinism_guard\.hpp")
+    message(FATAL_ERROR "the determinism guard is not force-included in: ${probeCommand}")
+endif()
+
 foreach(flag IN LISTS forbiddenFlags)
     if("${flag}" IN_LIST commandTokens)
         message(FATAL_ERROR "forbidden ${flag} in: ${probeCommand}")

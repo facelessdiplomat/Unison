@@ -298,6 +298,8 @@ checklists, and by the tests in Section 11.
 
 - `/fp:precise` — never `/fp:fast`. Do not pass `/fp:contract`; fused multiply-add
   contraction must stay off.
+  `/fp:precise` is always passed explicitly: MSVC defines no `_M_FP_*` macro when no `/fp:` flag is
+  given, so `determinism_guard.hpp` rejects that case too and no library rests on a compiler default.
 - A single, fixed `/arch:` baseline for all deterministic libraries and for Jolt (default: SSE2;
   AVX2 only if a benchmark proves it is needed, in which case all libraries move together).
 - Exceptions off, RTTI off (matches Unreal's defaults; EnTT and Jolt support both).
