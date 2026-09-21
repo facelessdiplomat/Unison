@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **0.2.6**. Last finished: 0.2.5 (xxHash 0.8.4, XXH_INLINE_ALL).
+- Next up: **0.1.9**, the last open micro-task of phase 0. Last finished: 0.2.6 (CTest labels).
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
-| 0 Bootstrap | 2 | 15 | 13 |
+| 0 Bootstrap | 2 | 15 | 14 |
 | 1 Deterministic simulation core | 7 | 52 | 0 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **164** | **13** |
+| **Total** | **31** | **164** | **14** |
 
 ## Charter amendments made while planning
 
@@ -71,7 +71,7 @@ needs from earlier tasks is ticked.
 - [x] 0.2.3 Jolt with `CROSS_PLATFORM_DETERMINISTIC=ON`, exceptions and RTTI off, profiler and debug renderer off, our determinism flags applied. Test: `JPH_CROSS_PLATFORM_DETERMINISTIC` is defined and a `PhysicsSystem` steps once.
 - [x] 0.2.4 ENet. Test: `enet_initialize()` returns 0.
 - [x] 0.2.5 xxHash in inline mode. Test: known-answer vectors from xxHash's own test suite.
-- [ ] 0.2.6 Test targets split into `unison_tests_fast` (unit) and `unison_tests_slow` (determinism, integration) with CTest labels. Done when: `ctest -L fast` runs only unit tests.
+- [x] 0.2.6 Test targets split by CTest labels: `unison_tests_fast` (unit and smoke) carries `fast`, the cmake infrastructure checks carry `slow`; a separate `unison_tests_slow` executable arrives with the first determinism suite in 1.7, rather than as an empty target now. Done when: `ctest -L fast` runs only unit tests.
 
 ---
 
