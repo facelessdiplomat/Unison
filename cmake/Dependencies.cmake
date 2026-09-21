@@ -51,3 +51,17 @@ CPMAddPackage(
 )
 
 unison_apply_determinism(Jolt)
+
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
+CPMAddPackage(NAME enet GITHUB_REPOSITORY lsalzman/enet GIT_TAG v1.3.18)
+
+unset(CMAKE_POLICY_VERSION_MINIMUM)
+
+target_include_directories(enet PUBLIC "${enet_SOURCE_DIR}/include")
+
+target_link_libraries(enet PUBLIC winmm ws2_32)
+
+target_compile_options(enet PRIVATE /wd5287)
+
+target_compile_definitions(enet PRIVATE _WINSOCK_DEPRECATED_NO_WARNINGS)

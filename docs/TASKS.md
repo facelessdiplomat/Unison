@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **0.2.4**. Last finished: 0.2.3 (Jolt 5.6.0, SSE2 baseline, dynamic CRT).
+- Next up: **0.2.5**. Last finished: 0.2.4 (ENet 1.3.18).
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
-| 0 Bootstrap | 2 | 14 | 11 |
+| 0 Bootstrap | 2 | 15 | 12 |
 | 1 Deterministic simulation core | 7 | 52 | 0 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **163** | **11** |
+| **Total** | **31** | **164** | **12** |
 
 ## Charter amendments made while planning
 
@@ -63,12 +63,13 @@ needs from earlier tasks is ticked.
 - [x] 0.1.6 `.gitignore` (build dirs, CPM cache, IDE files, UE artefacts), `LICENSE` (MIT, copyright holder `facelessdiplomat`), `README.md` pointing to the docs.
 - [x] 0.1.7 `tools/ci.ps1`: configure and build both presets, `ctest --output-on-failure`, `clang-format --dry-run --Werror` over tracked sources. Done when: exits 0 on the skeleton from a plain PowerShell through `tools/env.ps1`.
 - [x] 0.1.8 (+) `tools/env.ps1`: locates the VS-bundled CMake, Ninja and clang-format through `vswhere`, enters the x64 developer environment and exports the tools for `ci.ps1` and the presets. Done when: `tools/env.ps1` followed by `cmake --preset msvc-debug` configures from a plain PowerShell without a developer prompt; the `ci.ps1` half of the original check moved to 0.1.7.
+- [ ] 0.1.9 (+) `unison_apply_warnings(target)` applied to `unison_net`, `unison_session` and `unison_view` as well, so `/permissive- /W4 /WX` stops being a side effect of the determinism contract and every Unison library is held to the same warning discipline. Done when: a deliberate warning in `net` fails the build.
 
 ### 0.2 Dependencies (each: pinned version in `Dependencies.cmake` plus a smoke test)
 - [x] 0.2.1 Catch2 v3 and the `unison_tests` target with `catch_discover_tests`; test tree `tests/<module>/`. Test: `"test framework runs"`.
 - [x] 0.2.2 EnTT. Test: a registry emplaces a component and a view finds it.
 - [x] 0.2.3 Jolt with `CROSS_PLATFORM_DETERMINISTIC=ON`, exceptions and RTTI off, profiler and debug renderer off, our determinism flags applied. Test: `JPH_CROSS_PLATFORM_DETERMINISTIC` is defined and a `PhysicsSystem` steps once.
-- [ ] 0.2.4 ENet. Test: `enet_initialize()` returns 0.
+- [x] 0.2.4 ENet. Test: `enet_initialize()` returns 0.
 - [ ] 0.2.5 xxHash in inline mode. Test: known-answer vectors from xxHash's own test suite.
 - [ ] 0.2.6 Test targets split into `unison_tests_fast` (unit) and `unison_tests_slow` (determinism, integration) with CTest labels. Done when: `ctest -L fast` runs only unit tests.
 
