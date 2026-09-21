@@ -78,6 +78,9 @@ Before reporting a micro-feature as done:
    naming, responsibilities, dead code, duplicated logic, missing tests, undefined behaviour, determinism hazards.
 4. Fix everything found and re-run the tests.
 5. Report in the final message: what was built, what the review found, what was fixed, what stays open.
+6. Close the report with the owner's own check: the exact commands to run, in order, and the observable
+   result that proves the micro-feature works (the line it prints, the exit code, the file that appears,
+   the test name that passes). A check the owner cannot run himself does not count.
 
 ### 8. Commits and authorship
 - Commit only when the owner explicitly asks. Never push unless explicitly asked.
