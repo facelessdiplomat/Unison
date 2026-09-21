@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **0.1.2**. Last finished: 0.1.1 (root `CMakeLists.txt` and `CMakePresets.json`).
+- Next up: **0.1.2**. Last finished: 0.1.8, taken out of board order on the owner's request so that the presets configure from a plain PowerShell.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
-| 0 Bootstrap | 2 | 14 | 1 |
+| 0 Bootstrap | 2 | 14 | 2 |
 | 1 Deterministic simulation core | 7 | 52 | 0 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **163** | **1** |
+| **Total** | **31** | **163** | **2** |
 
 ## Charter amendments made while planning
 
@@ -61,8 +61,8 @@ needs from earlier tasks is ticked.
 - [ ] 0.1.4 `determinism_guard.hpp`: compile error under `_M_FP_FAST` or `_M_FP_CONTRACT`, included by every deterministic library. Done when: a negative `try_compile` with `/fp:fast` fails as expected.
 - [ ] 0.1.5 Static library skeletons `unison_core`, `unison_sim`, `unison_session`, `unison_net`, `unison_view` with the `include/unison/<module>/` layout; determinism applied to `core` and `sim`. Done when: all build empty.
 - [ ] 0.1.6 `.gitignore` (build dirs, CPM cache, IDE files, UE artefacts), `LICENSE` (MIT, owner fills in the copyright holder), `README.md` pointing to the docs.
-- [ ] 0.1.7 `tools/ci.ps1`: configure and build both presets, `ctest --output-on-failure`, `clang-format --dry-run --Werror` over tracked sources. Done when: exits 0 on the skeleton.
-- [ ] 0.1.8 (+) `tools/env.ps1`: locates the VS-bundled CMake, Ninja and clang-format through `vswhere` and exports them for `ci.ps1` and the presets. Done when: `tools/ci.ps1` runs from a plain PowerShell without a developer prompt.
+- [ ] 0.1.7 `tools/ci.ps1`: configure and build both presets, `ctest --output-on-failure`, `clang-format --dry-run --Werror` over tracked sources. Done when: exits 0 on the skeleton from a plain PowerShell through `tools/env.ps1`.
+- [x] 0.1.8 (+) `tools/env.ps1`: locates the VS-bundled CMake, Ninja and clang-format through `vswhere`, enters the x64 developer environment and exports the tools for `ci.ps1` and the presets. Done when: `tools/env.ps1` followed by `cmake --preset msvc-debug` configures from a plain PowerShell without a developer prompt; the `ci.ps1` half of the original check moved to 0.1.7.
 
 ### 0.2 Dependencies (each: pinned version in `Dependencies.cmake` plus a smoke test)
 - [ ] 0.2.1 Catch2 v3 and the `unison_tests` target with `catch_discover_tests`; test tree `tests/<module>/`. Test: `"test framework runs"`.
