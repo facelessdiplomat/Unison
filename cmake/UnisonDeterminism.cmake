@@ -25,9 +25,6 @@ function(unison_apply_determinism target)
                 /arch:SSE2
                 /EHs-c-
                 /GR-
-                /permissive-
-                /W4
-                /WX
                 "/FI${determinismGuardHeader}"
     )
 endfunction()

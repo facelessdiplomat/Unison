@@ -49,6 +49,12 @@ foreach(entryIndex RANGE ${lastEntry})
 
         list(APPEND seenModules ${module})
 
+        foreach(warningFlag IN ITEMS "/permissive-" "/W4" "/WX")
+            if(NOT entryCommand MATCHES "${warningFlag}")
+                message(FATAL_ERROR "${module} is built without ${warningFlag}")
+            endif()
+        endforeach()
+
         if(module IN_LIST deterministicModules)
             if(NOT entryCommand MATCHES "/fp:precise")
                 message(FATAL_ERROR "${module} is built without /fp:precise: ${entryCommand}")

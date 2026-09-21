@@ -13,6 +13,7 @@ string(REGEX REPLACE "/EH[a-z-]+" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 include(UnisonDeterminism)
+include(UnisonWarnings)
 
 include(Dependencies)
 
