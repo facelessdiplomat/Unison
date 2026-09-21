@@ -12,8 +12,12 @@ include(Dependencies)
 
 include(UnisonDeterminism)
 
+enable_testing()
+
 add_subdirectory(core)
 add_subdirectory(sim)
 add_subdirectory(net)
 add_subdirectory(session)
 add_subdirectory(view)
+
+add_subdirectory(tests)
