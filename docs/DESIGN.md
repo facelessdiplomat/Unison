@@ -530,7 +530,7 @@ deterministic-multiplayer-ecs-engine/
 
 | Library | Use | License | Notes |
 |---------|-----|---------|-------|
-| EnTT | ECS | MIT | header-only, C++17+ |
+| EnTT | ECS | MIT | header-only, C++17+; the 3.x line, since v4.0 (July 2026) reworks the storage API the registry clone of 1.2.3 depends on |
 | Jolt Physics | 3D physics, math | MIT | built from source, `CROSS_PLATFORM_DETERMINISTIC=ON`, no exceptions/RTTI |
 | ENet | UDP transport | MIT | C |
 | xxHash (XXH3) | checksums | BSD-2 | header mode |

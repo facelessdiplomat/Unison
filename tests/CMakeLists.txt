@@ -30,8 +30,8 @@ add_test(
 
 include(Catch)
 
-add_executable(unison_tests core/framework_test.cpp)
+add_executable(unison_tests core/framework_test.cpp sim/entt_smoke_test.cpp)
 
-target_link_libraries(unison_tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(unison_tests PRIVATE unison_sim Catch2::Catch2WithMain)
 
 catch_discover_tests(unison_tests)

@@ -17,3 +17,5 @@ CPMAddPackage(
 )
 
 list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/extras")
+
+CPMAddPackage(NAME EnTT GITHUB_REPOSITORY skypjack/entt VERSION 3.16.0)

@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **0.2.2**. Last finished: 0.2.1 (Catch2 3.16.0, `unison_tests`).
+- Next up: **0.2.3**. Last finished: 0.2.2 (EnTT 3.16.0).
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
-| 0 Bootstrap | 2 | 14 | 9 |
+| 0 Bootstrap | 2 | 14 | 10 |
 | 1 Deterministic simulation core | 7 | 52 | 0 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **163** | **9** |
+| **Total** | **31** | **163** | **10** |
 
 ## Charter amendments made while planning
 
@@ -66,7 +66,7 @@ needs from earlier tasks is ticked.
 
 ### 0.2 Dependencies (each: pinned version in `Dependencies.cmake` plus a smoke test)
 - [x] 0.2.1 Catch2 v3 and the `unison_tests` target with `catch_discover_tests`; test tree `tests/<module>/`. Test: `"test framework runs"`.
-- [ ] 0.2.2 EnTT. Test: a registry emplaces a component and a view finds it.
+- [x] 0.2.2 EnTT. Test: a registry emplaces a component and a view finds it.
 - [ ] 0.2.3 Jolt with `CROSS_PLATFORM_DETERMINISTIC=ON`, exceptions and RTTI off, profiler and debug renderer off, our determinism flags applied. Test: `JPH_CROSS_PLATFORM_DETERMINISTIC` is defined and a `PhysicsSystem` steps once.
 - [ ] 0.2.4 ENet. Test: `enet_initialize()` returns 0.
 - [ ] 0.2.5 xxHash in inline mode. Test: known-answer vectors from xxHash's own test suite.
