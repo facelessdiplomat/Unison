@@ -27,3 +27,11 @@ add_test(
     COMMAND ${CMAKE_COMMAND} -D "UNISON_BUILD_DIR=${CMAKE_BINARY_DIR}" -P
             "${CMAKE_CURRENT_LIST_DIR}/cmake/module_determinism/verify.cmake"
 )
+
+include(Catch)
+
+add_executable(unison_tests core/framework_test.cpp)
+
+target_link_libraries(unison_tests PRIVATE Catch2::Catch2WithMain)
+
+catch_discover_tests(unison_tests)
