@@ -48,6 +48,7 @@ add_executable(
     core/framework_test.cpp
     core/hasher_test.cpp
     core/log_sink_test.cpp
+    core/math_test.cpp
     core/math_types_test.cpp
     core/raw_value_test.cpp
     core/xxhash_vectors_test.cpp

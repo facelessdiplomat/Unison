@@ -8,6 +8,7 @@
 #include <unison/core/fp_env_guard.hpp>
 #include <unison/core/hasher.hpp>
 #include <unison/core/jolt_conversions.hpp>
+#include <unison/core/math.hpp>
 #include <unison/core/quaternion.hpp>
 #include <unison/core/raw_value.hpp>
 
