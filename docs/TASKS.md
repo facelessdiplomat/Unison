@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.6.4**, the `CharacterMove` system. Last finished: 1.6.3.
+- Next up: **1.6.5**, the `Weapons` system. Last finished: 1.6.4.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 43 |
+| 1 Deterministic simulation core | 7 | 56 | 44 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **58** |
+| **Total** | **31** | **168** | **59** |
 
 ## Charter amendments made while planning
 
@@ -171,7 +171,7 @@ needs from earlier tasks is ticked.
 - [x] 1.6.1 Components (`Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`) registered; `ArenaInput{moveX, moveY, yaw, buttons}`. Test: all trivially copyable; `sizeof(ArenaInput) <= 8`.
 - [x] 1.6.2 Arena assets in code: floor, walls, ramps, crates, spawn points, player stats, projectile stats. Test: the registry freezes and hashes stably.
 - [x] 1.6.3 `ApplyInput` system: input to desired velocity and yaw on `CharacterState`; quantisation contract stated in the header. Test: full-forward input gives max speed along yaw.
-- [ ] 1.6.4 `CharacterMove` system: drives `CharacterController`, jump with ground check, gravity. Test: a jump leaves the ground and lands within the expected frames.
+- [x] 1.6.4 `CharacterMove` system: drives `CharacterController`, jump with ground check, gravity. Test: a jump leaves the ground and lands within the expected frames.
 - [ ] 1.6.5 `Weapons` system: fire button spawns a projectile with cooldown and raises `Fired`. Test: holding fire respects the cooldown; one event ordinal per shot.
 - [ ] 1.6.6 `Hits` system: projectile sweep, `Health` damage, `Hit` event, projectile destroyed on impact. Test: a projectile hitting a player reduces health exactly once.
 - [ ] 1.6.7 `Lifetime` system: despawn after `ttl` frames. Test: a projectile despawns at frame `spawn + ttl`.
