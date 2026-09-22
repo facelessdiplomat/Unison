@@ -43,6 +43,7 @@ add_executable(
     core/binary_io_test.cpp
     core/fixed_string_test.cpp
     core/fixed_vector_test.cpp
+    core/fp_env_guard_test.cpp
     core/framework_test.cpp
     core/hasher_test.cpp
     core/raw_value_test.cpp
