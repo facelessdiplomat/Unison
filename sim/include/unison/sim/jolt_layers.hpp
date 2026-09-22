@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unison/core/contract.hpp>
+#include <unison/sim/physics_layer.hpp>
 
 #include <Jolt/Jolt.h>
 
@@ -9,22 +10,6 @@
 
 namespace unison::sim
 {
-
-/// The group a body belongs to. Two static bodies can never meet, which is what lets the broad
-/// phase skip every pair that will not move.
-enum class PhysicsLayer : JPH::ObjectLayer
-{
-    Static,
-    Moving
-};
-
-inline constexpr JPH::uint kPhysicsLayerCount = 2;
-
-/// Whether two groups are allowed to produce a contact.
-[[nodiscard]] constexpr bool layersCollide(PhysicsLayer first, PhysicsLayer second)
-{
-    return first == PhysicsLayer::Moving || second == PhysicsLayer::Moving;
-}
 
 /// Narrows a layer to the number Jolt stores on a body.
 [[nodiscard]] constexpr JPH::ObjectLayer toObjectLayer(PhysicsLayer layer)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unison/core/body_id.hpp>
 #include <unison/core/float3.hpp>
 #include <unison/core/quaternion.hpp>
 
@@ -7,6 +8,9 @@
 
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/BodyID.h>
+
+#include <cstdint>
 
 namespace unison
 {
@@ -33,6 +37,18 @@ namespace unison
 [[nodiscard]] inline Quaternion toQuaternion(JPH::QuatArg value)
 {
     return Quaternion{value.GetX(), value.GetY(), value.GetZ(), value.GetW()};
+}
+
+/// Widens a stored handle into the id Jolt knows the body by.
+[[nodiscard]] inline JPH::BodyID toJoltBodyId(BodyId id)
+{
+    return JPH::BodyID{static_cast<std::uint32_t>(id)};
+}
+
+/// Narrows Jolt's body id back into the handle the simulation stores.
+[[nodiscard]] inline BodyId toBodyId(const JPH::BodyID& id)
+{
+    return static_cast<BodyId>(id.GetIndexAndSequenceNumber());
 }
 
 }

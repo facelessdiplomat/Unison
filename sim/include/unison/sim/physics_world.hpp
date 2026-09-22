@@ -1,8 +1,11 @@
 #pragma once
 
+#include <unison/core/body_id.hpp>
 #include <unison/core/float3.hpp>
+#include <unison/sim/body_definition.hpp>
+#include <unison/sim/jolt_layers.hpp>
 #include <unison/sim/jolt_runtime.hpp>
-#include <unison/sim/physics_layers.hpp>
+#include <unison/sim/transform.hpp>
 
 #include <Jolt/Jolt.h>
 
@@ -41,6 +44,17 @@ public:
     /// Advances every body by one tick. It expects the floating-point environment `advanceFrame`
     /// installs, and an update Jolt could not complete within its limits breaks a contract.
     void step(float dt);
+
+    /// Builds the body a definition describes, placed where the transform says, under the id the
+    /// frame handed out. No body of this world may carry that id yet.
+    void createBody(BodyId id, const BodyDefinition& definition, const Transform& placement);
+
+    /// Takes a body of this world out of it, leaving its id free to be handed out again.
+    void destroyBody(BodyId id);
+
+    [[nodiscard]] bool holdsBody(BodyId id) const;
+
+    [[nodiscard]] Transform transformOf(BodyId id) const;
 
     [[nodiscard]] std::uint32_t bodyCount() const;
 

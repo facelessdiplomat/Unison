@@ -304,7 +304,9 @@ the same session.
   frame globals stay free of them, and an `AssetId` for the shape and settings. Bodies are created
   with `CreateBodyWithID` from ids that `BodyIdAllocator` hands out in frame globals, so recreated
   bodies get the same ids on every client and after every restore. The body table of a world holds
-  `kMaxBodies` slots, the same limit the allocator hands indices out from.
+  `kMaxBodies` slots, the same limit the allocator hands indices out from. `Transform`, `PhysicsBody`
+  and `BodyDefinition` are defined by `unison_sim` but registered by the game, because `UNISON_COMPONENT`
+  accepts registrations from one translation unit only (§6.3).
 - **Restore = reconcile, then `RestoreState`.** Jolt's `RestoreState` requires the same set of
   bodies and constraints to exist as when `SaveState` ran. After restoring the registry,
   `PhysicsWorld` destroys bodies that are no longer referenced, recreates missing ones from
