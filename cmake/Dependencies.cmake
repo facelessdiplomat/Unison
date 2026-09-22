@@ -80,3 +80,9 @@ CPMAddPackage(
     GIT_TAG v1.1.0
     OPTIONS "EXPECTED_BUILD_TESTS OFF"
 )
+
+CPMAddPackage(NAME pfr GITHUB_REPOSITORY boostorg/pfr GIT_TAG 2.2.0 DOWNLOAD_ONLY YES)
+
+add_library(boost_pfr INTERFACE)
+
+target_include_directories(boost_pfr INTERFACE "${pfr_SOURCE_DIR}/include")

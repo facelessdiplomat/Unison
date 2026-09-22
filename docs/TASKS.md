@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.2.1**, `ComponentRegistry` and `UNISON_COMPONENT`. Last finished: 1.1.11; task 1.1 is complete.
+- Next up: **1.2.2**, `Frame`. Last finished: 1.2.1.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 13 |
+| 1 Deterministic simulation core | 7 | 54 | 14 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **28** |
+| **Total** | **31** | **166** | **29** |
 
 ## Charter amendments made while planning
 
@@ -39,6 +39,9 @@ needs from earlier tasks is ticked.
   for computation only. Reason: SIMD alignment padding would enter checksums, and Jolt headers would leak into
   host boundary headers. `DESIGN.md` §6.3 updated.
 - Arena assets are defined in code in v1; loading assets from files is backlog. `DESIGN.md` §14 and §15 updated.
+- `std::has_unique_object_representations_v` cannot express "no padding": it also rejects every type holding a
+  `float`, so it rejects every component this engine has. Boost.PFR is pinned instead and the `PaddingFree`
+  concept compares member sizes against `sizeof`, recursing through aggregates and arrays. `DESIGN.md` §6.3.
 - Registered components must be free of padding, enforced by `UNISON_COMPONENT` rather than by the `= {}` habit
   alone: a forgotten value-initialisation would put indeterminate bytes into a checksum, and that desync leaves no
   trace. `RawValue`, `Hasher` and `BinaryWriter` stay permissive, since they also carry engine-internal types.
@@ -105,7 +108,7 @@ needs from earlier tasks is ticked.
 - [x] 1.1.13 (+) One declared exception setting per Unison target: `net`, `session` and `view` carry no `/EH` flag at all and no `_HAS_EXCEPTIONS=0`, so the MSVC STL still emits `try`/`catch` there that cannot unwind, and `unison_tests_fast` links libraries built with a different `_HAS_EXCEPTIONS` than its own translation units. Decide the setting for each target kind and assert it in `tests/cmake/module_determinism`. Reason: found in 1.1.8, the first time Jolt's headers reached a deterministic library. Done when: the module check fails if a Unison target disagrees with its declared exception setting.
 
 ### 1.2 Frame, registration, snapshots (`unison_sim`)
-- [ ] 1.2.1 `ComponentRegistry` and `UNISON_COMPONENT(Type)`: static list with name, size and alignment; `static_assert` trivially copyable and `static_assert(std::has_unique_object_representations_v<Type>)` so a component carries no padding at all. Test: list order equals registration order; a duplicate registration is rejected at startup; a component with padding does not compile.
+- [x] 1.2.1 `ComponentRegistry` and `UNISON_COMPONENT(Type)`: static list with name, size and alignment; `static_assert` plain data aggregate, trivially copyable and `PaddingFree` so a component carries no padding at all; registrations must all come from one translation unit, since static initialisation order across translation units is unspecified. Test: list order equals registration order; a duplicate registration is rejected; a registration from a second file is rejected; the `PaddingFree` concept accepts and rejects the right types.
 - [ ] 1.2.2 `Frame`: `frameNumber`, `dt`, `entt::registry`, `Globals` (rng, match phase placeholder), `EventBuffer` slot. Test: a default frame is at 0 and empty.
 - [ ] 1.2.3 Registry clone preserving entity ids, versions and free-list order. Test: after cloning, source and clone produce identical ids for 100 mixed creates and destroys.
 - [ ] 1.2.4 Frame checksum over globals and all pools in registration order. Test: equal frames hash equal; a one-byte change changes the hash; the hash does not depend on the order in which EnTT storages were first touched.

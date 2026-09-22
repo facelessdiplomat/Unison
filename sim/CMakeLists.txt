@@ -1,8 +1,8 @@
-add_library(unison_sim STATIC src/sim.cpp)
+add_library(unison_sim STATIC src/component_registry.cpp src/sim.cpp)
 
 target_include_directories(unison_sim PUBLIC include)
 
-target_link_libraries(unison_sim PUBLIC unison_core EnTT::EnTT Jolt)
+target_link_libraries(unison_sim PUBLIC unison_core EnTT::EnTT Jolt boost_pfr)
 
 unison_apply_determinism(unison_sim)
 

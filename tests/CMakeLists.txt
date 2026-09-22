@@ -56,9 +56,13 @@ add_executable(
     core/rng_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
+    sim/component_registry_test.cpp
     sim/entt_smoke_test.cpp
+    sim/padding_free_test.cpp
     sim/jolt_smoke_test.cpp
 )
+
+target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
 target_link_libraries(unison_tests_fast PRIVATE unison_net unison_sim Catch2::Catch2WithMain)
 
