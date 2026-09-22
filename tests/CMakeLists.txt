@@ -57,6 +57,8 @@ add_executable(
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
     sim/advance_frame_test.cpp
+    sim/asset_hash_test.cpp
+    sim/asset_registry_test.cpp
     sim/component_registry_test.cpp
     sim/entt_smoke_test.cpp
     sim/entity_lifecycle_test.cpp

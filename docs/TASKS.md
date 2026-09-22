@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.4.2**, `AssetRegistry`. Last finished: 1.3.5; task 1.3 is complete.
+- Next up: **1.5.1**, `PhysicsWorld` construction. Last finished: 1.4.3; task 1.4 is complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 25 |
+| 1 Deterministic simulation core | 7 | 54 | 27 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **40** |
+| **Total** | **31** | **166** | **42** |
 
 ## Charter amendments made while planning
 
@@ -132,8 +132,8 @@ needs from earlier tasks is ticked.
 
 ### 1.4 Inputs and assets
 - [x] 1.4.1 `InputTraits<Input>` (trivially copyable, free of padding, `sizeof <= 64`) and `FrameInputs`, a plain class holding up to 8 slots erased to bytes with per-slot flags `Present / Predicted / Dropped` and a typed accessor. Test: flags and payload round trip; an oversized input fails the trait; reading a slot as the wrong type breaks a contract.
-- [ ] 1.4.2 `AssetRegistry`: typed tables keyed by `AssetId`, `freeze()`, `get<T>(id)` returning `const T&`, missing id is a hard error, and registering an id that is already taken is a hard error, so a 32-bit name-hash collision cannot pass silently. Test: lookups; mutation after freeze is rejected; a duplicate id is rejected.
-- [ ] 1.4.3 Asset hash over frozen tables, independent of insertion order. Test: two registries with the same content inserted in different order hash equal.
+- [x] 1.4.2 `AssetRegistry`: typed tables keyed by `AssetId`, `freeze()`, `get<T>(id)` returning `const T&`, missing id is a hard error, and registering an id that is already taken is a hard error, so a 32-bit name-hash collision cannot pass silently. Test: lookups; mutation after freeze is rejected; a duplicate id is rejected.
+- [x] 1.4.3 Asset hash over frozen tables, independent of insertion order. Test: two registries with the same content inserted in different order hash equal.
 
 ### 1.5 Physics world (Jolt wrapper)
 - [ ] 1.5.1 `PhysicsWorld` construction: allocator, factory, type registration, `JobSystemSingleThreaded`, broadphase and object layers, `step(dt)`. Test: an empty world steps 100 times.
