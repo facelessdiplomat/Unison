@@ -124,3 +124,11 @@ target_compile_definitions(
 )
 
 catch_discover_tests(unison_tests_arena PROPERTIES LABELS fast)
+
+add_executable(unison_benchmarks benchmarks/arena_benchmarks.cpp)
+
+target_include_directories(unison_benchmarks PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
+
+target_link_libraries(unison_benchmarks PRIVATE arena_sim Catch2::Catch2WithMain)
+
+target_compile_options(unison_benchmarks PRIVATE /EHsc)

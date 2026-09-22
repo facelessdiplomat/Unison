@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.7.4**, the benchmarks and their baselines. Last finished: 1.7.3.
+- Next up: **1.7.5**, the SSE2 against AVX2 run. Last finished: 1.7.4.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 54 |
+| 1 Deterministic simulation core | 7 | 56 | 55 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **69** |
+| **Total** | **31** | **168** | **70** |
 
 ## Charter amendments made while planning
 
@@ -191,7 +191,7 @@ needs from earlier tasks is ticked.
 - [x] 1.7.1 Double-run test over the Arena scripted inputs: per-frame checksums equal.
 - [x] 1.7.2 Golden checksum file `tests/golden/arena_scripted.checksums`; the test compares every 10th frame; the same file is used by Debug and Release.
 - [x] 1.7.3 Snapshot/restore exactness over the Arena at 20 random frames.
-- [ ] 1.7.4 Catch2 benchmarks: tick, `takeSnapshot`, `restoreSnapshot`, checksum, 10-frame resimulation; baselines recorded in `tests/benchmarks/baseline.md`.
+- [x] 1.7.4 Catch2 benchmarks: tick, `takeSnapshot`, `restoreSnapshot`, checksum, 10-frame resimulation; baselines recorded in `tests/benchmarks/baseline.md`.
 - [ ] 1.7.5 SSE2 vs AVX2 comparison run; Q2 answered in `DESIGN.md`.
 
 ---
