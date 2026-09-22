@@ -1,5 +1,9 @@
 #include <unison/sim/entity_lifecycle.hpp>
 
+#include <unison/sim/body_definition.hpp>
+#include <unison/sim/physics_body.hpp>
+#include <unison/sim/transform.hpp>
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <entt/entity/registry.hpp>
@@ -70,4 +74,29 @@ TEST_CASE("the lifecycle events of one frame follow one another in order")
     REQUIRE(frame.events.keyAt(1).ordinal == 1U);
     REQUIRE(frame.events.keyAt(2).ordinal == 0U);
     REQUIRE(frame.events.payloadAt<unison::sim::EntityCreated>(1).entity == second);
+}
+
+TEST_CASE("an entity destroyed through the frame takes its body with it")
+{
+    unison::sim::BodyDefinition crate;
+    crate.motion = unison::sim::BodyMotion::Dynamic;
+    crate.layer = unison::sim::PhysicsLayer::Moving;
+
+    unison::sim::AssetRegistry assets;
+    assets.add<unison::sim::BodyDefinition>(unison::makeAssetId("crate"), crate);
+    assets.freeze();
+
+    unison::sim::Frame frame;
+
+    const entt::entity entity = unison::sim::createEntity(frame);
+    frame.registry.emplace<unison::sim::Transform>(entity, unison::Float3{0.0F, 2.0F, 0.0F}, unison::Quaternion{});
+    unison::sim::addBody(frame, assets, entity, unison::makeAssetId("crate"));
+
+    const unison::BodyId id = frame.registry.get<unison::sim::PhysicsBody>(entity).id;
+
+    unison::sim::destroyEntity(frame, entity);
+
+    REQUIRE(frame.physics.bodyCount() == 0U);
+    REQUIRE_FALSE(frame.physics.holdsBody(id));
+    REQUIRE(frame.globals.bodyIds.allocate() == unison::makeBodyId(unison::bodyIndexOf(id), 1U));
 }
