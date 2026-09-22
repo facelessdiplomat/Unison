@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.2.5**, `FrameSnapshot`, `takeSnapshot` and `restoreSnapshot`. Last finished: 1.2.4.
+- Next up: **1.2.6**, the entity lifecycle helpers. Last finished: 1.2.5.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 17 |
+| 1 Deterministic simulation core | 7 | 54 | 18 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **32** |
+| **Total** | **31** | **166** | **33** |
 
 ## Charter amendments made while planning
 
@@ -115,7 +115,7 @@ needs from earlier tasks is ticked.
 - [x] 1.2.2 `Frame`: `frameNumber`, `dt`, `entt::registry`, `Globals` (rng, match phase placeholder), `EventBuffer` slot. Test: a default frame is at 0 and empty.
 - [x] 1.2.3 Registry clone preserving entity ids, versions and free-list order. Test: after cloning, source and clone produce identical ids for 100 mixed creates and destroys.
 - [x] 1.2.4 Frame checksum over globals and all pools in registration order. Globals are hashed member by member, not as raw bytes: `Globals` holds an `Rng` and a one-byte enum, so the compiler pads between them and `PaddingFree` does not hold for it. Test: equal frames hash equal; a one-byte change changes the hash; the hash does not depend on the order in which EnTT storages were first touched; changing a padding byte of `Globals` does not change the hash.
-- [ ] 1.2.5 `FrameSnapshot`, `takeSnapshot`, `restoreSnapshot` (registry, globals, physics bytes slot). Test: take, mutate, restore gives the original checksum.
+- [x] 1.2.5 `FrameSnapshot`, `takeSnapshot`, `restoreSnapshot` (registry, globals, physics bytes slot). Test: take, mutate, restore gives the original checksum.
 - [ ] 1.2.6 Entity lifecycle helpers `createEntity(frame)` / `destroyEntity(frame, entity)` raising `EntityCreated` / `EntityDestroyed`. Test: the events carry the entity and appear in the buffer.
 
 ### 1.3 Systems, signals, events
@@ -179,7 +179,7 @@ needs from earlier tasks is ticked.
 
 ### 2.2 Snapshot ring
 - [ ] 2.2.1 `SnapshotRing(capacity)`: `store(frame, snapshot)`, `get(frame)`, overwrite oldest, `evictBelow(frame)`. Test: capacity wraparound and lookups.
-- [ ] 2.2.2 Buffer reuse after warm-up. Test: internal buffer capacities stop growing over 1000 frames.
+- [ ] 2.2.2 Buffer reuse after warm-up, including `restoreSnapshot`, which replaces the registry wholesale today and so throws away the capacity of every pool on each rollback. Test: internal buffer capacities stop growing over 1000 frames.
 
 ### 2.3 Session state machine
 - [ ] 2.3.1 `SessionConfig` (tick rate, slots, seed, asset hash, pipeline hash, input size, max prediction, build id) and its hash. Test: any field change changes the hash.
