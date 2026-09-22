@@ -18,21 +18,21 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.12**, the compile-check target. Last finished: 1.1.10.
-- Agreed order for the rest of task 1.1: 1.1.12, then 1.1.13, then 1.1.11. Ids stay as they are, only the order of execution changed.
+- Next up: **1.1.13**, one declared exception setting per target. Last finished: 1.1.12.
+- Agreed order for the rest of task 1.1: 1.1.13, then 1.1.11. Ids stay as they are, only the order of execution changed.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 10 |
+| 1 Deterministic simulation core | 7 | 54 | 11 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **25** |
+| **Total** | **31** | **166** | **26** |
 
 ## Charter amendments made while planning
 
@@ -102,7 +102,7 @@ needs from earlier tasks is ticked.
 - [x] 1.1.9 Deterministic scalar facade `unison::math` (`sin`, `cos`, `atan2`, `sqrt`, `clamp`, `lerp` written without FMA) backed by Jolt's implementations. Test: golden bit patterns for a fixed input table.
 - [x] 1.1.10 `Rng` (xoshiro256**): seed, `nextUint32`, `nextFloat01`, `nextInRange`. Test: golden sequence for seed 42; state is trivially copyable.
 - [ ] 1.1.11 (+) Error primitives: `UNISON_ASSERT` (Debug only), `UNISON_VERIFY` with an installable fatal handler reporting through `LogSink`, an `Error` type, and `tl::expected` pinned in `Dependencies.cmake`. Test: a failing verify invokes the installed handler; an assert has no effect in a Release probe; `expected` round trips value and error.
-- [ ] 1.1.12 (+) Compile-check target for `unison_core`: a translation unit built with `unison_apply_determinism` and `unison_apply_warnings` that instantiates the inline bodies of every public header, so headers are held to `/W4 /WX /EHs-c- /fp:precise` instead of only a syntax check. Reason: `core` is header-only, so `core.cpp` compiles no inline body, and the strict flags had to be verified by hand during 1.1.3 and 1.1.4. Done when: a deliberate warning inside a header body fails the build.
+- [x] 1.1.12 (+) Compile-check target for `unison_core`: a translation unit built with `unison_apply_determinism` and `unison_apply_warnings` that instantiates the inline bodies of every public header, so headers are held to `/W4 /WX /EHs-c- /fp:precise` instead of only a syntax check. Reason: `core` is header-only, so `core.cpp` compiles no inline body, and the strict flags had to be verified by hand during 1.1.3 and 1.1.4. Done when: a deliberate warning inside a header body fails the build.
 - [ ] 1.1.13 (+) One declared exception setting per Unison target: `net`, `session` and `view` carry no `/EH` flag at all and no `_HAS_EXCEPTIONS=0`, so the MSVC STL still emits `try`/`catch` there that cannot unwind, and `unison_tests_fast` links libraries built with a different `_HAS_EXCEPTIONS` than its own translation units. Decide the setting for each target kind and assert it in `tests/cmake/module_determinism`. Reason: found in 1.1.8, the first time Jolt's headers reached a deterministic library. Done when: the module check fails if a Unison target disagrees with its declared exception setting.
 
 ### 1.2 Frame, registration, snapshots (`unison_sim`)

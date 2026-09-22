@@ -21,6 +21,7 @@ set(deterministicModules core sim)
 set(plainModules session net view)
 set(seenModules "")
 set(joltSeen FALSE)
+set(headerCheckSeen FALSE)
 
 math(EXPR lastEntry "${entryCount} - 1")
 
@@ -40,6 +41,16 @@ foreach(entryIndex RANGE ${lastEntry})
         if(entryCommand MATCHES "/EHsc")
             message(FATAL_ERROR "jolt is built with exceptions enabled")
         endif()
+    endif()
+
+    if(entryFile MATCHES "/tests/compile/")
+        set(headerCheckSeen TRUE)
+
+        foreach(flag IN ITEMS "/fp:precise" "/permissive-" "/W4" "/WX" "_HAS_EXCEPTIONS=0" "determinism_guard\.hpp")
+            if(NOT entryCommand MATCHES "${flag}")
+                message(FATAL_ERROR "the core header check is built without ${flag}")
+            endif()
+        endforeach()
     endif()
 
     foreach(module IN LISTS deterministicModules plainModules)
@@ -85,6 +96,10 @@ endforeach()
 
 if(NOT joltSeen)
     message(FATAL_ERROR "no compile command for jolt")
+endif()
+
+if(NOT headerCheckSeen)
+    message(FATAL_ERROR "no compile command for the core header check")
 endif()
 
 message(STATUS "determinism applied to ${deterministicModules} and jolt, kept off ${plainModules}")

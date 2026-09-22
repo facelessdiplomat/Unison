@@ -1,4 +1,4 @@
-add_library(unison_core STATIC src/core.cpp src/log_sink.cpp)
+add_library(unison_core STATIC src/log_sink.cpp)
 
 target_include_directories(unison_core PUBLIC include)
 
