@@ -42,6 +42,7 @@ add_executable(
     unison_tests_fast
     core/asset_id_test.cpp
     core/binary_io_test.cpp
+    core/body_id_test.cpp
     core/contract_test.cpp
     core/error_test.cpp
     core/fixed_string_test.cpp
@@ -59,6 +60,7 @@ add_executable(
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp
     sim/asset_registry_test.cpp
+    sim/body_id_allocator_test.cpp
     sim/component_registry_test.cpp
     sim/entt_smoke_test.cpp
     sim/entity_lifecycle_test.cpp

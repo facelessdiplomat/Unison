@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unison/core/rng.hpp>
+#include <unison/sim/body_id_allocator.hpp>
 
 #include <cstdint>
 
@@ -20,6 +21,7 @@ struct Globals
 {
     Rng rng{};
     MatchPhase matchPhase = MatchPhase::Warmup;
+    BodyIdAllocator bodyIds{};
 };
 
 }

@@ -19,7 +19,6 @@ namespace unison::sim
 /// belong to the game's configuration; gravity is in metres per second squared along a Y-up axis.
 struct PhysicsWorldSettings
 {
-    std::uint32_t maxBodies = 1024;
     std::uint32_t maxBodyPairs = 4096;
     std::uint32_t maxContactConstraints = 2048;
     std::uint32_t scratchBytes = 8U * 1024U * 1024U;

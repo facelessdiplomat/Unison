@@ -299,10 +299,12 @@ the same session.
   single-threaded job system; the limits it is built with are `PhysicsWorldSettings`.
 - **Two object layers, `Static` and `Moving`**, each with a broad phase tree of its own. Two static
   bodies never collide, which keeps the pairs that cannot move out of the broad phase.
-- **Body lifecycle is owned by the ECS.** A `PhysicsBody` component holds the `JPH::BodyID`
-  and an `AssetId` for the shape/settings. Bodies are created with `CreateBodyWithID` using
-  ids assigned by the simulation (index + sequence stored in frame globals), so recreated
-  bodies get the same ids on every client and after every restore.
+- **Body lifecycle is owned by the ECS.** A `PhysicsBody` component holds a `BodyId`, the engine's own
+  handle packed exactly as Jolt packs a `BodyID` and defined without Jolt headers, so components and
+  frame globals stay free of them, and an `AssetId` for the shape and settings. Bodies are created
+  with `CreateBodyWithID` from ids that `BodyIdAllocator` hands out in frame globals, so recreated
+  bodies get the same ids on every client and after every restore. The body table of a world holds
+  `kMaxBodies` slots, the same limit the allocator hands indices out from.
 - **Restore = reconcile, then `RestoreState`.** Jolt's `RestoreState` requires the same set of
   bodies and constraints to exist as when `SaveState` ran. After restoring the registry,
   `PhysicsWorld` destroys bodies that are no longer referenced, recreates missing ones from

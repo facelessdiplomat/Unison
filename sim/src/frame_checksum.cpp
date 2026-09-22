@@ -7,6 +7,7 @@
 #include <entt/entity/entity.hpp>
 
 #include <cstdint>
+#include <span>
 
 namespace unison::sim
 {
@@ -18,6 +19,8 @@ void hashGlobals(Hasher& hasher, const Globals& globals)
 {
     hasher.add(globals.rng);
     hasher.add(globals.matchPhase);
+    hasher.add(std::as_bytes(globals.bodyIds.freeIds()));
+    hasher.add(globals.bodyIds.takenSlotCount());
 }
 
 void hashIdentifiers(Hasher& hasher, const entt::registry& registry)

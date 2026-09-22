@@ -103,3 +103,13 @@ TEST_CASE("a destroyed entity leaves its mark on the checksum")
 
     REQUIRE(unison::sim::checksumOf(frame) != before);
 }
+
+TEST_CASE("a body id handed out changes the checksum")
+{
+    unison::sim::Frame frame;
+    const std::uint64_t before = unison::sim::checksumOf(frame);
+
+    static_cast<void>(frame.globals.bodyIds.allocate());
+
+    REQUIRE(unison::sim::checksumOf(frame) != before);
+}

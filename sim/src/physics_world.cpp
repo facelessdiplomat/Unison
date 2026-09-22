@@ -1,5 +1,6 @@
 #include <unison/sim/physics_world.hpp>
 
+#include <unison/core/body_id.hpp>
 #include <unison/core/contract.hpp>
 #include <unison/core/jolt_conversions.hpp>
 
@@ -17,7 +18,7 @@ constexpr int kCollisionStepsPerTick = 1;
 PhysicsWorld::PhysicsWorld(const PhysicsWorldSettings& settings)
     : runtime{}, scratchAllocator{settings.scratchBytes}, jobSystem{JPH::cMaxPhysicsJobs}
 {
-    physicsSystem.Init(settings.maxBodies,
+    physicsSystem.Init(kMaxBodies,
                        kBodyMutexCountForOneThread,
                        settings.maxBodyPairs,
                        settings.maxContactConstraints,

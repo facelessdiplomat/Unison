@@ -1,6 +1,7 @@
 #include <unison/core/asset_id.hpp>
 #include <unison/core/binary_reader.hpp>
 #include <unison/core/binary_writer.hpp>
+#include <unison/core/body_id.hpp>
 #include <unison/core/contract.hpp>
 #include <unison/core/error.hpp>
 #include <unison/core/fixed_string.hpp>
@@ -29,10 +30,18 @@ static_assert(unison::RawValue<unison::Float3>);
 static_assert(unison::RawValue<unison::Quaternion>);
 static_assert(unison::RawValue<unison::Rng>);
 static_assert(unison::RawValue<unison::AssetId>);
+static_assert(unison::RawValue<unison::BodyId>);
 
 std::uint64_t checkAssetId()
 {
     return static_cast<std::uint64_t>(unison::makeAssetId("floor"));
+}
+
+std::uint64_t checkBodyId()
+{
+    const unison::BodyId id = unison::makeBodyId(unison::kMaxBodies - 1U, 3U);
+
+    return unison::bodyIndexOf(id) + unison::bodySequenceOf(id) + (id == unison::BodyId::Invalid ? 0U : 1U);
 }
 
 std::uint64_t checkContract()
@@ -163,6 +172,7 @@ std::uint64_t checkRng()
 
 std::uint64_t unisonCoreHeaderCheck()
 {
-    return checkAssetId() ^ checkBinaryIo() ^ checkContract() ^ checkError() ^ checkFixedString() ^ checkFixedVector() ^
-           checkFpEnvGuard() ^ checkHasher() ^ checkLogSink() ^ checkMath() ^ checkMathTypes() ^ checkRng();
+    return checkAssetId() ^ checkBinaryIo() ^ checkBodyId() ^ checkContract() ^ checkError() ^ checkFixedString() ^
+           checkFixedVector() ^ checkFpEnvGuard() ^ checkHasher() ^ checkLogSink() ^ checkMath() ^ checkMathTypes() ^
+           checkRng();
 }

@@ -3,6 +3,7 @@ add_library(
     src/advance_frame.cpp
     src/asset_hash.cpp
     src/asset_registry.cpp
+    src/body_id_allocator.cpp
     src/component_registry.cpp
     src/entity_lifecycle.cpp
     src/event_buffer.cpp

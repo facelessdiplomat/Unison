@@ -134,3 +134,18 @@ TEST_CASE("a snapshot can be taken again into the same holder")
 
     REQUIRE(unison::sim::checksumOf(restored) == later);
 }
+
+TEST_CASE("a restored frame hands out the body ids its source would have")
+{
+    unison::sim::Frame frame;
+    populate(frame);
+
+    unison::sim::FrameSnapshot snapshot;
+    unison::sim::takeSnapshot(frame, snapshot);
+
+    const unison::BodyId expected = frame.globals.bodyIds.allocate();
+
+    unison::sim::restoreSnapshot(snapshot, frame);
+
+    REQUIRE(frame.globals.bodyIds.allocate() == expected);
+}
