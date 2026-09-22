@@ -59,6 +59,15 @@ public:
 
     [[nodiscard]] Transform transformOf(BodyId id) const;
 
+    /// Puts back on a body what Jolt leaves out of the state buffer it saves.
+    void applyProperties(BodyId id, const BodyDefinition& definition);
+
+    [[nodiscard]] float frictionOf(BodyId id) const;
+
+    [[nodiscard]] float restitutionOf(BodyId id) const;
+
+    [[nodiscard]] BodyMotion motionOf(BodyId id) const;
+
     /// Names every body the world holds, in the order Jolt keeps them.
     void collectBodies(std::vector<BodyId>& bodies) const;
 

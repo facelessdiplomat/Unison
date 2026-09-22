@@ -312,8 +312,11 @@ the same session.
   bodies and constraints to exist as when `SaveState` ran. After restoring the registry,
   `PhysicsWorld` destroys bodies that are no longer referenced, recreates missing ones from
   their components, and only then calls `RestoreState` with `EStateRecorderState::All`.
-  Properties Jolt does not record (friction, restitution, motion type, shape changes) are
-  stored in components and reapplied during reconciliation.
+  What a body is made of lives in a `BodyDefinition` component beside `PhysicsBody`, a copy of the
+  asset it was spawned from that a system may change; the properties Jolt leaves out of its state
+  buffer (friction, restitution, motion type, object layer) are put back from it during
+  reconciliation. Measurements are read when the body is built, so changing a shape or a size means
+  building the body again.
 - **Query results are sorted** before use. Jolt returns broad/narrow-phase results and
   `GetActiveBodies` in non-deterministic order; the wrapper sorts by `BodyID`.
 - **Contact callbacks are buffered**, then sorted by `(BodyID a, BodyID b, sub-shape ids)` and

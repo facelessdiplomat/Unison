@@ -18,7 +18,7 @@ void takeSnapshot(const Frame& frame, FrameSnapshot& snapshot)
     frame.physics.saveState(snapshot.physicsState);
 }
 
-void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame, const AssetRegistry& assets)
+void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame)
 {
     frame.frameNumber = snapshot.frameNumber;
     frame.dt = snapshot.dt;
@@ -27,7 +27,7 @@ void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame, const AssetReg
 
     cloneRegistry(snapshot.registry, frame.registry);
 
-    reconcileBodies(frame, assets);
+    reconcileBodies(frame);
 
     frame.physics.restoreState(snapshot.physicsState);
 }

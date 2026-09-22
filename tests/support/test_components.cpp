@@ -1,5 +1,6 @@
 #include <support/test_components.hpp>
 
+#include <unison/sim/body_definition.hpp>
 #include <unison/sim/component_registry.hpp>
 #include <unison/sim/physics_body.hpp>
 #include <unison/sim/transform.hpp>
@@ -16,6 +17,7 @@ namespace unison::sim
 {
 
 UNISON_COMPONENT(Transform);
+UNISON_COMPONENT(BodyDefinition);
 UNISON_COMPONENT(PhysicsBody);
 
 }

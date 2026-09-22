@@ -42,8 +42,10 @@ void addBody(Frame& frame, const AssetRegistry& assets, entt::entity entity, Ass
     UNISON_VERIFY(!frame.registry.all_of<PhysicsBody>(entity));
 
     const BodyId id = frame.globals.bodyIds.allocate();
+    const BodyDefinition& built =
+        frame.registry.emplace<BodyDefinition>(entity, assets.get<BodyDefinition>(definition));
 
-    frame.physics.createBody(id, assets.get<BodyDefinition>(definition), frame.registry.get<Transform>(entity));
+    frame.physics.createBody(id, built, frame.registry.get<Transform>(entity));
 
     frame.registry.emplace<PhysicsBody>(entity, id, definition);
 }
@@ -56,10 +58,10 @@ void removeBody(Frame& frame, entt::entity entity)
 
     frame.physics.destroyBody(id);
     frame.globals.bodyIds.release(id);
-    frame.registry.erase<PhysicsBody>(entity);
+    frame.registry.erase<PhysicsBody, BodyDefinition>(entity);
 }
 
-void reconcileBodies(Frame& frame, const AssetRegistry& assets)
+void reconcileBodies(Frame& frame)
 {
     const std::array<BodyId, kMaxBodies> named = bodiesTheRegistryNames(frame.registry);
 
@@ -74,13 +76,27 @@ void reconcileBodies(Frame& frame, const AssetRegistry& assets)
         }
     }
 
-    for (const auto [entity, body, placement] : frame.registry.view<const PhysicsBody, const Transform>().each())
+    for (const auto [entity, body, definition, placement] :
+         frame.registry.view<const PhysicsBody, const BodyDefinition, const Transform>().each())
     {
-        if (!frame.physics.holdsBody(body.id))
+        if (frame.physics.holdsBody(body.id))
         {
-            frame.physics.createBody(body.id, assets.get<BodyDefinition>(body.definition), placement);
+            frame.physics.applyProperties(body.id, definition);
+        }
+        else
+        {
+            frame.physics.createBody(body.id, definition, placement);
         }
     }
+}
+
+void applyBodyProperties(Frame& frame, entt::entity entity)
+{
+    UNISON_VERIFY(frame.registry.all_of<PhysicsBody>(entity));
+    UNISON_VERIFY(frame.registry.all_of<BodyDefinition>(entity));
+
+    frame.physics.applyProperties(frame.registry.get<PhysicsBody>(entity).id,
+                                  frame.registry.get<BodyDefinition>(entity));
 }
 
 }

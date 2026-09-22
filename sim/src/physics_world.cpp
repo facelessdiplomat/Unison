@@ -118,6 +118,21 @@ private:
     bool readPast = false;
 };
 
+BodyMotion toBodyMotion(JPH::EMotionType motion)
+{
+    switch (motion)
+    {
+        case JPH::EMotionType::Dynamic:
+            return BodyMotion::Dynamic;
+        case JPH::EMotionType::Kinematic:
+            return BodyMotion::Kinematic;
+        case JPH::EMotionType::Static:
+            break;
+    }
+
+    return BodyMotion::Static;
+}
+
 JPH::EActivation activationOf(BodyMotion motion)
 {
     return motion == BodyMotion::Dynamic ? JPH::EActivation::Activate : JPH::EActivation::DontActivate;
@@ -214,6 +229,45 @@ Transform PhysicsWorld::transformOf(BodyId id) const
     }
 
     return Transform{toFloat3(lock.GetBody().GetPosition()), toQuaternion(lock.GetBody().GetRotation())};
+}
+
+void PhysicsWorld::applyProperties(BodyId id, const BodyDefinition& definition)
+{
+    UNISON_VERIFY(holdsBody(id));
+
+    JPH::BodyInterface& bodies = physicsSystem.GetBodyInterface();
+    const JPH::BodyID joltId = toJoltBodyId(id);
+    const JPH::EMotionType motion = toJoltMotionType(definition.motion);
+
+    bodies.SetFriction(joltId, definition.friction);
+    bodies.SetRestitution(joltId, definition.restitution);
+    bodies.SetObjectLayer(joltId, toObjectLayer(definition.layer));
+
+    if (bodies.GetMotionType(joltId) != motion)
+    {
+        bodies.SetMotionType(joltId, motion, JPH::EActivation::DontActivate);
+    }
+}
+
+float PhysicsWorld::frictionOf(BodyId id) const
+{
+    UNISON_ASSERT(holdsBody(id));
+
+    return physicsSystem.GetBodyInterface().GetFriction(toJoltBodyId(id));
+}
+
+float PhysicsWorld::restitutionOf(BodyId id) const
+{
+    UNISON_ASSERT(holdsBody(id));
+
+    return physicsSystem.GetBodyInterface().GetRestitution(toJoltBodyId(id));
+}
+
+BodyMotion PhysicsWorld::motionOf(BodyId id) const
+{
+    UNISON_ASSERT(holdsBody(id));
+
+    return toBodyMotion(physicsSystem.GetBodyInterface().GetMotionType(toJoltBodyId(id)));
 }
 
 void PhysicsWorld::collectBodies(std::vector<BodyId>& bodies) const

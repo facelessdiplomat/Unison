@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.5.7**, reapplying what Jolt does not record. Last finished: 1.5.12, taken out of board order.
+- Next up: **1.5.8**, sorted query wrappers. Last finished: 1.5.7.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 55 | 34 |
+| 1 Deterministic simulation core | 7 | 55 | 35 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **167** | **49** |
+| **Total** | **31** | **167** | **50** |
 
 ## Charter amendments made while planning
 
@@ -65,6 +65,11 @@ needs from earlier tasks is ticked.
 - `BodyId` is the engine's own handle, not `JPH::BodyID`: it lives in `unison_core` without Jolt headers, so
   `Globals` and the components that name a body stay free of them, and its bits are packed exactly as Jolt
   packs them so the physics boundary only copies. `DESIGN.md` §6.7 updated. Found in 1.5.2.
+- What a body is made of travels on the entity as a `BodyDefinition` component, a copy of the asset it was
+  spawned from, not as a lookup through the asset registry. Reason: a rollback has to rebuild a body and put
+  back the properties Jolt does not record, and a system may have changed them since the spawn, so the live
+  values must be frame state. Restoring a snapshot needs no assets at all now. `DESIGN.md` §6.7 updated.
+  Found in 1.5.7.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -148,7 +153,7 @@ needs from earlier tasks is ticked.
 - [x] 1.5.4 `PhysicsStep` system: step, then write positions and rotations into `Transform` in ECS view order (never `GetActiveBodies`). Test: a dynamic box falls and rests on a static floor; `Transform` follows.
 - [x] 1.5.5 Physics bytes in snapshots via `SaveState` / `RestoreState` with `EStateRecorderState::All`. Test: run A→B and hash; restore A, run to B, hash equal (with sleeping and active bodies).
 - [x] 1.5.6 Body-set reconciliation before `RestoreState`: destroy bodies absent from the restored registry, recreate missing ones from `PhysicsBody` + `BodyDefinition`. Test: a body created after a snapshot disappears on restore; a body destroyed after a snapshot returns with identical state.
-- [ ] 1.5.7 Reapply properties Jolt does not record (friction, restitution, motion type) from components on restore. Test: a friction change made after the snapshot is reverted by restore.
+- [x] 1.5.7 Reapply properties Jolt does not record (friction, restitution, motion type) from components on restore. Test: a friction change made after the snapshot is reverted by restore.
 - [ ] 1.5.8 Query wrappers `raycast`, `overlapSphere`, `sweepCapsule` returning hits sorted by `(fraction, BodyID)`. Test: results are sorted regardless of body creation order.
 - [ ] 1.5.9 Contact listener buffering: contacts collected during `step`, sorted by `(BodyID a, BodyID b, sub-shape ids)`, exposed as `ContactEvents` on the frame. Test: two overlapping bodies yield exactly one ordered pair.
 - [ ] 1.5.10 `CharacterController` over `CharacterVirtual`: component holds position, velocity and ground state; explicit save/restore because it lives outside `PhysicsSystem` state. Test: walks on the floor, stops at a wall, snapshot/restore round trip is exact.

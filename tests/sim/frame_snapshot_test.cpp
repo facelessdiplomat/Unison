@@ -1,7 +1,6 @@
 #include <unison/sim/frame_snapshot.hpp>
 
 #include <support/test_components.hpp>
-#include <unison/sim/asset_registry.hpp>
 #include <unison/sim/frame_checksum.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -40,7 +39,6 @@ void populate(unison::sim::Frame& frame)
 
 TEST_CASE("restoring a snapshot brings back the checksum it was taken at")
 {
-    const unison::sim::AssetRegistry assets;
     unison::sim::Frame frame;
     populate(frame);
 
@@ -55,14 +53,13 @@ TEST_CASE("restoring a snapshot brings back the checksum it was taken at")
 
     REQUIRE(unison::sim::checksumOf(frame) != original);
 
-    unison::sim::restoreSnapshot(snapshot, frame, assets);
+    unison::sim::restoreSnapshot(snapshot, frame);
 
     REQUIRE(unison::sim::checksumOf(frame) == original);
 }
 
 TEST_CASE("restoring a snapshot brings back the frame number and step")
 {
-    const unison::sim::AssetRegistry assets;
     unison::sim::Frame frame;
     populate(frame);
 
@@ -72,7 +69,7 @@ TEST_CASE("restoring a snapshot brings back the frame number and step")
     frame.frameNumber = 100;
     frame.dt = 0.5F;
 
-    unison::sim::restoreSnapshot(snapshot, frame, assets);
+    unison::sim::restoreSnapshot(snapshot, frame);
 
     REQUIRE(frame.frameNumber == 42U);
     REQUIRE(frame.dt == 1.0F / 60.0F);
@@ -80,7 +77,6 @@ TEST_CASE("restoring a snapshot brings back the frame number and step")
 
 TEST_CASE("a restored frame hands out the identifiers its source would have")
 {
-    const unison::sim::AssetRegistry assets;
     unison::sim::Frame frame;
     populate(frame);
 
@@ -94,7 +90,7 @@ TEST_CASE("a restored frame hands out the identifiers its source would have")
         expected.push_back(frame.registry.create());
     }
 
-    unison::sim::restoreSnapshot(snapshot, frame, assets);
+    unison::sim::restoreSnapshot(snapshot, frame);
 
     std::vector<entt::entity> afterRestore;
 
@@ -108,7 +104,6 @@ TEST_CASE("a restored frame hands out the identifiers its source would have")
 
 TEST_CASE("a snapshot is untouched by what happens to its frame afterwards")
 {
-    const unison::sim::AssetRegistry assets;
     unison::sim::Frame frame;
     populate(frame);
 
@@ -124,7 +119,6 @@ TEST_CASE("a snapshot is untouched by what happens to its frame afterwards")
 
 TEST_CASE("a snapshot can be taken again into the same holder")
 {
-    const unison::sim::AssetRegistry assets;
     unison::sim::Frame frame;
     populate(frame);
 
@@ -136,14 +130,13 @@ TEST_CASE("a snapshot can be taken again into the same holder")
 
     unison::sim::takeSnapshot(frame, snapshot);
     unison::sim::Frame restored;
-    unison::sim::restoreSnapshot(snapshot, restored, assets);
+    unison::sim::restoreSnapshot(snapshot, restored);
 
     REQUIRE(unison::sim::checksumOf(restored) == later);
 }
 
 TEST_CASE("a restored frame hands out the body ids its source would have")
 {
-    const unison::sim::AssetRegistry assets;
     unison::sim::Frame frame;
     populate(frame);
 
@@ -152,7 +145,7 @@ TEST_CASE("a restored frame hands out the body ids its source would have")
 
     const unison::BodyId expected = frame.globals.bodyIds.allocate();
 
-    unison::sim::restoreSnapshot(snapshot, frame, assets);
+    unison::sim::restoreSnapshot(snapshot, frame);
 
     REQUIRE(frame.globals.bodyIds.allocate() == expected);
 }
