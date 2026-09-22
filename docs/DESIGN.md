@@ -242,6 +242,10 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
   floats, natural alignment, no padding). Jolt vector types are used for computation inside systems and
   physics code only. This keeps padding bytes out of checksums and Jolt headers out of host-facing headers.
 - All fields are value-initialised. Padding bytes are zeroed by construction (`= {}`) so hashes are stable.
+- A component that is registered carries no padding at all: `UNISON_COMPONENT` static-asserts
+  `std::has_unique_object_representations_v`, so field order is a deliberate choice and a forgotten `= {}`
+  cannot put indeterminate bytes into a checksum. `RawValue`, `Hasher` and `BinaryWriter` stay permissive,
+  because they also carry engine-internal types whose padding never reaches a frame.
 
 ### 6.4 Inputs
 

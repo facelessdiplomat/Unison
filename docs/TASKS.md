@@ -18,7 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.11**, the error primitives. Last finished: 1.1.10.
+- Next up: **1.1.12**, the compile-check target. Last finished: 1.1.10.
+- Agreed order for the rest of task 1.1: 1.1.12, then 1.1.13, then 1.1.11. Ids stay as they are, only the order of execution changed.
 
 ## Progress
 
@@ -39,6 +40,10 @@ needs from earlier tasks is ticked.
   for computation only. Reason: SIMD alignment padding would enter checksums, and Jolt headers would leak into
   host boundary headers. `DESIGN.md` §6.3 updated.
 - Arena assets are defined in code in v1; loading assets from files is backlog. `DESIGN.md` §14 and §15 updated.
+- Registered components must be free of padding, enforced by `UNISON_COMPONENT` rather than by the `= {}` habit
+  alone: a forgotten value-initialisation would put indeterminate bytes into a checksum, and that desync leaves no
+  trace. `RawValue`, `Hasher` and `BinaryWriter` stay permissive, since they also carry engine-internal types.
+  `DESIGN.md` §6.3 updated.
 - `LogSink` is a process-wide callback, the single exception to `CLAUDE.md` 4 (no global mutable state), because
   `UNISON_VERIFY` is a macro and cannot take an injected dependency. Bounded and justified in `DESIGN.md` §5.3.
 - Engine-wide conventions added as `DESIGN.md` §5.3: Jolt-native units and axes, three-tier error policy
@@ -101,7 +106,7 @@ needs from earlier tasks is ticked.
 - [ ] 1.1.13 (+) One declared exception setting per Unison target: `net`, `session` and `view` carry no `/EH` flag at all and no `_HAS_EXCEPTIONS=0`, so the MSVC STL still emits `try`/`catch` there that cannot unwind, and `unison_tests_fast` links libraries built with a different `_HAS_EXCEPTIONS` than its own translation units. Decide the setting for each target kind and assert it in `tests/cmake/module_determinism`. Reason: found in 1.1.8, the first time Jolt's headers reached a deterministic library. Done when: the module check fails if a Unison target disagrees with its declared exception setting.
 
 ### 1.2 Frame, registration, snapshots (`unison_sim`)
-- [ ] 1.2.1 `ComponentRegistry` and `UNISON_COMPONENT(Type)`: static list with name, size and alignment; `static_assert` trivially copyable. Test: list order equals registration order; a duplicate registration is rejected at startup.
+- [ ] 1.2.1 `ComponentRegistry` and `UNISON_COMPONENT(Type)`: static list with name, size and alignment; `static_assert` trivially copyable and `static_assert(std::has_unique_object_representations_v<Type>)` so a component carries no padding at all. Test: list order equals registration order; a duplicate registration is rejected at startup; a component with padding does not compile.
 - [ ] 1.2.2 `Frame`: `frameNumber`, `dt`, `entt::registry`, `Globals` (rng, match phase placeholder), `EventBuffer` slot. Test: a default frame is at 0 and empty.
 - [ ] 1.2.3 Registry clone preserving entity ids, versions and free-list order. Test: after cloning, source and clone produce identical ids for 100 mixed creates and destroys.
 - [ ] 1.2.4 Frame checksum over globals and all pools in registration order. Test: equal frames hash equal; a one-byte change changes the hash; the hash does not depend on the order in which EnTT storages were first touched.
