@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.6.11**, the arena pipeline and simulation factory. Last finished: 1.6.10.
+- Next up: **1.7.1**, the double-run test over the arena. Last finished: 1.6.11; task 1.6 is complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 50 |
+| 1 Deterministic simulation core | 7 | 56 | 51 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **65** |
+| **Total** | **31** | **168** | **66** |
 
 ## Charter amendments made while planning
 
@@ -80,6 +80,9 @@ needs from earlier tasks is ticked.
 - Projectiles are swept entities, not Jolt bodies: at 30 m/s a sphere moves half a metre between ticks and
   would pass through a wall unless Jolt ran continuous collision for it, while a sweep from where it was to
   where it is going is exact and needs no body at all. `DESIGN.md` §14 updated. Found in 1.6.5.
+- There is no free `makeArenaPipeline()`: the systems of a game have to outlive the pipeline that points at
+  them, so `ArenaSimulation` owns the systems, the assets and the frame together and puts the pipeline in
+  order itself. A free function would have to be handed the systems anyway. Found in 1.6.11.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -181,7 +184,7 @@ needs from earlier tasks is ticked.
 - [x] 1.6.8 `Died` (verified-only) and `Respawn` system with timer and `Rng` spawn point. Test: death at 0 health, respawn after the timer at a spawn point.
 - [x] 1.6.9 `MatchRules` system: warmup, playing, ended phases; score per slot. Test: a kill increments the score; the match ends at the limit.
 - [x] 1.6.10 Crates pushed by characters (`CharacterVirtual` push settings). Test: walking into a crate moves it.
-- [ ] 1.6.11 `makeArenaPipeline()` and `ArenaSimulation` factory (frame + assets + pipeline). Test: 600 frames of scripted inputs run headless with a stable golden checksum.
+- [x] 1.6.11 `makeArenaPipeline()` and `ArenaSimulation` factory (frame + assets + pipeline). Test: 600 frames of scripted inputs run headless with a stable golden checksum.
 - [x] 1.6.12 (+) The engine checks that a game registered the components it puts on entities itself: `addBody` needs `Transform`, `PhysicsBody` and `BodyDefinition` registered, `addCharacter` needs `CharacterController`, and a game that forgets one loses it from every snapshot without a word. Reason: found in 1.6.1, where the arena registered nothing at all and only a test noticed. Test: the registry answers which names a game registered, and the helpers check the ones they emplace.
 
 ### 1.7 Determinism suite and benchmarks
