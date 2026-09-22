@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.3.1**, `ISystem` and `SystemPipeline`. Last finished: 1.2.6; task 1.2 is complete.
+- Next up: **1.3.1**, `ISystem` and `SystemPipeline`. Last finished: 1.4.1.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 20 |
+| 1 Deterministic simulation core | 7 | 54 | 21 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **35** |
+| **Total** | **31** | **166** | **36** |
 
 ## Charter amendments made while planning
 
@@ -41,6 +41,9 @@ needs from earlier tasks is ticked.
   for computation only. Reason: SIMD alignment padding would enter checksums, and Jolt headers would leak into
   host boundary headers. `DESIGN.md` §6.3 updated.
 - Arena assets are defined in code in v1; loading assets from files is backlog. `DESIGN.md` §14 and §15 updated.
+- `FrameInputs` erases the input to bytes instead of being a template over `Input`. A template would reach
+  `ISystem`, `SystemPipeline` and `Session`, and `DESIGN.md` §7.3 forbids a host module from instantiating a
+  simulation template, which the Unreal plugin would have to do to drive a session. `DESIGN.md` §6.4 updated.
 - EnTT compiles differently with and without exceptions and guards it with `detect_mismatch`, so
   `ENTT_NOEXCEPTION` is defined on its interface target and reaches every consumer, the test executable
   included. Found in 1.2.3, the first time a deterministic library linked EnTT code against the tests.
@@ -128,7 +131,7 @@ needs from earlier tasks is ticked.
 - [ ] 1.3.5 `Frame::advance(inputs)`: `FpEnvGuard`, pipeline, event flush, `frameNumber` increment. Test: the guard is active during systems (checked through a probe system).
 
 ### 1.4 Inputs and assets
-- [ ] 1.4.1 `InputTraits<Input>` (trivially copyable, `sizeof <= 64`) and `FrameInputs<Input>` for up to 8 slots with per-slot flags `Present / Predicted / Dropped`. Test: flags round trip; an oversized input fails the trait.
+- [x] 1.4.1 `InputTraits<Input>` (trivially copyable, free of padding, `sizeof <= 64`) and `FrameInputs`, a plain class holding up to 8 slots erased to bytes with per-slot flags `Present / Predicted / Dropped` and a typed accessor. Test: flags and payload round trip; an oversized input fails the trait; reading a slot as the wrong type breaks a contract.
 - [ ] 1.4.2 `AssetRegistry`: typed tables keyed by `AssetId`, `freeze()`, `get<T>(id)` returning `const T&`, missing id is a hard error, and registering an id that is already taken is a hard error, so a 32-bit name-hash collision cannot pass silently. Test: lookups; mutation after freeze is rejected; a duplicate id is rejected.
 - [ ] 1.4.3 Asset hash over frozen tables, independent of insertion order. Test: two registries with the same content inserted in different order hash equal.
 

@@ -258,6 +258,10 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
   movement as `int8`, look angles as `int16`, buttons as bit flags. Hosts convert analog
   values to these integers; no host float reaches the simulation.
 - `FrameInputs` = one `Input` per player slot plus a per-slot `flags` byte (present / predicted / dropped).
+  It is a plain class, not a template over `Input`: the slots hold the input erased to bytes, and only the
+  accessor is typed. A template would spread through `ISystem`, `SystemPipeline` and `Session`, and §7.3
+  forbids a host module from instantiating simulation templates, which the Unreal plugin would have to do to
+  drive a session. The 64-byte cap on `Input` exists to make the erased slot possible.
 - Prediction policy: repeat the last known input of each remote player.
 
 ### 6.5 Events and signals

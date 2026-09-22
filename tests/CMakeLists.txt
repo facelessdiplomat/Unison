@@ -61,6 +61,7 @@ add_executable(
     sim/entity_lifecycle_test.cpp
     sim/event_buffer_test.cpp
     sim/frame_checksum_test.cpp
+    sim/frame_inputs_test.cpp
     sim/frame_snapshot_test.cpp
     sim/frame_test.cpp
     sim/padding_free_test.cpp
