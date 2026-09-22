@@ -1,4 +1,4 @@
-add_library(arena_sim OBJECT src/apply_input.cpp src/assets.cpp src/character_move.cpp src/components.cpp)
+add_library(arena_sim OBJECT src/apply_input.cpp src/assets.cpp src/character_move.cpp src/components.cpp src/weapons.cpp)
 
 target_include_directories(arena_sim PUBLIC include)
 

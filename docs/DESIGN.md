@@ -617,7 +617,9 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
 
 - **World**: flat floor, static boxes and ramps (Jolt static bodies from asset tables defined in code; file loading is backlog), 4 spawn points.
 - **Players**: capsule `CharacterVirtual`; move, jump, aim yaw, fire.
-- **Projectiles**: kinematic spheres with lifetime; hit → damage event; kill → respawn timer.
+- **Projectiles**: swept spheres with a lifetime, carried as entities rather than as Jolt bodies; each tick a
+  shot sweeps from where it was to where it is going, so a shot at 30 m/s cannot pass through a wall between
+  two ticks. Hit → damage event; kill → respawn timer.
 - **Dynamic props**: a few rigid-body crates that players and projectiles can push.
 - **Components**: `Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`.
 - **Systems** (in order): `ApplyInput`, `CharacterMove`, `Weapons`, `PhysicsStep`, `Hits`, `Lifetime`, `Respawn`, `MatchRules`.

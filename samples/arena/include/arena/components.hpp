@@ -36,11 +36,12 @@ struct Weapon
     std::uint32_t framesUntilReady = 0;
 };
 
-/// A shot in flight: who fired it and what it does to whatever it reaches.
+/// A shot in flight: who fired it, what it does to whatever it reaches, and how fast it is going.
 struct Projectile
 {
     entt::entity firedBy = entt::null;
     std::int32_t damage = 0;
+    unison::Float3 velocity{};
 };
 
 /// How many frames an entity has left before it leaves the world.

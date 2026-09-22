@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.6.5**, the `Weapons` system. Last finished: 1.6.4.
+- Next up: **1.6.6**, the `Hits` system. Last finished: 1.6.5.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 44 |
+| 1 Deterministic simulation core | 7 | 56 | 45 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **59** |
+| **Total** | **31** | **168** | **60** |
 
 ## Charter amendments made while planning
 
@@ -77,6 +77,9 @@ needs from earlier tasks is ticked.
 - A game library is a CMake OBJECT library, not a static one: the translation unit that registers the
   components is pure static initialisation, and a linker drops it out of a static library because nothing
   refers to it. `DESIGN.md` §6.3 updated. Found in 1.6.1, where the arena registered nothing at all.
+- Projectiles are swept entities, not Jolt bodies: at 30 m/s a sphere moves half a metre between ticks and
+  would pass through a wall unless Jolt ran continuous collision for it, while a sweep from where it was to
+  where it is going is exact and needs no body at all. `DESIGN.md` §14 updated. Found in 1.6.5.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -172,7 +175,7 @@ needs from earlier tasks is ticked.
 - [x] 1.6.2 Arena assets in code: floor, walls, ramps, crates, spawn points, player stats, projectile stats. Test: the registry freezes and hashes stably.
 - [x] 1.6.3 `ApplyInput` system: input to desired velocity and yaw on `CharacterState`; quantisation contract stated in the header. Test: full-forward input gives max speed along yaw.
 - [x] 1.6.4 `CharacterMove` system: drives `CharacterController`, jump with ground check, gravity. Test: a jump leaves the ground and lands within the expected frames.
-- [ ] 1.6.5 `Weapons` system: fire button spawns a projectile with cooldown and raises `Fired`. Test: holding fire respects the cooldown; one event ordinal per shot.
+- [x] 1.6.5 `Weapons` system: fire button spawns a projectile with cooldown and raises `Fired`. Test: holding fire respects the cooldown; one event ordinal per shot.
 - [ ] 1.6.6 `Hits` system: projectile sweep, `Health` damage, `Hit` event, projectile destroyed on impact. Test: a projectile hitting a player reduces health exactly once.
 - [ ] 1.6.7 `Lifetime` system: despawn after `ttl` frames. Test: a projectile despawns at frame `spawn + ttl`.
 - [ ] 1.6.8 `Died` (verified-only) and `Respawn` system with timer and `Rng` spawn point. Test: death at 0 health, respawn after the timer at a spawn point.

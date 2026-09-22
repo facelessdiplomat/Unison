@@ -37,6 +37,7 @@ struct PlayerStats
     float gravity = -18.0F;
     float capsuleRadius = 0.3F;
     float capsuleHalfHeight = 0.6F;
+    float eyeHeight = 1.5F;
     std::int32_t maxHealth = 100;
     std::uint32_t respawnFrames = 180;
 };
