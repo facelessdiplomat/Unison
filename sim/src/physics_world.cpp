@@ -216,6 +216,21 @@ Transform PhysicsWorld::transformOf(BodyId id) const
     return Transform{toFloat3(lock.GetBody().GetPosition()), toQuaternion(lock.GetBody().GetRotation())};
 }
 
+void PhysicsWorld::collectBodies(std::vector<BodyId>& bodies) const
+{
+    JPH::BodyIDVector held;
+
+    physicsSystem.GetBodies(held);
+
+    bodies.clear();
+    bodies.reserve(held.size());
+
+    for (const JPH::BodyID& id : held)
+    {
+        bodies.push_back(toBodyId(id));
+    }
+}
+
 void PhysicsWorld::saveState(std::vector<std::byte>& bytes) const
 {
     bytes.clear();

@@ -59,6 +59,9 @@ public:
 
     [[nodiscard]] Transform transformOf(BodyId id) const;
 
+    /// Names every body the world holds, in the order Jolt keeps them.
+    void collectBodies(std::vector<BodyId>& bodies) const;
+
     /// Writes everything Jolt keeps about this world into the bytes, replacing what they held.
     void saveState(std::vector<std::byte>& bytes) const;
 

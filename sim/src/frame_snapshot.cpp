@@ -1,5 +1,6 @@
 #include <unison/sim/frame_snapshot.hpp>
 
+#include <unison/sim/physics_body.hpp>
 #include <unison/sim/registry_clone.hpp>
 
 namespace unison::sim
@@ -17,7 +18,7 @@ void takeSnapshot(const Frame& frame, FrameSnapshot& snapshot)
     frame.physics.saveState(snapshot.physicsState);
 }
 
-void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame)
+void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame, const AssetRegistry& assets)
 {
     frame.frameNumber = snapshot.frameNumber;
     frame.dt = snapshot.dt;
@@ -25,6 +26,8 @@ void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame)
     frame.registry = entt::registry{};
 
     cloneRegistry(snapshot.registry, frame.registry);
+
+    reconcileBodies(frame, assets);
 
     frame.physics.restoreState(snapshot.physicsState);
 }

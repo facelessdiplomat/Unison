@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unison/sim/asset_registry.hpp>
 #include <unison/sim/frame.hpp>
 
 #include <entt/entity/registry.hpp>
@@ -27,6 +28,6 @@ void takeSnapshot(const Frame& frame, FrameSnapshot& snapshot);
 
 /// Returns the frame to the state the snapshot was taken at, discarding everything the frame has
 /// done since. Taking a snapshot and restoring it leaves the frame's checksum unchanged.
-void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame);
+void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame, const AssetRegistry& assets);
 
 }

@@ -26,4 +26,9 @@ void addBody(Frame& frame, const AssetRegistry& assets, entt::entity entity, Ass
 /// handed out again. The entity must have a body.
 void removeBody(Frame& frame, entt::entity entity);
 
+/// Makes the world hold exactly the bodies the registry names, destroying the ones it has lost
+/// track of and building the missing ones again from their definitions. Jolt can only put a saved
+/// state back into the set of bodies it was saved from.
+void reconcileBodies(Frame& frame, const AssetRegistry& assets);
+
 }

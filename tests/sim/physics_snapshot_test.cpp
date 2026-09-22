@@ -37,15 +37,17 @@ void defineArena(unison::sim::AssetRegistry& assets)
     assets.freeze();
 }
 
-void spawn(unison::sim::Frame& frame,
-           const unison::sim::AssetRegistry& assets,
-           unison::AssetId definition,
-           const unison::Float3& position)
+entt::entity spawn(unison::sim::Frame& frame,
+                   const unison::sim::AssetRegistry& assets,
+                   unison::AssetId definition,
+                   const unison::Float3& position)
 {
     const entt::entity entity = frame.registry.create();
 
     frame.registry.emplace<unison::sim::Transform>(entity, position, unison::Quaternion{});
     unison::sim::addBody(frame, assets, entity, definition);
+
+    return entity;
 }
 
 void buildArena(unison::sim::Frame& frame, const unison::sim::AssetRegistry& assets)
@@ -121,7 +123,7 @@ TEST_CASE("a restored frame runs on to the physics it ran to before")
     const std::vector<std::byte> expected = physicsOf(frame);
     const std::uint64_t expectedChecksum = unison::sim::checksumOf(frame);
 
-    unison::sim::restoreSnapshot(snapshot, frame);
+    unison::sim::restoreSnapshot(snapshot, frame, assets);
     run(frame, pipeline, 40);
 
     REQUIRE(physicsOf(frame) == expected);
@@ -151,7 +153,7 @@ TEST_CASE("a restored frame forgets the physics of the ticks it took back")
 
     REQUIRE(physicsOf(frame) != atSnapshot);
 
-    unison::sim::restoreSnapshot(snapshot, frame);
+    unison::sim::restoreSnapshot(snapshot, frame, assets);
 
     REQUIRE(physicsOf(frame) == atSnapshot);
 }
@@ -183,11 +185,75 @@ TEST_CASE("a world that has gone to sleep can be taken back to when it was still
 
     REQUIRE(physicsOf(frame) == asleep);
 
-    unison::sim::restoreSnapshot(snapshot, frame);
+    unison::sim::restoreSnapshot(snapshot, frame, assets);
 
     REQUIRE(physicsOf(frame) == moving);
 
     run(frame, pipeline, 400);
 
     REQUIRE(physicsOf(frame) == asleep);
+}
+
+TEST_CASE("a body created after a snapshot is gone once the snapshot is restored")
+{
+    unison::sim::AssetRegistry assets;
+    defineArena(assets);
+
+    unison::sim::Frame frame;
+    buildArena(frame, assets);
+
+    unison::sim::PhysicsStep physics;
+    unison::sim::SystemPipeline pipeline;
+    pipeline.add(physics);
+
+    run(frame, pipeline, 20);
+
+    unison::sim::FrameSnapshot snapshot;
+    unison::sim::takeSnapshot(frame, snapshot);
+
+    const std::vector<std::byte> atSnapshot = physicsOf(frame);
+    const std::uint32_t countAtSnapshot = frame.physics.bodyCount();
+
+    const entt::entity late = spawn(frame, assets, kCrate, unison::Float3{3.0F, 9.0F, 0.0F});
+    const unison::BodyId lateId = frame.registry.get<unison::sim::PhysicsBody>(late).id;
+
+    run(frame, pipeline, 10);
+    unison::sim::restoreSnapshot(snapshot, frame, assets);
+
+    REQUIRE_FALSE(frame.physics.holdsBody(lateId));
+    REQUIRE(frame.physics.bodyCount() == countAtSnapshot);
+    REQUIRE(physicsOf(frame) == atSnapshot);
+}
+
+TEST_CASE("a body destroyed after a snapshot comes back with the state it had")
+{
+    unison::sim::AssetRegistry assets;
+    defineArena(assets);
+
+    unison::sim::Frame frame;
+    buildArena(frame, assets);
+
+    unison::sim::PhysicsStep physics;
+    unison::sim::SystemPipeline pipeline;
+    pipeline.add(physics);
+
+    const entt::entity doomed = spawn(frame, assets, kCrate, unison::Float3{2.0F, 4.0F, 0.0F});
+
+    run(frame, pipeline, 20);
+
+    unison::sim::FrameSnapshot snapshot;
+    unison::sim::takeSnapshot(frame, snapshot);
+
+    const std::vector<std::byte> atSnapshot = physicsOf(frame);
+    const unison::BodyId doomedId = frame.registry.get<unison::sim::PhysicsBody>(doomed).id;
+
+    unison::sim::removeBody(frame, doomed);
+
+    REQUIRE_FALSE(frame.physics.holdsBody(doomedId));
+
+    run(frame, pipeline, 10);
+    unison::sim::restoreSnapshot(snapshot, frame, assets);
+
+    REQUIRE(frame.physics.holdsBody(doomedId));
+    REQUIRE(physicsOf(frame) == atSnapshot);
 }

@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.5.6**, reconciling the body set before a restore. Last finished: 1.5.5.
+- Next up: **1.5.12**, the body an entity takes with it when it is destroyed; found in 1.5.6 and taken out of board order because it leaks a body and an id. Last finished: 1.5.6.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 32 |
+| 1 Deterministic simulation core | 7 | 55 | 33 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **47** |
+| **Total** | **31** | **167** | **48** |
 
 ## Charter amendments made while planning
 
@@ -147,12 +147,13 @@ needs from earlier tasks is ticked.
 - [x] 1.5.3 `BodyDefinition` asset (shape, size, motion type, layer, friction, restitution) and `PhysicsBody` component; create via `CreateBodyWithID`, destroy on component removal. Test: the body exists with the requested id; a destroyed body is gone and its id is recyclable.
 - [x] 1.5.4 `PhysicsStep` system: step, then write positions and rotations into `Transform` in ECS view order (never `GetActiveBodies`). Test: a dynamic box falls and rests on a static floor; `Transform` follows.
 - [x] 1.5.5 Physics bytes in snapshots via `SaveState` / `RestoreState` with `EStateRecorderState::All`. Test: run A→B and hash; restore A, run to B, hash equal (with sleeping and active bodies).
-- [ ] 1.5.6 Body-set reconciliation before `RestoreState`: destroy bodies absent from the restored registry, recreate missing ones from `PhysicsBody` + `BodyDefinition`. Test: a body created after a snapshot disappears on restore; a body destroyed after a snapshot returns with identical state.
+- [x] 1.5.6 Body-set reconciliation before `RestoreState`: destroy bodies absent from the restored registry, recreate missing ones from `PhysicsBody` + `BodyDefinition`. Test: a body created after a snapshot disappears on restore; a body destroyed after a snapshot returns with identical state.
 - [ ] 1.5.7 Reapply properties Jolt does not record (friction, restitution, motion type) from components on restore. Test: a friction change made after the snapshot is reverted by restore.
 - [ ] 1.5.8 Query wrappers `raycast`, `overlapSphere`, `sweepCapsule` returning hits sorted by `(fraction, BodyID)`. Test: results are sorted regardless of body creation order.
 - [ ] 1.5.9 Contact listener buffering: contacts collected during `step`, sorted by `(BodyID a, BodyID b, sub-shape ids)`, exposed as `ContactEvents` on the frame. Test: two overlapping bodies yield exactly one ordered pair.
 - [ ] 1.5.10 `CharacterController` over `CharacterVirtual`: component holds position, velocity and ground state; explicit save/restore because it lives outside `PhysicsSystem` state. Test: walks on the floor, stops at a wall, snapshot/restore round trip is exact.
 - [ ] 1.5.11 Physics determinism test: 50 dynamic boxes for 600 frames, double run equal checksums, plus a golden checksum shared by Debug and Release.
+- [ ] 1.5.12 (+) `destroyEntity` takes the body of the entity with it: an entity destroyed with a `PhysicsBody` leaves its Jolt body and its id behind until the next reconciliation. Reason: found in 1.5.6, where reconciliation made the leak visible. Test: destroying an entity with a body leaves the world empty and hands the id back.
 
 ### 1.6 Arena sample simulation (`arena_sim`)
 - [ ] 1.6.1 Components (`Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`) registered; `ArenaInput{moveX, moveY, yaw, buttons}`. Test: all trivially copyable; `sizeof(ArenaInput) <= 8`.
