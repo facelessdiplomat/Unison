@@ -58,6 +58,7 @@ add_executable(
     net/enet_smoke_test.cpp
     sim/component_registry_test.cpp
     sim/entt_smoke_test.cpp
+    sim/entity_lifecycle_test.cpp
     sim/event_buffer_test.cpp
     sim/frame_checksum_test.cpp
     sim/frame_snapshot_test.cpp
