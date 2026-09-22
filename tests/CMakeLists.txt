@@ -110,7 +110,7 @@ add_executable(
     arena/arena_simulation_test.cpp arena/assets_test.cpp
     arena/character_move_test.cpp arena/components_test.cpp arena/crates_test.cpp arena/determinism_test.cpp arena/golden_test.cpp
     arena/hits_test.cpp arena/lifetimes_test.cpp
-    arena/match_rules_test.cpp arena/respawn_test.cpp arena/shot_path_test.cpp arena/weapons_test.cpp
+    arena/match_rules_test.cpp arena/respawn_test.cpp arena/rollback_test.cpp arena/shot_path_test.cpp arena/weapons_test.cpp
 )
 
 target_include_directories(unison_tests_arena PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
