@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.5.1**, `PhysicsWorld` construction. Last finished: 1.4.3; task 1.4 is complete.
+- Next up: **1.5.2**, `BodyIdAllocator` in `Globals`. Last finished: 1.5.1.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 27 |
+| 1 Deterministic simulation core | 7 | 54 | 28 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **42** |
+| **Total** | **31** | **166** | **43** |
 
 ## Charter amendments made while planning
 
@@ -59,6 +59,9 @@ needs from earlier tasks is ticked.
 - Engine-wide conventions added as `DESIGN.md` §5.3: Jolt-native units and axes, three-tier error policy
   (`UNISON_ASSERT` / `UNISON_VERIFY` / `tl::expected`), little-endian encoding, single simulation thread (D32, D34).
 - Work rhythm: stop after every micro-task, report, wait for the owner (D33). Reflected in `CLAUDE.md`.
+- Jolt keeps its allocator, its factory and its type list in globals and offers nothing to inject, so
+  `JoltRuntime` counts the scopes that need them and registers once for the first. It is the second bounded
+  exception to `CLAUDE.md` 4 after `LogSink`. `DESIGN.md` §5.3 and §6.7 updated. Found in 1.5.1.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -136,7 +139,7 @@ needs from earlier tasks is ticked.
 - [x] 1.4.3 Asset hash over frozen tables, independent of insertion order. Test: two registries with the same content inserted in different order hash equal.
 
 ### 1.5 Physics world (Jolt wrapper)
-- [ ] 1.5.1 `PhysicsWorld` construction: allocator, factory, type registration, `JobSystemSingleThreaded`, broadphase and object layers, `step(dt)`. Test: an empty world steps 100 times.
+- [x] 1.5.1 `PhysicsWorld` construction: allocator, factory, type registration, `JobSystemSingleThreaded`, broadphase and object layers, `step(dt)`. Test: an empty world steps 100 times.
 - [ ] 1.5.2 `BodyIdAllocator` in `Globals`: deterministic index + sequence allocation with recycling. Test: golden id sequence; released ids are reused with an incremented sequence.
 - [ ] 1.5.3 `BodyDefinition` asset (shape, size, motion type, layer, friction, restitution) and `PhysicsBody` component; create via `CreateBodyWithID`, destroy on component removal. Test: the body exists with the requested id; a destroyed body is gone and its id is recyclable.
 - [ ] 1.5.4 `PhysicsStep` system: step, then write positions and rotations into `Transform` in ECS view order (never `GetActiveBodies`). Test: a dynamic box falls and rests on a static floor; `Transform` follows.

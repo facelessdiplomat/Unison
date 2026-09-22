@@ -67,13 +67,16 @@ add_executable(
     sim/frame_inputs_test.cpp
     sim/frame_snapshot_test.cpp
     sim/frame_test.cpp
+    sim/jolt_runtime_test.cpp
+    sim/jolt_smoke_test.cpp
     sim/padding_free_test.cpp
+    sim/physics_layers_test.cpp
+    sim/physics_world_test.cpp
     sim/pipeline_hash_test.cpp
     sim/registry_clone_test.cpp
     sim/signals_test.cpp
     sim/system_pipeline_test.cpp
     support/test_components.cpp
-    sim/jolt_smoke_test.cpp
 )
 
 target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")

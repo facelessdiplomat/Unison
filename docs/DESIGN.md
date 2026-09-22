@@ -195,11 +195,17 @@ state freely; they never mutate it except through `Session` inputs.
     `tl::expected<T, Error>`. Simulation code never returns errors: an invalid state is a contract violation.
 - **Encoding**: little-endian byte order (v1 targets x64 only), `uint32_t` frame numbers, `uint8_t` slot ids,
   `uint32_t` entity ids at the host boundary.
-- **Logging**: `LogSink` is a process-wide callback and is the one piece of global mutable state the
+- **Logging**: `LogSink` is a process-wide callback and is one of the two pieces of global mutable state the
   engine allows. It exists because `UNISON_VERIFY` is a macro and cannot take an injected dependency, and
   because a host installs one sink for the whole process. The exception is bounded: the sink is write-only
   from the simulation's side, nothing in a deterministic library reads it back, and no simulation result
-  depends on whether a sink is installed. Everything else keeps the constructor injection of `CLAUDE.md` 4.
+  depends on whether a sink is installed.
+- **Jolt's process-wide registration**: Jolt keeps its allocator, its factory and its type list in globals of
+  its own and offers nothing to inject, so `JoltRuntime` counts the scopes that need them, registers for the
+  first and unregisters after the last. It is the second piece of global mutable state the engine allows.
+  The exception is bounded: the registration is installed before any body exists, no deterministic library
+  reads it back, the counter changes only on the simulation thread, and no simulation result depends on it.
+  Everything else keeps the constructor injection of `CLAUDE.md` 4.
 - **Threading**: the simulation runs on one thread chosen by the host (the game thread in Unreal). Unison never
   creates threads inside deterministic libraries.
 
@@ -287,6 +293,12 @@ the same session.
 
 `PhysicsWorld` wraps a Jolt `PhysicsSystem` with rules that keep it rollback-safe:
 
+- **Process-wide setup is scoped.** Every `PhysicsWorld` holds a `JoltRuntime`, which installs Jolt's
+  allocator, factory and type list for the first world and removes them after the last one is gone,
+  so several worlds may exist at once (§5.3). A world also owns its own fixed scratch block and
+  single-threaded job system; the limits it is built with are `PhysicsWorldSettings`.
+- **Two object layers, `Static` and `Moving`**, each with a broad phase tree of its own. Two static
+  bodies never collide, which keeps the pairs that cannot move out of the broad phase.
 - **Body lifecycle is owned by the ECS.** A `PhysicsBody` component holds the `JPH::BodyID`
   and an `AssetId` for the shape/settings. Bodies are created with `CreateBodyWithID` using
   ids assigned by the simulation (index + sequence stored in frame globals), so recreated
@@ -304,7 +316,8 @@ the same session.
 - **Character movement** uses Jolt's `CharacterVirtual` (kinematic, deterministic), whose
   state is also stored in components and restored explicitly.
 - **Single-threaded** Jolt job system in v1 (`JobSystemSingleThreaded`). Multi-threaded stepping
-  is evaluated in Phase 6 only after a determinism test proves it identical.
+  is evaluated in Phase 6 only after a determinism test proves it identical. The body mutex count is
+  pinned to one rather than auto-detected, which would derive it from the core count of the machine.
 - Jolt is built with `CROSS_PLATFORM_DETERMINISTIC=ON` (≈8 % slower), exceptions off, RTTI off.
 
 ---
