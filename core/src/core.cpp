@@ -11,5 +11,6 @@
 #include <unison/core/math.hpp>
 #include <unison/core/quaternion.hpp>
 #include <unison/core/raw_value.hpp>
+#include <unison/core/rng.hpp>
 
 #include <xxhash.h>
