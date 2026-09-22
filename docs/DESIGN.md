@@ -311,10 +311,12 @@ checklists, and by the tests in Section 11.
   given, so `determinism_guard.hpp` rejects that case too and no library rests on a compiler default.
 - A single, fixed `/arch:` baseline for all deterministic libraries and for Jolt (default: SSE2;
   AVX2 only if a benchmark proves it is needed, in which case all libraries move together).
-- Exceptions off, RTTI off (matches Unreal's defaults; EnTT and Jolt support both). `/EHs-c-` alone is not
+- Exceptions off, RTTI off (matches Unreal's defaults; EnTT and Jolt support both), applied to every Unison
+  target by `unison_apply_language_subset`, not only to the deterministic ones. `/EHs-c-` alone is not
   enough on MSVC: the STL keeps emitting `try`/`catch` that cannot unwind unless `_HAS_EXCEPTIONS=0` is
   defined as well, and Jolt defines it for itself, so a target without it also disagrees with Jolt.
-  `unison_apply_determinism` applies both together.
+  `unison_apply_determinism` adds the floating-point half on top. The test executable is the one target that
+  declares exceptions on, because Catch2 needs them; `tests/cmake/module_determinism` asserts each choice.
 - `/W4 /WX` for our own code.
 - Future Clang/GCC ports: `-ffp-model=precise -ffp-contract=off`, no `-ffast-math`,
   `-fexcess-precision=standard`.

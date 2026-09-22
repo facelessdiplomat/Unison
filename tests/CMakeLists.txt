@@ -60,6 +60,8 @@ add_executable(
 
 target_link_libraries(unison_tests_fast PRIVATE unison_net unison_sim Catch2::Catch2WithMain)
 
+target_compile_options(unison_tests_fast PRIVATE /EHsc)
+
 catch_discover_tests(unison_tests_fast PROPERTIES LABELS fast)
 
 add_library(unison_core_header_check OBJECT compile/core_headers.cpp)

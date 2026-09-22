@@ -4,4 +4,6 @@ target_include_directories(unison_net PUBLIC include)
 
 target_link_libraries(unison_net PUBLIC unison_core enet)
 
+unison_apply_language_subset(unison_net)
+
 unison_apply_warnings(unison_net)
