@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
+if(NOT DEFINED UNISON_INSTRUCTION_SET)
+    message(FATAL_ERROR "UNISON_INSTRUCTION_SET is not set")
+endif()
+
 if(NOT DEFINED UNISON_BUILD_DIR)
     message(FATAL_ERROR "UNISON_BUILD_DIR is not set")
 endif()
@@ -33,7 +37,7 @@ foreach(entryIndex RANGE ${lastEntry})
     if(entryFile MATCHES "joltphysics")
         set(joltSeen TRUE)
 
-        foreach(flag IN ITEMS "/fp:precise" "/arch:SSE2")
+        foreach(flag IN ITEMS "/fp:precise" "/arch:${UNISON_INSTRUCTION_SET}")
             if(NOT entryCommand MATCHES "${flag}")
                 message(FATAL_ERROR "jolt is built without ${flag}")
             endif()
@@ -127,4 +131,4 @@ if(NOT testExecutableSeen)
     message(FATAL_ERROR "no compile command for the test executable")
 endif()
 
-message(STATUS "determinism applied to ${deterministicModules} and jolt, kept off ${plainModules}")
+message(STATUS "determinism applied to ${deterministicModules} and jolt for ${UNISON_INSTRUCTION_SET}, kept off ${plainModules}")

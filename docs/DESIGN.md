@@ -686,7 +686,7 @@ for 16+ players; frame-local heap allocator; asset loading from files.
 | # | Question | Decide by |
 |---|----------|-----------|
 | Q1 | Snapshot ring (single live frame) vs Quantum-style verified + predicted frames | Phase 2 benchmark |
-| Q2 | SSE2 vs AVX2 baseline for deterministic libraries | Phase 1 benchmark |
+| Q2 | SSE2 vs AVX2 baseline for deterministic libraries | Answered 2026-09-22 from measured numbers: SSE2 stays. Building everything for AVX2, our libraries and Jolt together, settles on the same golden checksums for the physics pile and for the scripted arena, so the determinism contract does not rest on the instruction set. It buys 6 % on a tick and nothing on snapshots or restores, while a binary that needs AVX2 cannot run on a machine without it, so shipping it would mean shipping two. Re-run the comparison with `-DUNISON_INSTRUCTION_SET=AVX2`. |
 | Q3 | FTXUI vs plain console output for `unison_console` | Phase 3 |
 | Q4 | Jolt multithreaded stepping inside the simulation | Phase 6 |
 | Q5 | UE version and whether to support UE's Linux server target | Version answered 2026-09-21: UE 5.8 is installed (Visual Studio 18, MSVC 14.51); toolchain compatibility is confirmed in task 5.1.4. The Linux server target stays open until Phase 5. |

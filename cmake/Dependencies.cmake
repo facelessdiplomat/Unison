@@ -25,6 +25,16 @@ CPMAddPackage(NAME EnTT GITHUB_REPOSITORY skypjack/entt VERSION 3.16.0)
 
 target_compile_definitions(EnTT INTERFACE ENTT_NOEXCEPTION)
 
+if(UNISON_INSTRUCTION_SET STREQUAL "AVX2")
+    set(joltInstructionSet "USE_SSE4_1 ON" "USE_SSE4_2 ON" "USE_AVX ON" "USE_AVX2 ON" "USE_LZCNT ON"
+                           "USE_TZCNT ON" "USE_F16C ON" "USE_FMADD OFF"
+    )
+else()
+    set(joltInstructionSet "USE_SSE4_1 OFF" "USE_SSE4_2 OFF" "USE_AVX OFF" "USE_AVX2 OFF" "USE_LZCNT OFF"
+                           "USE_TZCNT OFF" "USE_F16C OFF" "USE_FMADD OFF"
+    )
+endif()
+
 CPMAddPackage(
     NAME JoltPhysics
     GITHUB_REPOSITORY jrouwe/JoltPhysics
@@ -41,15 +51,8 @@ CPMAddPackage(
             "ENABLE_INSTALL OFF"
             "INTERPROCEDURAL_OPTIMIZATION OFF"
             "FLOATING_POINT_EXCEPTIONS_ENABLED OFF"
-            "USE_SSE4_1 OFF"
-            "USE_SSE4_2 OFF"
-            "USE_AVX OFF"
-            "USE_AVX2 OFF"
-            "USE_LZCNT OFF"
-            "USE_TZCNT OFF"
-            "USE_F16C OFF"
-            "USE_FMADD OFF"
             "USE_STATIC_MSVC_RUNTIME_LIBRARY OFF"
+            ${joltInstructionSet}
 )
 
 unison_apply_determinism(Jolt)

@@ -34,3 +34,21 @@ Catch2 cases in their own executable, built by every build and run on purpose.
 - Checksumming is 3.9 µs because it saves the physics state to hash it. Section 8.5 of the charter
   checksums every verified frame in tools and tests and every twentieth in a session, so this is
   affordable as it stands.
+
+## SSE2 against AVX2, 2026-09-22
+
+The same scene and the same build type, configured with `-DUNISON_INSTRUCTION_SET=AVX2`, which moves our
+deterministic libraries and Jolt together. Every test passes in both, and both settle on the same golden
+checksums, so what follows is only about speed.
+
+| What | SSE2 | AVX2 | Difference |
+|------|------|------|------------|
+| One tick | 5.15 µs | 4.81 µs | −6 % |
+| Taking a snapshot | 20.9 µs | 20.9 µs | none |
+| Restoring a snapshot | 22.0 µs | 22.0 µs | none |
+| Checksumming a frame | 3.92 µs | 3.86 µs | −2 % |
+| Resimulating ten frames after a rollback | 87.3 µs | 84.1 µs | −4 % |
+
+Six per cent of five microseconds against a frame of 16.7 ms is not worth a binary that refuses to start on
+a machine without AVX2, so SSE2 stays the baseline. That the checksums agree is worth more than the speed:
+it says the determinism contract is doing the work, not the instruction set.

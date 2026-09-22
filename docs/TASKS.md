@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.7.5**, the SSE2 against AVX2 run. Last finished: 1.7.4.
+- Next up: **2.1.1**, the snapshot ring. Last finished: 1.7.5; task 1.7 and the whole of phase 1 are complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 55 |
+| 1 Deterministic simulation core | 7 | 56 | 56 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **70** |
+| **Total** | **31** | **168** | **71** |
 
 ## Charter amendments made while planning
 
@@ -119,10 +119,10 @@ needs from earlier tasks is ticked.
 ## Phase 1 — Deterministic simulation core
 
 **Exit criteria**
-- [ ] Determinism checks 1–3 of `DESIGN.md` §7.4 pass on the Arena sample.
-- [ ] The golden checksum file for the Arena scripted run is committed and matches in Debug and Release.
-- [ ] Benchmarks for tick, snapshot, restore and checksum have baselines in `tests/benchmarks/baseline.md`.
-- [ ] Open question Q2 (SSE2 vs AVX2) is answered in `DESIGN.md` from measured numbers.
+- [x] Determinism checks 1–3 of `DESIGN.md` §7.4 pass on the Arena sample.
+- [x] The golden checksum file for the Arena scripted run is committed and matches in Debug and Release.
+- [x] Benchmarks for tick, snapshot, restore and checksum have baselines in `tests/benchmarks/baseline.md`.
+- [x] Open question Q2 (SSE2 vs AVX2) is answered in `DESIGN.md` from measured numbers.
 
 ### 1.1 Core primitives (`unison_core`)
 - [x] 1.1.1 `FixedVector<T, N>`: push, pop, size, index, iteration, `clear`, full-capacity assert; trivially copyable when `T` is. Test: behaviour cases plus `std::is_trivially_copyable_v`.
@@ -192,7 +192,7 @@ needs from earlier tasks is ticked.
 - [x] 1.7.2 Golden checksum file `tests/golden/arena_scripted.checksums`; the test compares every 10th frame; the same file is used by Debug and Release.
 - [x] 1.7.3 Snapshot/restore exactness over the Arena at 20 random frames.
 - [x] 1.7.4 Catch2 benchmarks: tick, `takeSnapshot`, `restoreSnapshot`, checksum, 10-frame resimulation; baselines recorded in `tests/benchmarks/baseline.md`.
-- [ ] 1.7.5 SSE2 vs AVX2 comparison run; Q2 answered in `DESIGN.md`.
+- [x] 1.7.5 SSE2 vs AVX2 comparison run; Q2 answered in `DESIGN.md`.
 
 ---
 

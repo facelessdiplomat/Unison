@@ -30,8 +30,10 @@ set_tests_properties(determinism_guard PROPERTIES LABELS slow)
 
 add_test(
     NAME module_determinism
-    COMMAND ${CMAKE_COMMAND} -D "UNISON_BUILD_DIR=${CMAKE_BINARY_DIR}" -P
-            "${CMAKE_CURRENT_LIST_DIR}/cmake/module_determinism/verify.cmake"
+    COMMAND
+        ${CMAKE_COMMAND} -D "UNISON_BUILD_DIR=${CMAKE_BINARY_DIR}" -D
+        "UNISON_INSTRUCTION_SET=${UNISON_INSTRUCTION_SET}" -P
+        "${CMAKE_CURRENT_LIST_DIR}/cmake/module_determinism/verify.cmake"
 )
 
 set_tests_properties(module_determinism PROPERTIES LABELS slow)
