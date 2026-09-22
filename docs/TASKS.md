@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.7**, `AssetId`. Last finished: 1.1.6.
+- Next up: **1.1.8**, POD math storage types `Float3` / `Quaternion`. Last finished: 1.1.7.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 53 | 6 |
+| 1 Deterministic simulation core | 7 | 53 | 7 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **165** | **21** |
+| **Total** | **31** | **165** | **22** |
 
 ## Charter amendments made while planning
 
@@ -92,7 +92,7 @@ needs from earlier tasks is ticked.
 - [x] 1.1.4 `BinaryWriter` / `BinaryReader`: POD values, spans, strings, bounds-checked reads that report failure instead of undefined behaviour. Test: round trip of every supported type; a truncated buffer fails cleanly.
 - [x] 1.1.5 `FpEnvGuard`: sets MXCSR to round-to-nearest with denormals enabled, restores on scope exit. Test: with FTZ set outside, a denormal survives inside the guard and FTZ is back afterwards.
 - [x] 1.1.6 `LogSink`: process-wide callback with levels; silent when unset. Test: the sink receives level and message.
-- [ ] 1.1.7 `AssetId`: `constexpr` 32-bit hash of a name, usable as a non-type template argument and in `switch`. Test: a fixed name gives a fixed id; distinct names differ.
+- [x] 1.1.7 `AssetId`: `constexpr` 32-bit hash of a name, usable as a non-type template argument and in `switch`. Test: a fixed name gives a fixed id; distinct names differ.
 - [ ] 1.1.8 POD math storage types `Float3`, `Quaternion` (plain floats, natural alignment) with conversions to and from `JPH::Vec3` / `JPH::Quat`. Test: round trip is bit-exact; `sizeof(Float3) == 12`.
 - [ ] 1.1.9 Deterministic scalar facade `unison::math` (`sin`, `cos`, `atan2`, `sqrt`, `clamp`, `lerp` written without FMA) backed by Jolt's implementations. Test: golden bit patterns for a fixed input table.
 - [ ] 1.1.10 `Rng` (xoshiro256**): seed, `nextUint32`, `nextFloat01`, `nextInRange`. Test: golden sequence for seed 42; state is trivially copyable.
@@ -116,7 +116,7 @@ needs from earlier tasks is ticked.
 
 ### 1.4 Inputs and assets
 - [ ] 1.4.1 `InputTraits<Input>` (trivially copyable, `sizeof <= 64`) and `FrameInputs<Input>` for up to 8 slots with per-slot flags `Present / Predicted / Dropped`. Test: flags round trip; an oversized input fails the trait.
-- [ ] 1.4.2 `AssetRegistry`: typed tables keyed by `AssetId`, `freeze()`, `get<T>(id)` returning `const T&`, missing id is a hard error. Test: lookups; mutation after freeze is rejected.
+- [ ] 1.4.2 `AssetRegistry`: typed tables keyed by `AssetId`, `freeze()`, `get<T>(id)` returning `const T&`, missing id is a hard error, and registering an id that is already taken is a hard error, so a 32-bit name-hash collision cannot pass silently. Test: lookups; mutation after freeze is rejected; a duplicate id is rejected.
 - [ ] 1.4.3 Asset hash over frozen tables, independent of insertion order. Test: two registries with the same content inserted in different order hash equal.
 
 ### 1.5 Physics world (Jolt wrapper)

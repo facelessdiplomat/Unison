@@ -40,6 +40,7 @@ include(Catch)
 
 add_executable(
     unison_tests_fast
+    core/asset_id_test.cpp
     core/binary_io_test.cpp
     core/fixed_string_test.cpp
     core/fixed_vector_test.cpp

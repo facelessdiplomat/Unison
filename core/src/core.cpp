@@ -1,3 +1,4 @@
+#include <unison/core/asset_id.hpp>
 #include <unison/core/binary_reader.hpp>
 #include <unison/core/binary_writer.hpp>
 #include <unison/core/determinism_guard.hpp>
