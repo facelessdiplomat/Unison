@@ -24,7 +24,22 @@ struct Hit
     unison::Float3 at{};
 };
 
+/// A player ran out of health, and who took the last of it.
+struct Died
+{
+    entt::entity player = entt::null;
+    entt::entity killedBy = entt::null;
+};
+
+/// A player came back into the match.
+struct Respawned
+{
+    entt::entity player = entt::null;
+};
+
 }
 
 UNISON_EVENT(arena::Fired, unison::sim::EventKind::Predicted);
 UNISON_EVENT(arena::Hit, unison::sim::EventKind::Predicted);
+UNISON_EVENT(arena::Died, unison::sim::EventKind::VerifiedOnly);
+UNISON_EVENT(arena::Respawned, unison::sim::EventKind::VerifiedOnly);

@@ -118,9 +118,13 @@ void Hits::update(unison::sim::Frame& frame, const unison::sim::FrameInputs&)
     {
         if (hit.target != entt::null)
         {
-            frame.registry.get<Health>(hit.target).points -= frame.registry.get<Projectile>(hit.shot).damage;
-            frame.events.raise(frame.frameNumber,
-                               Hit{hit.shot, hit.target, frame.registry.get<Projectile>(hit.shot).firedBy, hit.at});
+            const Projectile& shot = frame.registry.get<Projectile>(hit.shot);
+            Health& health = frame.registry.get<Health>(hit.target);
+
+            health.points -= shot.damage;
+            health.lastHitBy = shot.firedBy;
+
+            frame.events.raise(frame.frameNumber, Hit{hit.shot, hit.target, shot.firedBy, hit.at});
         }
 
         unison::sim::destroyEntity(frame, hit.shot);

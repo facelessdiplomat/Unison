@@ -24,10 +24,12 @@ struct CharacterState
     float verticalSpeed = 0.0F;
 };
 
-/// How much damage a character can still take before it dies.
+/// How much damage a character can still take before it dies, and who last took some off them, so
+/// that a death can name the player who caused it.
 struct Health
 {
     std::int32_t points = 100;
+    entt::entity lastHitBy = entt::null;
 };
 
 /// The weapon a player carries and how long until it can fire again.

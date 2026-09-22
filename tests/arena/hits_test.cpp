@@ -5,6 +5,7 @@
 #include <arena/assets.hpp>
 #include <arena/components.hpp>
 #include <arena/events.hpp>
+#include <arena/respawn.hpp>
 #include <unison/sim/advance_frame.hpp>
 #include <unison/sim/body_definition.hpp>
 #include <unison/sim/character_lifecycle.hpp>
@@ -14,6 +15,7 @@
 #include <entt/entity/registry.hpp>
 
 #include <cstddef>
+#include <cstdint>
 
 namespace
 {
@@ -25,7 +27,9 @@ entt::entity standPlayer(unison::sim::Frame& frame, const arena::PlayerStats& st
     const entt::entity entity = frame.registry.create();
 
     frame.registry.emplace<unison::sim::Transform>(entity, at, unison::Quaternion{});
-    frame.registry.emplace<arena::Health>(entity, stats.maxHealth);
+    frame.registry.emplace<arena::Health>(entity, stats.maxHealth, entt::null);
+    frame.registry.emplace<arena::PlayerSlot>(entity, std::uint8_t{0});
+    frame.registry.emplace<arena::CharacterState>(entity);
 
     unison::sim::CharacterController capsule;
     capsule.radius = stats.capsuleRadius;
@@ -228,4 +232,47 @@ TEST_CASE("a shot that reaches a player tells the view where it reached them")
     REQUIRE(reported.shot == flying);
     REQUIRE(reported.at.x > 1.0F);
     REQUIRE(reported.at.x < 3.0F);
+}
+
+TEST_CASE("a player shot to death names their killer")
+{
+    unison::sim::AssetRegistry assets;
+    arena::defineArena(assets);
+
+    const arena::PlayerStats& player = assets.get<arena::PlayerStats>(arena::kPlayerStats);
+    const arena::ProjectileStats& shot = assets.get<arena::ProjectileStats>(arena::kProjectileStats);
+
+    arena::Hits hits{assets};
+    arena::Respawn respawn{assets};
+    unison::sim::SystemPipeline pipeline;
+    pipeline.add(hits);
+    pipeline.add(respawn);
+
+    unison::sim::Frame frame;
+    frame.dt = kTickSeconds;
+
+    const entt::entity shooter = standPlayer(frame, player, unison::Float3{0.0F, 0.0F, 0.0F});
+    const entt::entity target = standPlayer(frame, player, unison::Float3{3.0F, 0.0F, 0.0F});
+
+    frame.registry.get<arena::Health>(target) = arena::Health{shot.damage, entt::null};
+
+    fire(frame, shot, shooter, unison::Float3{0.5F, 1.0F, 0.0F}, unison::Float3{1.0F, 0.0F, 0.0F});
+
+    arena::Died died;
+
+    for (int tick = 0; tick < 30; ++tick)
+    {
+        unison::sim::advanceFrame(frame, pipeline, unison::sim::FrameInputs{});
+
+        for (std::size_t index = 0; index < frame.events.size(); ++index)
+        {
+            if (frame.events.keyAt(index).typeId == unison::sim::EventTraits<arena::Died>::typeId)
+            {
+                died = frame.events.payloadAt<arena::Died>(index);
+            }
+        }
+    }
+
+    REQUIRE(died.player == target);
+    REQUIRE(died.killedBy == shooter);
 }
