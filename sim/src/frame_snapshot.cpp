@@ -1,5 +1,6 @@
 #include <unison/sim/frame_snapshot.hpp>
 
+#include <unison/sim/character_lifecycle.hpp>
 #include <unison/sim/physics_body.hpp>
 #include <unison/sim/registry_clone.hpp>
 
@@ -28,6 +29,7 @@ void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame)
     cloneRegistry(snapshot.registry, frame.registry);
 
     reconcileBodies(frame);
+    reconcileCharacters(frame);
 
     frame.physics.restoreState(snapshot.physicsState);
 }

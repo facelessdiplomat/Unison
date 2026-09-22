@@ -1,6 +1,7 @@
 #include <unison/sim/entity_lifecycle.hpp>
 
 #include <unison/sim/body_definition.hpp>
+#include <unison/sim/character_lifecycle.hpp>
 #include <unison/sim/physics_body.hpp>
 #include <unison/sim/transform.hpp>
 
@@ -98,5 +99,21 @@ TEST_CASE("an entity destroyed through the frame takes its body with it")
 
     REQUIRE(frame.physics.bodyCount() == 0U);
     REQUIRE_FALSE(frame.physics.holdsBody(id));
+    REQUIRE(frame.globals.bodyIds.allocate() == unison::makeBodyId(unison::bodyIndexOf(id), 1U));
+}
+
+TEST_CASE("an entity destroyed through the frame takes its character with it")
+{
+    unison::sim::Frame frame;
+
+    const entt::entity entity = unison::sim::createEntity(frame);
+    frame.registry.emplace<unison::sim::Transform>(entity, unison::Float3{0.0F, 2.0F, 0.0F}, unison::Quaternion{});
+    unison::sim::addCharacter(frame, entity);
+
+    const unison::BodyId id = frame.registry.get<unison::sim::CharacterController>(entity).id;
+
+    unison::sim::destroyEntity(frame, entity);
+
+    REQUIRE_FALSE(frame.physics.characters().holds(id));
     REQUIRE(frame.globals.bodyIds.allocate() == unison::makeBodyId(unison::bodyIndexOf(id), 1U));
 }

@@ -193,7 +193,8 @@ JPH::EActivation activationOf(BodyMotion motion)
 }
 
 PhysicsWorld::PhysicsWorld(const PhysicsWorldSettings& settings)
-    : runtime{}, scratchAllocator{settings.scratchBytes}, jobSystem{JPH::cMaxPhysicsJobs}
+    : runtime{}, scratchAllocator{settings.scratchBytes}, jobSystem{JPH::cMaxPhysicsJobs},
+      characterTable{physicsSystem, scratchAllocator}
 {
     physicsSystem.Init(kMaxBodies,
                        kBodyMutexCountForOneThread,
@@ -219,6 +220,16 @@ void PhysicsWorld::step(float dt)
     contactCollector.sort();
 
     UNISON_VERIFY(error == JPH::EPhysicsUpdateError::None);
+}
+
+CharacterTable& PhysicsWorld::characters()
+{
+    return characterTable;
+}
+
+const CharacterTable& PhysicsWorld::characters() const
+{
+    return characterTable;
 }
 
 std::span<const Contact> PhysicsWorld::contacts() const
@@ -423,6 +434,7 @@ void PhysicsWorld::saveState(std::vector<std::byte>& bytes) const
     VectorStateRecorder recorder{bytes};
 
     physicsSystem.SaveState(recorder, JPH::EStateRecorderState::All);
+    characterTable.saveState(recorder);
 
     UNISON_VERIFY(!recorder.IsFailed());
 }
@@ -435,6 +447,8 @@ void PhysicsWorld::restoreState(std::span<const std::byte> bytes)
     contactCollector.clear();
 
     const bool restored = physicsSystem.RestoreState(recorder);
+
+    characterTable.restoreState(recorder);
 
     UNISON_VERIFY(restored);
     UNISON_VERIFY(!recorder.IsFailed());

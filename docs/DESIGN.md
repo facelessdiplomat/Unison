@@ -326,8 +326,13 @@ the same session.
   Jolt reported it. The list holds what the last step found, is emptied when a step begins and when a
   state is restored, and is derived rather than frame state, so it is neither snapshotted nor hashed.
   Listener callbacks may run on multiple threads inside Jolt.
-- **Character movement** uses Jolt's `CharacterVirtual` (kinematic, deterministic), whose
-  state is also stored in components and restored explicitly.
+- **Character movement** uses Jolt's `CharacterVirtual` (kinematic, deterministic). A character is not
+  a body and its state is not in what `PhysicsSystem::SaveState` writes, so `CharacterTable` saves and
+  restores each character itself, in id order, straight after the body state in the same buffer. A
+  character draws its id from the same allocator bodies do and that id is given to Jolt as the
+  `CharacterID`, because the one Jolt would pick comes from a process-wide counter. The gameplay side
+  of a character — the capsule, the velocity and the ground under it — travels in a component, and
+  `PhysicsStep` moves the characters before it steps the bodies and writes the result back.
 - **Single-threaded** Jolt job system in v1 (`JobSystemSingleThreaded`). Multi-threaded stepping
   is evaluated in Phase 6 only after a determinism test proves it identical. The body mutex count is
   pinned to one rather than auto-detected, which would derive it from the core count of the machine.

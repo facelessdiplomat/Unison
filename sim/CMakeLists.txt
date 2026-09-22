@@ -4,6 +4,8 @@ add_library(
     src/asset_hash.cpp
     src/asset_registry.cpp
     src/body_id_allocator.cpp
+    src/character_lifecycle.cpp
+    src/character_table.cpp
     src/component_registry.cpp
     src/entity_lifecycle.cpp
     src/event_buffer.cpp

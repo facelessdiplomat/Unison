@@ -3,6 +3,7 @@
 #include <unison/core/body_id.hpp>
 #include <unison/core/float3.hpp>
 #include <unison/sim/body_definition.hpp>
+#include <unison/sim/character_table.hpp>
 #include <unison/sim/contact.hpp>
 #include <unison/sim/jolt_contacts.hpp>
 #include <unison/sim/jolt_layers.hpp>
@@ -69,6 +70,10 @@ public:
 
     [[nodiscard]] Transform transformOf(BodyId id) const;
 
+    [[nodiscard]] CharacterTable& characters();
+
+    [[nodiscard]] const CharacterTable& characters() const;
+
     /// The bodies that touched during the last step, in body order.
     [[nodiscard]] std::span<const Contact> contacts() const;
 
@@ -115,6 +120,7 @@ private:
     JPH::JobSystemSingleThreaded jobSystem;
     ContactCollector contactCollector;
     JPH::PhysicsSystem physicsSystem;
+    CharacterTable characterTable;
 };
 
 }

@@ -1,6 +1,7 @@
 #include <unison/sim/entity_lifecycle.hpp>
 
 #include <unison/core/contract.hpp>
+#include <unison/sim/character_lifecycle.hpp>
 #include <unison/sim/physics_body.hpp>
 
 namespace unison::sim
@@ -22,6 +23,11 @@ void destroyEntity(Frame& frame, entt::entity entity)
     if (frame.registry.all_of<PhysicsBody>(entity))
     {
         removeBody(frame, entity);
+    }
+
+    if (frame.registry.all_of<CharacterController>(entity))
+    {
+        removeCharacter(frame, entity);
     }
 
     frame.events.raise(frame.frameNumber, EntityDestroyed{entity});

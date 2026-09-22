@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.5.10**, the character controller over `CharacterVirtual`. Last finished: 1.5.9.
+- Next up: **1.5.11**, the physics determinism test. Last finished: 1.5.10.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 55 | 37 |
+| 1 Deterministic simulation core | 7 | 55 | 38 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **167** | **52** |
+| **Total** | **31** | **167** | **53** |
 
 ## Charter amendments made while planning
 
@@ -70,6 +70,10 @@ needs from earlier tasks is ticked.
   back the properties Jolt does not record, and a system may have changed them since the spawn, so the live
   values must be frame state. Restoring a snapshot needs no assets at all now. `DESIGN.md` §6.7 updated.
   Found in 1.5.7.
+- A character's position lives in its `Transform`, not in a second field of `CharacterController`; the component
+  holds the capsule, the velocity and the ground state. Reason: two places holding one position is a desync
+  waiting to happen, and `Transform` is already the component every view and system reads. `DESIGN.md` §6.7
+  updated. Found in 1.5.10.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -156,7 +160,7 @@ needs from earlier tasks is ticked.
 - [x] 1.5.7 Reapply properties Jolt does not record (friction, restitution, motion type) from components on restore. Test: a friction change made after the snapshot is reverted by restore.
 - [x] 1.5.8 Query wrappers `raycast`, `overlapSphere`, `sweepCapsule` returning hits sorted by `(fraction, BodyID)`. Test: results are sorted regardless of body creation order.
 - [x] 1.5.9 Contact listener buffering: contacts collected during `step`, sorted by `(BodyID a, BodyID b, sub-shape ids)`, exposed as `ContactEvents` on the frame. Test: two overlapping bodies yield exactly one ordered pair.
-- [ ] 1.5.10 `CharacterController` over `CharacterVirtual`: component holds position, velocity and ground state; explicit save/restore because it lives outside `PhysicsSystem` state. Test: walks on the floor, stops at a wall, snapshot/restore round trip is exact.
+- [x] 1.5.10 `CharacterController` over `CharacterVirtual`: component holds position, velocity and ground state; explicit save/restore because it lives outside `PhysicsSystem` state. Test: walks on the floor, stops at a wall, snapshot/restore round trip is exact.
 - [ ] 1.5.11 Physics determinism test: 50 dynamic boxes for 600 frames, double run equal checksums, plus a golden checksum shared by Debug and Release.
 - [x] 1.5.12 (+) `destroyEntity` takes the body of the entity with it: an entity destroyed with a `PhysicsBody` leaves its Jolt body and its id behind until the next reconciliation. Reason: found in 1.5.6, where reconciliation made the leak visible. Test: destroying an entity with a body leaves the world empty and hands the id back.
 
