@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.3**, `Hasher` over XXH3-64. Last finished: 1.1.2.
+- Next up: **1.1.4**, `BinaryWriter` / `BinaryReader`. Last finished: 1.1.3.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 52 | 2 |
+| 1 Deterministic simulation core | 7 | 52 | 3 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **164** | **17** |
+| **Total** | **31** | **164** | **18** |
 
 ## Charter amendments made while planning
 
@@ -86,7 +86,7 @@ needs from earlier tasks is ticked.
 ### 1.1 Core primitives (`unison_core`)
 - [x] 1.1.1 `FixedVector<T, N>`: push, pop, size, index, iteration, `clear`, full-capacity assert; trivially copyable when `T` is. Test: behaviour cases plus `std::is_trivially_copyable_v`.
 - [x] 1.1.2 `FixedString<N>`: from `string_view`, comparison, `view()`, zeroed tail. Test: equal strings built differently are byte-identical.
-- [ ] 1.1.3 `Hasher` over XXH3-64: `add(span<const byte>)`, `add(const T&)` for trivially copyable `T`, `finish()`. Test: same bytes same hash, order matters, matches the one-shot XXH3 result.
+- [x] 1.1.3 `Hasher` over XXH3-64: `add(span<const byte>)`, `add(const T&)` for trivially copyable `T`, `finish()`. Test: same bytes same hash, order matters, matches the one-shot XXH3 result.
 - [ ] 1.1.4 `BinaryWriter` / `BinaryReader`: POD values, spans, strings, bounds-checked reads that report failure instead of undefined behaviour. Test: round trip of every supported type; a truncated buffer fails cleanly.
 - [ ] 1.1.5 `FpEnvGuard`: sets MXCSR to round-to-nearest with denormals enabled, restores on scope exit. Test: with FTZ set outside, a denormal survives inside the guard and FTZ is back afterwards.
 - [ ] 1.1.6 `LogSink`: process-wide callback with levels; silent when unset. Test: the sink receives level and message.

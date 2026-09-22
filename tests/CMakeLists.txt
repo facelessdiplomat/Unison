@@ -43,6 +43,7 @@ add_executable(
     core/fixed_string_test.cpp
     core/fixed_vector_test.cpp
     core/framework_test.cpp
+    core/hasher_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
     sim/entt_smoke_test.cpp
