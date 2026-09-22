@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.8**, POD math storage types `Float3` / `Quaternion`. Last finished: 1.1.7.
+- Next up: **1.1.9**, the deterministic scalar facade `unison::math`. Last finished: 1.1.8.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 7 |
+| 1 Deterministic simulation core | 7 | 54 | 8 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **22** |
+| **Total** | **31** | **166** | **23** |
 
 ## Charter amendments made while planning
 
@@ -93,7 +93,7 @@ needs from earlier tasks is ticked.
 - [x] 1.1.5 `FpEnvGuard`: sets MXCSR to round-to-nearest with denormals enabled, restores on scope exit. Test: with FTZ set outside, a denormal survives inside the guard and FTZ is back afterwards.
 - [x] 1.1.6 `LogSink`: process-wide callback with levels; silent when unset. Test: the sink receives level and message.
 - [x] 1.1.7 `AssetId`: `constexpr` 32-bit hash of a name, usable as a non-type template argument and in `switch`. Test: a fixed name gives a fixed id; distinct names differ.
-- [ ] 1.1.8 POD math storage types `Float3`, `Quaternion` (plain floats, natural alignment) with conversions to and from `JPH::Vec3` / `JPH::Quat`. Test: round trip is bit-exact; `sizeof(Float3) == 12`.
+- [x] 1.1.8 POD math storage types `Float3`, `Quaternion` (plain floats, natural alignment) with conversions to and from `JPH::Vec3` / `JPH::Quat`. Test: round trip is bit-exact; `sizeof(Float3) == 12`.
 - [ ] 1.1.9 Deterministic scalar facade `unison::math` (`sin`, `cos`, `atan2`, `sqrt`, `clamp`, `lerp` written without FMA) backed by Jolt's implementations. Test: golden bit patterns for a fixed input table.
 - [ ] 1.1.10 `Rng` (xoshiro256**): seed, `nextUint32`, `nextFloat01`, `nextInRange`. Test: golden sequence for seed 42; state is trivially copyable.
 - [ ] 1.1.11 (+) Error primitives: `UNISON_ASSERT` (Debug only), `UNISON_VERIFY` with an installable fatal handler reporting through `LogSink`, an `Error` type, and `tl::expected` pinned in `Dependencies.cmake`. Test: a failing verify invokes the installed handler; an assert has no effect in a Release probe; `expected` round trips value and error.
