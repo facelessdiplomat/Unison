@@ -17,7 +17,7 @@ if(entryCount EQUAL 0)
     message(FATAL_ERROR "compile_commands.json has no entries")
 endif()
 
-set(deterministicModules core sim)
+set(deterministicModules core sim arena)
 set(plainModules session net view)
 set(seenModules "")
 set(joltSeen FALSE)
@@ -54,7 +54,7 @@ foreach(entryIndex RANGE ${lastEntry})
         endforeach()
     endif()
 
-    if(entryFile MATCHES "/tests/(core|sim|net)/")
+    if(entryFile MATCHES "/tests/(core|sim|net|arena)/")
         set(testExecutableSeen TRUE)
 
         if(NOT entryCommand MATCHES "/EHsc")

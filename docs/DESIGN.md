@@ -249,7 +249,9 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
   order defines the order used by snapshots and checksums; EnTT's runtime `type_index` order is never used.
   All registrations live in one translation unit: static initialisation order across translation units is
   unspecified, so the list order, and with it every snapshot and checksum, would differ between Debug and
-  Release without a word. `ComponentRegistry` rejects a registration arriving from a second file.
+  Release without a word. `ComponentRegistry` rejects a registration arriving from a second file, so one
+  process runs one game. A game is built as a CMake OBJECT library, because from a static library the
+  linker drops the translation unit that holds the registrations: nothing references a static initialiser.
 - Math fields in components are plain POD types from `unison_core` (`Float3`, `Quaternion`: three or four
   floats, natural alignment, no padding). Jolt vector types are used for computation inside systems and
   physics code only. This keeps padding bytes out of checksums and Jolt headers out of host-facing headers.
@@ -617,7 +619,8 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
 - **Dynamic props**: a few rigid-body crates that players and projectiles can push.
 - **Components**: `Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`.
 - **Systems** (in order): `ApplyInput`, `CharacterMove`, `Weapons`, `PhysicsStep`, `Hits`, `Lifetime`, `Respawn`, `MatchRules`.
-- **Input**: `moveX/moveY: int8`, `yaw: int16`, `buttons: uint8 {Jump, Fire}`.
+- **Input**: `moveX/moveY: int8`, `yaw: int16`, `buttons: uint16 {Jump, Fire}`. The buttons take sixteen bits
+  rather than eight so that `ArenaInput` carries no padding, which `InputTraits` requires of an input.
 - **Events**: `EntityCreated`, `EntityDestroyed`, `Fired` (predicted), `Hit` (predicted), `Died` (verified-only), `Respawned` (verified-only).
 - **Views**: text top-down map in the console; capsule/box meshes in UE.
 

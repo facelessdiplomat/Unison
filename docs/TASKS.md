@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.6.1**, the Arena components. Last finished: 1.5.11; task 1.5 is complete.
+- Next up: **1.6.2**, the arena assets in code. Last finished: 1.6.1.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 55 | 39 |
+| 1 Deterministic simulation core | 7 | 55 | 40 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **167** | **54** |
+| **Total** | **31** | **167** | **55** |
 
 ## Charter amendments made while planning
 
@@ -74,6 +74,9 @@ needs from earlier tasks is ticked.
   holds the capsule, the velocity and the ground state. Reason: two places holding one position is a desync
   waiting to happen, and `Transform` is already the component every view and system reads. `DESIGN.md` §6.7
   updated. Found in 1.5.10.
+- A game library is a CMake OBJECT library, not a static one: the translation unit that registers the
+  components is pure static initialisation, and a linker drops it out of a static library because nothing
+  refers to it. `DESIGN.md` §6.3 updated. Found in 1.6.1, where the arena registered nothing at all.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -165,7 +168,7 @@ needs from earlier tasks is ticked.
 - [x] 1.5.12 (+) `destroyEntity` takes the body of the entity with it: an entity destroyed with a `PhysicsBody` leaves its Jolt body and its id behind until the next reconciliation. Reason: found in 1.5.6, where reconciliation made the leak visible. Test: destroying an entity with a body leaves the world empty and hands the id back.
 
 ### 1.6 Arena sample simulation (`arena_sim`)
-- [ ] 1.6.1 Components (`Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`) registered; `ArenaInput{moveX, moveY, yaw, buttons}`. Test: all trivially copyable; `sizeof(ArenaInput) <= 8`.
+- [x] 1.6.1 Components (`Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`) registered; `ArenaInput{moveX, moveY, yaw, buttons}`. Test: all trivially copyable; `sizeof(ArenaInput) <= 8`.
 - [ ] 1.6.2 Arena assets in code: floor, walls, ramps, crates, spawn points, player stats, projectile stats. Test: the registry freezes and hashes stably.
 - [ ] 1.6.3 `ApplyInput` system: input to desired velocity and yaw on `CharacterState`; quantisation contract stated in the header. Test: full-forward input gives max speed along yaw.
 - [ ] 1.6.4 `CharacterMove` system: drives `CharacterController`, jump with ground check, gravity. Test: a jump leaves the ground and lands within the expected frames.

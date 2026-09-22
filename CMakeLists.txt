@@ -26,4 +26,6 @@ add_subdirectory(net)
 add_subdirectory(session)
 add_subdirectory(view)
 
+add_subdirectory(samples/arena)
+
 add_subdirectory(tests)

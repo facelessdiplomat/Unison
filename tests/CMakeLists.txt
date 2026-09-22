@@ -104,3 +104,13 @@ target_link_libraries(unison_core_header_check PRIVATE unison_core)
 unison_apply_determinism(unison_core_header_check)
 
 unison_apply_warnings(unison_core_header_check)
+
+add_executable(unison_tests_arena arena/arena_input_test.cpp arena/components_test.cpp)
+
+target_include_directories(unison_tests_arena PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
+
+target_link_libraries(unison_tests_arena PRIVATE arena_sim Catch2::Catch2WithMain)
+
+target_compile_options(unison_tests_arena PRIVATE /EHsc)
+
+catch_discover_tests(unison_tests_arena PROPERTIES LABELS fast)
