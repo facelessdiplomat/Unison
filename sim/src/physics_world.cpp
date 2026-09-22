@@ -252,6 +252,12 @@ void PhysicsWorld::createBody(BodyId id, const BodyDefinition& definition, const
     settings.mFriction = definition.friction;
     settings.mRestitution = definition.restitution;
 
+    if (definition.mass > 0.0F)
+    {
+        settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+        settings.mMassPropertiesOverride.mMass = definition.mass;
+    }
+
     JPH::BodyInterface& bodies = physicsSystem.GetBodyInterface();
     const JPH::Body* body = bodies.CreateBodyWithID(toJoltBodyId(id), settings);
 
@@ -403,6 +409,20 @@ float PhysicsWorld::restitutionOf(BodyId id) const
     UNISON_ASSERT(holdsBody(id));
 
     return physicsSystem.GetBodyInterface().GetRestitution(toJoltBodyId(id));
+}
+
+float PhysicsWorld::massOf(BodyId id) const
+{
+    const JPH::BodyLockRead lock{physicsSystem.GetBodyLockInterface(), toJoltBodyId(id)};
+
+    UNISON_VERIFY(lock.Succeeded());
+
+    if (!lock.Succeeded() || !lock.GetBody().IsDynamic())
+    {
+        return 0.0F;
+    }
+
+    return 1.0F / lock.GetBody().GetMotionProperties()->GetInverseMass();
 }
 
 BodyMotion PhysicsWorld::motionOf(BodyId id) const

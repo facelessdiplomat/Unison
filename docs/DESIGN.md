@@ -620,7 +620,9 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
 - **Projectiles**: swept spheres with a lifetime, carried as entities rather than as Jolt bodies; each tick a
   shot sweeps from where it was to where it is going, so a shot at 30 m/s cannot pass through a wall between
   two ticks. Hit → damage event; kill → respawn timer.
-- **Dynamic props**: a few rigid-body crates that players and projectiles can push.
+- **Dynamic props**: a few rigid-body crates, light enough for a player to shove, that `CharacterVirtual`
+  pushes as it walks into them. A shot that reaches a crate stops at it without moving it; pushing bodies
+  with a shot needs an impulse the physics wrapper does not offer yet, and is backlog.
 - **Components**: `Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`.
 - **Systems** (in order): `ApplyInput`, `CharacterMove`, `Weapons`, `PhysicsStep`, `Hits`, `Lifetimes`, `Respawn`, `MatchRules` (the system is plural, because `Lifetime` is the component it counts down).
 - **Input**: `moveX/moveY: int8`, `yaw: int16`, `buttons: uint16 {Jump, Fire}`. The buttons take sixteen bits

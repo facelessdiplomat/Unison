@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <unison/sim/body_definition.hpp>
+#include <unison/sim/body_id_allocator.hpp>
 #include <unison/sim/transform.hpp>
 
 #include <entt/entity/registry.hpp>
@@ -156,4 +157,38 @@ TEST_CASE("the motion a definition asks for decides whether a body moves")
 
     REQUIRE(frame.physics.transformOf(crateId).position.y < 4.0F);
     REQUIRE(frame.physics.transformOf(floorId).position.y == 0.0F);
+}
+
+TEST_CASE("a body weighs what its definition says")
+{
+    unison::sim::PhysicsWorld world;
+    unison::sim::BodyIdAllocator ids;
+
+    unison::sim::BodyDefinition crate;
+    crate.halfExtents = unison::Float3{0.5F, 0.5F, 0.5F};
+    crate.motion = unison::sim::BodyMotion::Dynamic;
+    crate.layer = unison::sim::PhysicsLayer::Moving;
+    crate.mass = 5.0F;
+
+    const unison::BodyId id = ids.allocate();
+    world.createBody(id, crate, unison::sim::Transform{});
+
+    REQUIRE(world.massOf(id) > 4.99F);
+    REQUIRE(world.massOf(id) < 5.01F);
+}
+
+TEST_CASE("a body left without a mass is as heavy as its shape makes it")
+{
+    unison::sim::PhysicsWorld world;
+    unison::sim::BodyIdAllocator ids;
+
+    unison::sim::BodyDefinition crate;
+    crate.halfExtents = unison::Float3{0.5F, 0.5F, 0.5F};
+    crate.motion = unison::sim::BodyMotion::Dynamic;
+    crate.layer = unison::sim::PhysicsLayer::Moving;
+
+    const unison::BodyId id = ids.allocate();
+    world.createBody(id, crate, unison::sim::Transform{});
+
+    REQUIRE(world.massOf(id) > 900.0F);
 }

@@ -29,6 +29,7 @@ unison::sim::BodyDefinition crate()
     definition.layer = unison::sim::PhysicsLayer::Moving;
     definition.friction = 0.4F;
     definition.restitution = 0.1F;
+    definition.mass = 5.0F;
 
     return definition;
 }

@@ -95,6 +95,9 @@ public:
 
     [[nodiscard]] float restitutionOf(BodyId id) const;
 
+    /// What the body weighs in kilogrammes, or nothing at all when it is not a body forces move.
+    [[nodiscard]] float massOf(BodyId id) const;
+
     [[nodiscard]] BodyMotion motionOf(BodyId id) const;
 
     /// Names every body the world holds, in the order Jolt keeps them.
