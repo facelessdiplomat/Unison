@@ -10,6 +10,7 @@ add_library(
     src/frame_checksum.cpp
     src/frame_inputs.cpp
     src/frame_snapshot.cpp
+    src/jolt_contacts.cpp
     src/jolt_runtime.cpp
     src/physics_body.cpp
     src/physics_step.cpp

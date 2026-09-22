@@ -322,7 +322,10 @@ the same session.
   `sweepCapsule` sort by `(fraction, BodyID, sub-shape id)` before a system sees them. Queries in v1
   meet every layer and carry no filters.
 - **Contact callbacks are buffered**, then sorted by `(BodyID a, BodyID b, sub-shape ids)` and
-  delivered to systems in that order. Listener callbacks may run on multiple threads inside Jolt.
+  delivered to systems in that order, the lower body id first so a pair reads the same whichever way
+  Jolt reported it. The list holds what the last step found, is emptied when a step begins and when a
+  state is restored, and is derived rather than frame state, so it is neither snapshotted nor hashed.
+  Listener callbacks may run on multiple threads inside Jolt.
 - **Character movement** uses Jolt's `CharacterVirtual` (kinematic, deterministic), whose
   state is also stored in components and restored explicitly.
 - **Single-threaded** Jolt job system in v1 (`JobSystemSingleThreaded`). Multi-threaded stepping

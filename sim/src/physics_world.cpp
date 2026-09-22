@@ -204,16 +204,26 @@ PhysicsWorld::PhysicsWorld(const PhysicsWorldSettings& settings)
                        objectPairFilter);
 
     physicsSystem.SetGravity(toJoltVector(settings.gravity));
+    physicsSystem.SetContactListener(&contactCollector);
 }
 
 void PhysicsWorld::step(float dt)
 {
     UNISON_ASSERT(dt > 0.0F);
 
+    contactCollector.clear();
+
     const JPH::EPhysicsUpdateError error =
         physicsSystem.Update(dt, kCollisionStepsPerTick, &scratchAllocator, &jobSystem);
 
+    contactCollector.sort();
+
     UNISON_VERIFY(error == JPH::EPhysicsUpdateError::None);
+}
+
+std::span<const Contact> PhysicsWorld::contacts() const
+{
+    return contactCollector.contacts();
 }
 
 void PhysicsWorld::createBody(BodyId id, const BodyDefinition& definition, const Transform& placement)
@@ -421,6 +431,8 @@ void PhysicsWorld::restoreState(std::span<const std::byte> bytes)
 {
     std::vector<std::byte> recorded{bytes.begin(), bytes.end()};
     VectorStateRecorder recorder{recorded};
+
+    contactCollector.clear();
 
     const bool restored = physicsSystem.RestoreState(recorder);
 

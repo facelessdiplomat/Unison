@@ -74,6 +74,7 @@ add_executable(
     sim/jolt_smoke_test.cpp
     sim/padding_free_test.cpp
     sim/physics_body_test.cpp
+    sim/physics_contact_test.cpp
     sim/physics_layer_test.cpp
     sim/physics_query_test.cpp
     sim/physics_snapshot_test.cpp

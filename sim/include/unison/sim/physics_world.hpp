@@ -3,6 +3,8 @@
 #include <unison/core/body_id.hpp>
 #include <unison/core/float3.hpp>
 #include <unison/sim/body_definition.hpp>
+#include <unison/sim/contact.hpp>
+#include <unison/sim/jolt_contacts.hpp>
 #include <unison/sim/jolt_layers.hpp>
 #include <unison/sim/jolt_runtime.hpp>
 #include <unison/sim/transform.hpp>
@@ -67,6 +69,9 @@ public:
 
     [[nodiscard]] Transform transformOf(BodyId id) const;
 
+    /// The bodies that touched during the last step, in body order.
+    [[nodiscard]] std::span<const Contact> contacts() const;
+
     /// The bodies a ray meets on its way from one point to the other, nearest first and in body order
     /// where they are equally near, so every client reads the same list.
     void raycast(const Float3& from, const Float3& to, std::vector<PhysicsHit>& hits) const;
@@ -108,6 +113,7 @@ private:
     ObjectPairFilter objectPairFilter;
     JPH::TempAllocatorImpl scratchAllocator;
     JPH::JobSystemSingleThreaded jobSystem;
+    ContactCollector contactCollector;
     JPH::PhysicsSystem physicsSystem;
 };
 
