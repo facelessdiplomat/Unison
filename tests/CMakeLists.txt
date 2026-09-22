@@ -65,6 +65,7 @@ add_executable(
     sim/frame_snapshot_test.cpp
     sim/frame_test.cpp
     sim/padding_free_test.cpp
+    sim/pipeline_hash_test.cpp
     sim/registry_clone_test.cpp
     sim/system_pipeline_test.cpp
     support/test_components.cpp
