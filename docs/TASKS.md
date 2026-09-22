@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.5.11**, the physics determinism test. Last finished: 1.5.10.
+- Next up: **1.6.1**, the Arena components. Last finished: 1.5.11; task 1.5 is complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 55 | 38 |
+| 1 Deterministic simulation core | 7 | 55 | 39 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **167** | **53** |
+| **Total** | **31** | **167** | **54** |
 
 ## Charter amendments made while planning
 
@@ -161,7 +161,7 @@ needs from earlier tasks is ticked.
 - [x] 1.5.8 Query wrappers `raycast`, `overlapSphere`, `sweepCapsule` returning hits sorted by `(fraction, BodyID)`. Test: results are sorted regardless of body creation order.
 - [x] 1.5.9 Contact listener buffering: contacts collected during `step`, sorted by `(BodyID a, BodyID b, sub-shape ids)`, exposed as `ContactEvents` on the frame. Test: two overlapping bodies yield exactly one ordered pair.
 - [x] 1.5.10 `CharacterController` over `CharacterVirtual`: component holds position, velocity and ground state; explicit save/restore because it lives outside `PhysicsSystem` state. Test: walks on the floor, stops at a wall, snapshot/restore round trip is exact.
-- [ ] 1.5.11 Physics determinism test: 50 dynamic boxes for 600 frames, double run equal checksums, plus a golden checksum shared by Debug and Release.
+- [x] 1.5.11 Physics determinism test: 50 dynamic boxes for 600 frames, double run equal checksums, plus a golden checksum shared by Debug and Release.
 - [x] 1.5.12 (+) `destroyEntity` takes the body of the entity with it: an entity destroyed with a `PhysicsBody` leaves its Jolt body and its id behind until the next reconciliation. Reason: found in 1.5.6, where reconciliation made the leak visible. Test: destroying an entity with a body leaves the world empty and hands the id back.
 
 ### 1.6 Arena sample simulation (`arena_sim`)

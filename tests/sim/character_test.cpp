@@ -99,8 +99,7 @@ TEST_CASE("a character stands on the floor it was put on")
 
     walk(frame, pipeline, walker, unison::Float3{0.0F, -1.0F, 0.0F}, 5);
 
-    REQUIRE(frame.registry.get<unison::sim::CharacterController>(walker).ground ==
-            unison::sim::GroundState::OnGround);
+    REQUIRE(frame.registry.get<unison::sim::CharacterController>(walker).ground == unison::sim::GroundState::OnGround);
 }
 
 TEST_CASE("a character walking forward gets there")

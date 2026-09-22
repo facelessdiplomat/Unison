@@ -396,6 +396,10 @@ checklists, and by the tests in Section 11.
 4. Multi-client runner under simulated latency, jitter, loss and reordering → identical verified checksums on every frame.
 5. Replay round-trip: record over the network, verify offline.
 
+A golden checksum is re-recorded only deliberately: when the physics build, the scene it covers or the
+content of the state buffer changes. A golden that changes for any other reason is a determinism bug,
+not a stale number.
+
 ---
 
 ## 8. Rollback Session

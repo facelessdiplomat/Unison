@@ -41,9 +41,8 @@ JPH::Ref<JPH::Shape> standingShapeOf(const CharacterController& character)
     JPH::CapsuleShapeSettings capsule{character.halfHeight, character.radius};
     capsule.SetEmbedded();
 
-    JPH::RotatedTranslatedShapeSettings standing{JPH::Vec3{0.0F, character.halfHeight + character.radius, 0.0F},
-                                                 JPH::Quat::sIdentity(),
-                                                 &capsule};
+    JPH::RotatedTranslatedShapeSettings standing{
+        JPH::Vec3{0.0F, character.halfHeight + character.radius, 0.0F}, JPH::Quat::sIdentity(), &capsule};
     standing.SetEmbedded();
 
     const JPH::ShapeSettings::ShapeResult result = standing.Create();
@@ -71,24 +70,21 @@ void CharacterTable::create(BodyId id, const CharacterController& character, con
     settings.mUp = JPH::Vec3::sAxisY();
 
     Entry entry{id,
-                JPH::Ref<JPH::CharacterVirtual>{new JPH::CharacterVirtual{&settings,
-                                                                          toJoltVector(placement.position),
-                                                                          toJoltQuaternion(placement.rotation),
-                                                                          &system}}};
+                JPH::Ref<JPH::CharacterVirtual>{new JPH::CharacterVirtual{
+                    &settings, toJoltVector(placement.position), toJoltQuaternion(placement.rotation), &system}}};
 
     entry.character->SetLinearVelocity(toJoltVector(character.velocity));
 
-    const auto place = std::lower_bound(entries.begin(),
-                                        entries.end(),
-                                        id,
-                                        [](const Entry& entry, BodyId wanted) { return entry.id < wanted; });
+    const auto place = std::lower_bound(
+        entries.begin(), entries.end(), id, [](const Entry& entry, BodyId wanted) { return entry.id < wanted; });
 
     entries.insert(place, std::move(entry));
 }
 
 void CharacterTable::destroy(BodyId id)
 {
-    const auto found = std::find_if(entries.begin(), entries.end(), [id](const Entry& entry) { return entry.id == id; });
+    const auto found =
+        std::find_if(entries.begin(), entries.end(), [id](const Entry& entry) { return entry.id == id; });
 
     UNISON_VERIFY(found != entries.end());
 
