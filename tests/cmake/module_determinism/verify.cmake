@@ -64,6 +64,10 @@ foreach(entryIndex RANGE ${lastEntry})
                 message(FATAL_ERROR "${module} still carries the default /EHsc")
             endif()
 
+            if(NOT entryCommand MATCHES "_HAS_EXCEPTIONS=0")
+                message(FATAL_ERROR "${module} does not switch the MSVC STL to its exception-free form")
+            endif()
+
             if(NOT entryCommand MATCHES "determinism_guard\.hpp")
                 message(FATAL_ERROR "${module} does not force-include the determinism guard")
             endif()

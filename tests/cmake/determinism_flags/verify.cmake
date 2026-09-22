@@ -20,7 +20,7 @@ endif()
 string(JSON probeCommand GET "${compileCommands}" 0 command)
 string(REPLACE " " ";" commandTokens "${probeCommand}")
 
-set(requiredFlags /fp:precise /arch:SSE2 /EHs-c- /GR-)
+set(requiredFlags /fp:precise /arch:SSE2 /EHs-c- /GR- -D_HAS_EXCEPTIONS=0)
 set(forbiddenFlags /fp:fast /fp:contract /EHsc /EHa /GR /arch:AVX /arch:AVX2)
 
 foreach(flag IN LISTS requiredFlags)
