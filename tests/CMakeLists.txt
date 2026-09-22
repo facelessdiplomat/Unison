@@ -75,6 +75,7 @@ add_executable(
     sim/padding_free_test.cpp
     sim/physics_body_test.cpp
     sim/physics_layer_test.cpp
+    sim/physics_step_test.cpp
     sim/physics_world_test.cpp
     sim/pipeline_hash_test.cpp
     sim/registry_clone_test.cpp

@@ -50,3 +50,14 @@ TEST_CASE("a frame holds the entities created in it")
     REQUIRE(frame.registry.view<Marker>().size() == 1U);
     REQUIRE(frame.registry.get<Marker>(entity).value == 7U);
 }
+
+TEST_CASE("a frame builds its physics world the way its settings ask")
+{
+    unison::sim::PhysicsWorldSettings settings;
+    settings.gravity = unison::Float3{0.0F, -1.62F, 0.0F};
+
+    const unison::sim::Frame frame{settings};
+
+    REQUIRE(frame.physics.gravity().y == -1.62F);
+    REQUIRE(frame.physics.bodyCount() == 0U);
+}

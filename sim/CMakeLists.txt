@@ -12,6 +12,7 @@ add_library(
     src/frame_snapshot.cpp
     src/jolt_runtime.cpp
     src/physics_body.cpp
+    src/physics_step.cpp
     src/physics_world.cpp
     src/pipeline_hash.cpp
     src/registry_clone.cpp
