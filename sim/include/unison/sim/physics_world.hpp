@@ -13,7 +13,10 @@
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
+#include <cstddef>
 #include <cstdint>
+#include <span>
+#include <vector>
 
 namespace unison::sim
 {
@@ -55,6 +58,13 @@ public:
     [[nodiscard]] bool holdsBody(BodyId id) const;
 
     [[nodiscard]] Transform transformOf(BodyId id) const;
+
+    /// Writes everything Jolt keeps about this world into the bytes, replacing what they held.
+    void saveState(std::vector<std::byte>& bytes) const;
+
+    /// Puts the world back to where the bytes were written, which it can only do while it still
+    /// holds the same bodies it held then.
+    void restoreState(std::span<const std::byte> bytes);
 
     [[nodiscard]] std::uint32_t bodyCount() const;
 

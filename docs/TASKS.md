@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.5.5**, physics bytes in snapshots. Last finished: 1.5.4.
+- Next up: **1.5.6**, reconciling the body set before a restore. Last finished: 1.5.5.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 31 |
+| 1 Deterministic simulation core | 7 | 54 | 32 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **46** |
+| **Total** | **31** | **166** | **47** |
 
 ## Charter amendments made while planning
 
@@ -146,7 +146,7 @@ needs from earlier tasks is ticked.
 - [x] 1.5.2 `BodyIdAllocator` in `Globals`: deterministic index + sequence allocation with recycling. Test: golden id sequence; released ids are reused with an incremented sequence.
 - [x] 1.5.3 `BodyDefinition` asset (shape, size, motion type, layer, friction, restitution) and `PhysicsBody` component; create via `CreateBodyWithID`, destroy on component removal. Test: the body exists with the requested id; a destroyed body is gone and its id is recyclable.
 - [x] 1.5.4 `PhysicsStep` system: step, then write positions and rotations into `Transform` in ECS view order (never `GetActiveBodies`). Test: a dynamic box falls and rests on a static floor; `Transform` follows.
-- [ ] 1.5.5 Physics bytes in snapshots via `SaveState` / `RestoreState` with `EStateRecorderState::All`. Test: run A→B and hash; restore A, run to B, hash equal (with sleeping and active bodies).
+- [x] 1.5.5 Physics bytes in snapshots via `SaveState` / `RestoreState` with `EStateRecorderState::All`. Test: run A→B and hash; restore A, run to B, hash equal (with sleeping and active bodies).
 - [ ] 1.5.6 Body-set reconciliation before `RestoreState`: destroy bodies absent from the restored registry, recreate missing ones from `PhysicsBody` + `BodyDefinition`. Test: a body created after a snapshot disappears on restore; a body destroyed after a snapshot returns with identical state.
 - [ ] 1.5.7 Reapply properties Jolt does not record (friction, restitution, motion type) from components on restore. Test: a friction change made after the snapshot is reverted by restore.
 - [ ] 1.5.8 Query wrappers `raycast`, `overlapSphere`, `sweepCapsule` returning hits sorted by `(fraction, BodyID)`. Test: results are sorted regardless of body creation order.

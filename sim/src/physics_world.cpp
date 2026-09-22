@@ -9,6 +9,9 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/StateRecorder.h>
+
+#include <cstring>
 
 namespace unison::sim
 {
@@ -70,6 +73,50 @@ JPH::EMotionType toJoltMotionType(BodyMotion motion)
 
     return JPH::EMotionType::Static;
 }
+
+class VectorStateRecorder final : public JPH::StateRecorder
+{
+public:
+    explicit VectorStateRecorder(std::vector<std::byte>& bytes) : recorded{bytes}
+    {
+    }
+
+    void WriteBytes(const void* data, std::size_t count) override
+    {
+        const auto* first = static_cast<const std::byte*>(data);
+
+        recorded.insert(recorded.end(), first, first + count);
+    }
+
+    void ReadBytes(void* data, std::size_t count) override
+    {
+        if (readPosition + count > recorded.size())
+        {
+            std::memset(data, 0, count);
+            readPast = true;
+
+            return;
+        }
+
+        std::memcpy(data, recorded.data() + readPosition, count);
+        readPosition += count;
+    }
+
+    [[nodiscard]] bool IsEOF() const override
+    {
+        return readPast;
+    }
+
+    [[nodiscard]] bool IsFailed() const override
+    {
+        return readPast;
+    }
+
+private:
+    std::vector<std::byte>& recorded;
+    std::size_t readPosition = 0;
+    bool readPast = false;
+};
 
 JPH::EActivation activationOf(BodyMotion motion)
 {
@@ -167,6 +214,28 @@ Transform PhysicsWorld::transformOf(BodyId id) const
     }
 
     return Transform{toFloat3(lock.GetBody().GetPosition()), toQuaternion(lock.GetBody().GetRotation())};
+}
+
+void PhysicsWorld::saveState(std::vector<std::byte>& bytes) const
+{
+    bytes.clear();
+
+    VectorStateRecorder recorder{bytes};
+
+    physicsSystem.SaveState(recorder, JPH::EStateRecorderState::All);
+
+    UNISON_VERIFY(!recorder.IsFailed());
+}
+
+void PhysicsWorld::restoreState(std::span<const std::byte> bytes)
+{
+    std::vector<std::byte> recorded{bytes.begin(), bytes.end()};
+    VectorStateRecorder recorder{recorded};
+
+    const bool restored = physicsSystem.RestoreState(recorder);
+
+    UNISON_VERIFY(restored);
+    UNISON_VERIFY(!recorder.IsFailed());
 }
 
 std::uint32_t PhysicsWorld::bodyCount() const

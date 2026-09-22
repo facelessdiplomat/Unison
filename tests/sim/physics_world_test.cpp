@@ -1,5 +1,10 @@
 #include <unison/sim/physics_world.hpp>
 
+#include <support/fatal_handler_probe.hpp>
+
+#include <cstddef>
+#include <span>
+
 #include <catch2/catch_test_macros.hpp>
 
 namespace
@@ -59,4 +64,15 @@ TEST_CASE("a physics world keeps stepping after another one is destroyed")
     world.step(kTickSeconds);
 
     REQUIRE(world.bodyCount() == 0U);
+}
+
+TEST_CASE("a world refuses a state buffer that ends before it should")
+{
+    const unison::test::FatalHandlerProbe probe;
+
+    unison::sim::PhysicsWorld world;
+
+    world.restoreState(std::span<const std::byte>{});
+
+    REQUIRE(probe.failureCount() > 0U);
 }

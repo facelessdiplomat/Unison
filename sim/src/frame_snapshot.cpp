@@ -10,10 +10,11 @@ void takeSnapshot(const Frame& frame, FrameSnapshot& snapshot)
     snapshot.frameNumber = frame.frameNumber;
     snapshot.dt = frame.dt;
     snapshot.globals = frame.globals;
-    snapshot.physicsState.clear();
     snapshot.registry = entt::registry{};
 
     cloneRegistry(frame.registry, snapshot.registry);
+
+    frame.physics.saveState(snapshot.physicsState);
 }
 
 void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame)
@@ -24,6 +25,8 @@ void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame)
     frame.registry = entt::registry{};
 
     cloneRegistry(snapshot.registry, frame.registry);
+
+    frame.physics.restoreState(snapshot.physicsState);
 }
 
 }
