@@ -45,6 +45,19 @@ ComponentRegistry& componentRegistry()
     return registry;
 }
 
+bool isComponentRegistered(std::string_view name)
+{
+    for (const ComponentInfo& component : componentRegistry().components())
+    {
+        if (component.name == name)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 ComponentRegistration::ComponentRegistration(const ComponentInfo& component, std::string_view file)
 {
     componentRegistry().add(component, file);

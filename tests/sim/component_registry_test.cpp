@@ -79,3 +79,10 @@ TEST_CASE("the component macro registers into the process-wide registry")
 
     REQUIRE(found);
 }
+
+TEST_CASE("the registry answers which components the game registered")
+{
+    REQUIRE(unison::sim::isComponentRegistered("Transform"));
+    REQUIRE(unison::sim::isComponentRegistered("PhysicsBody"));
+    REQUIRE_FALSE(unison::sim::isComponentRegistered("AComponentNobodyRegistered"));
+}

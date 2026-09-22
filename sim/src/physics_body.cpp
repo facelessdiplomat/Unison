@@ -2,6 +2,7 @@
 
 #include <unison/core/contract.hpp>
 #include <unison/sim/body_definition.hpp>
+#include <unison/sim/component_registry.hpp>
 #include <unison/sim/transform.hpp>
 
 #include <array>
@@ -38,6 +39,10 @@ std::array<BodyId, kMaxBodies> bodiesTheRegistryNames(const entt::registry& regi
 
 void addBody(Frame& frame, const AssetRegistry& assets, entt::entity entity, AssetId definition)
 {
+    UNISON_ASSERT(isComponentRegistered("Transform"));
+    UNISON_ASSERT(isComponentRegistered("PhysicsBody"));
+    UNISON_ASSERT(isComponentRegistered("BodyDefinition"));
+
     UNISON_VERIFY(frame.registry.all_of<Transform>(entity));
     UNISON_VERIFY(!frame.registry.all_of<PhysicsBody>(entity));
 

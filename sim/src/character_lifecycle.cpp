@@ -1,6 +1,7 @@
 #include <unison/sim/character_lifecycle.hpp>
 
 #include <unison/core/contract.hpp>
+#include <unison/sim/component_registry.hpp>
 #include <unison/sim/transform.hpp>
 
 #include <array>
@@ -37,6 +38,9 @@ std::array<BodyId, kMaxBodies> charactersTheRegistryNames(const entt::registry& 
 
 void addCharacter(Frame& frame, entt::entity entity, const CharacterController& character)
 {
+    UNISON_ASSERT(isComponentRegistered("Transform"));
+    UNISON_ASSERT(isComponentRegistered("CharacterController"));
+
     UNISON_VERIFY(frame.registry.all_of<Transform>(entity));
     UNISON_VERIFY(!frame.registry.all_of<CharacterController>(entity));
 

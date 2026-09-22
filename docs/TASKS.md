@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.6.2**, the arena assets in code. Last finished: 1.6.1.
+- Next up: **1.6.2**, the arena assets in code. Last finished: 1.6.12, taken out of board order.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 55 | 40 |
+| 1 Deterministic simulation core | 7 | 56 | 41 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **167** | **55** |
+| **Total** | **31** | **168** | **56** |
 
 ## Charter amendments made while planning
 
@@ -179,6 +179,7 @@ needs from earlier tasks is ticked.
 - [ ] 1.6.9 `MatchRules` system: warmup, playing, ended phases; score per slot. Test: a kill increments the score; the match ends at the limit.
 - [ ] 1.6.10 Crates pushed by characters (`CharacterVirtual` push settings). Test: walking into a crate moves it.
 - [ ] 1.6.11 `makeArenaPipeline()` and `ArenaSimulation` factory (frame + assets + pipeline). Test: 600 frames of scripted inputs run headless with a stable golden checksum.
+- [x] 1.6.12 (+) The engine checks that a game registered the components it puts on entities itself: `addBody` needs `Transform`, `PhysicsBody` and `BodyDefinition` registered, `addCharacter` needs `CharacterController`, and a game that forgets one loses it from every snapshot without a word. Reason: found in 1.6.1, where the arena registered nothing at all and only a test noticed. Test: the registry answers which names a game registered, and the helpers check the ones they emplace.
 
 ### 1.7 Determinism suite and benchmarks
 - [ ] 1.7.1 Double-run test over the Arena scripted inputs: per-frame checksums equal.

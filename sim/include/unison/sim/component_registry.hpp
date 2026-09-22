@@ -97,6 +97,11 @@ void hashPoolOf(Hasher& hasher, const entt::registry& registry)
 /// initialiser has nowhere else to write.
 [[nodiscard]] ComponentRegistry& componentRegistry();
 
+/// Whether the game running in this process registered a component of that name. The engine asks
+/// before it puts a component of its own on an entity, because one the game forgot to register
+/// would quietly stay out of every snapshot.
+[[nodiscard]] bool isComponentRegistered(std::string_view name);
+
 /// Adds one component to the process-wide registry as the program starts. Created by
 /// UNISON_COMPONENT; there is no reason to create one directly.
 class ComponentRegistration

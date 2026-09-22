@@ -250,7 +250,9 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
   All registrations live in one translation unit: static initialisation order across translation units is
   unspecified, so the list order, and with it every snapshot and checksum, would differ between Debug and
   Release without a word. `ComponentRegistry` rejects a registration arriving from a second file, so one
-  process runs one game. A game is built as a CMake OBJECT library, because from a static library the
+  process runs one game. The engine checks in Debug that a game registered the components it puts on
+  entities itself, because one the game forgot would quietly stay out of every snapshot. A game is
+  built as a CMake OBJECT library, because from a static library the
   linker drops the translation unit that holds the registrations: nothing references a static initialiser.
 - Math fields in components are plain POD types from `unison_core` (`Float3`, `Quaternion`: three or four
   floats, natural alignment, no padding). Jolt vector types are used for computation inside systems and
