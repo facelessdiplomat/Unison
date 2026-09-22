@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unison/core/fixed_vector.hpp>
+#include <unison/core/hasher.hpp>
 
 #include <unison/sim/padding_free.hpp>
 
@@ -22,6 +23,7 @@ struct ComponentInfo
     std::size_t size = 0;
     std::size_t alignment = 0;
     void (*clonePool)(const entt::registry& source, entt::registry& destination) = nullptr;
+    void (*hashPool)(Hasher& hasher, const entt::registry& registry) = nullptr;
 };
 
 /// The ordered list of component types a simulation is built from. The order is the order they were
@@ -67,6 +69,30 @@ void clonePoolOf(const entt::registry& source, entt::registry& destination)
     }
 }
 
+/// Folds one component pool into a hash in packed order, identifiers included, so a checksum covers
+/// which entity holds what and not only the values.
+template <typename T>
+void hashPoolOf(Hasher& hasher, const entt::registry& registry)
+{
+    const auto* pool = registry.storage<T>();
+    const auto count = static_cast<std::uint32_t>(pool == nullptr ? 0 : pool->size());
+
+    hasher.add(count);
+
+    if (pool == nullptr)
+    {
+        return;
+    }
+
+    const entt::registry::common_type& entities = *pool;
+
+    for (auto first = entities.rbegin(), last = entities.rend(); first != last; ++first)
+    {
+        hasher.add(static_cast<std::uint32_t>(*first));
+        hasher.add(pool->get(*first));
+    }
+}
+
 /// The registry UNISON_COMPONENT writes into, shared by the whole process because a static
 /// initialiser has nowhere else to write.
 [[nodiscard]] ComponentRegistry& componentRegistry();
@@ -90,5 +116,7 @@ public:
     static_assert(::unison::sim::PaddingFree<Type>, #Type " must have no padding to be a component: reorder fields");  \
     static const ::unison::sim::ComponentRegistration unisonComponentRegistration##Type                                \
     {                                                                                                                  \
-        ::unison::sim::ComponentInfo{#Type, sizeof(Type), alignof(Type), &::unison::sim::clonePoolOf<Type>}, __FILE__  \
+        ::unison::sim::ComponentInfo{                                                                                  \
+            #Type, sizeof(Type), alignof(Type), &::unison::sim::clonePoolOf<Type>, &::unison::sim::hashPoolOf<Type>},  \
+            __FILE__                                                                                                   \
     }
