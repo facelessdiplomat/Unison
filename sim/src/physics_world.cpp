@@ -6,11 +6,18 @@
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyLock.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/CollideShape.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/StateRecorder.h>
 
+#include <algorithm>
 #include <cstring>
 
 namespace unison::sim
@@ -21,6 +28,51 @@ namespace
 
 constexpr JPH::uint kBodyMutexCountForOneThread = 1;
 constexpr int kCollisionStepsPerTick = 1;
+
+JPH::BodyID bodyOf(const JPH::RayCastResult& hit)
+{
+    return hit.mBodyID;
+}
+
+JPH::BodyID bodyOf(const JPH::CollideShapeResult& hit)
+{
+    return hit.mBodyID2;
+}
+
+JPH::SubShapeID subShapeOf(const JPH::RayCastResult& hit)
+{
+    return hit.mSubShapeID2;
+}
+
+JPH::SubShapeID subShapeOf(const JPH::CollideShapeResult& hit)
+{
+    return hit.mSubShapeID2;
+}
+
+template <typename Hit>
+bool byBodyThenSubShape(const Hit& first, const Hit& second)
+{
+    const std::uint32_t firstBody = bodyOf(first).GetIndexAndSequenceNumber();
+    const std::uint32_t secondBody = bodyOf(second).GetIndexAndSequenceNumber();
+
+    if (firstBody != secondBody)
+    {
+        return firstBody < secondBody;
+    }
+
+    return subShapeOf(first).GetValue() < subShapeOf(second).GetValue();
+}
+
+template <typename Hit>
+bool nearestFirst(const Hit& first, const Hit& second)
+{
+    if (first.mFraction != second.mFraction)
+    {
+        return first.mFraction < second.mFraction;
+    }
+
+    return byBodyThenSubShape(first, second);
+}
 
 JPH::Ref<JPH::Shape> createdShape(const JPH::ShapeSettings& settings)
 {
@@ -229,6 +281,75 @@ Transform PhysicsWorld::transformOf(BodyId id) const
     }
 
     return Transform{toFloat3(lock.GetBody().GetPosition()), toQuaternion(lock.GetBody().GetRotation())};
+}
+
+void PhysicsWorld::raycast(const Float3& from, const Float3& to, std::vector<PhysicsHit>& hits) const
+{
+    const JPH::RRayCast ray{toJoltVector(from), toJoltVector(to) - toJoltVector(from)};
+
+    JPH::AllHitCollisionCollector<JPH::CastRayCollector> collector;
+
+    physicsSystem.GetNarrowPhaseQuery().CastRay(ray, JPH::RayCastSettings{}, collector);
+
+    std::sort(collector.mHits.begin(), collector.mHits.end(), nearestFirst<JPH::RayCastResult>);
+
+    hits.clear();
+    hits.reserve(collector.mHits.size());
+
+    for (const JPH::RayCastResult& hit : collector.mHits)
+    {
+        hits.push_back(PhysicsHit{toBodyId(hit.mBodyID), hit.mFraction});
+    }
+}
+
+void PhysicsWorld::overlapSphere(const Float3& centre, float radius, std::vector<BodyId>& bodies) const
+{
+    JPH::SphereShapeSettings sphere{radius};
+    sphere.SetEmbedded();
+
+    const JPH::Ref<JPH::Shape> shape = createdShape(sphere);
+    const JPH::RVec3 at = toJoltVector(centre);
+
+    JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
+
+    physicsSystem.GetNarrowPhaseQuery().CollideShape(
+        shape, JPH::Vec3::sOne(), JPH::RMat44::sTranslation(at), JPH::CollideShapeSettings{}, at, collector);
+
+    std::sort(collector.mHits.begin(), collector.mHits.end(), byBodyThenSubShape<JPH::CollideShapeResult>);
+
+    bodies.clear();
+    bodies.reserve(collector.mHits.size());
+
+    for (const JPH::CollideShapeResult& hit : collector.mHits)
+    {
+        bodies.push_back(toBodyId(hit.mBodyID2));
+    }
+}
+
+void PhysicsWorld::sweepCapsule(
+    const Float3& from, const Float3& to, float radius, float halfHeight, std::vector<PhysicsHit>& hits) const
+{
+    JPH::CapsuleShapeSettings capsule{halfHeight, radius};
+    capsule.SetEmbedded();
+
+    const JPH::Ref<JPH::Shape> shape = createdShape(capsule);
+    const JPH::RVec3 at = toJoltVector(from);
+    const JPH::RShapeCast sweep = JPH::RShapeCast::sFromWorldTransform(
+        shape, JPH::Vec3::sOne(), JPH::RMat44::sTranslation(at), toJoltVector(to) - at);
+
+    JPH::AllHitCollisionCollector<JPH::CastShapeCollector> collector;
+
+    physicsSystem.GetNarrowPhaseQuery().CastShape(sweep, JPH::ShapeCastSettings{}, at, collector);
+
+    std::sort(collector.mHits.begin(), collector.mHits.end(), nearestFirst<JPH::ShapeCastResult>);
+
+    hits.clear();
+    hits.reserve(collector.mHits.size());
+
+    for (const JPH::ShapeCastResult& hit : collector.mHits)
+    {
+        hits.push_back(PhysicsHit{toBodyId(hit.mBodyID2), hit.mFraction});
+    }
 }
 
 void PhysicsWorld::applyProperties(BodyId id, const BodyDefinition& definition)

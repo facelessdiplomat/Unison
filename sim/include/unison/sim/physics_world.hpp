@@ -31,6 +31,14 @@ struct PhysicsWorldSettings
     Float3 gravity{0.0F, -9.81F, 0.0F};
 };
 
+/// One thing a query found: the body it met and how far along the query it stood, nought for a query
+/// that only asks what overlaps where it is.
+struct PhysicsHit
+{
+    BodyId body = BodyId::Invalid;
+    float fraction = 0.0F;
+};
+
 /// A Jolt physics system with everything that keeps it reproducible: one job thread, one fixed block
 /// of scratch memory, and the layer rules that decide which bodies may meet. It advances the bodies
 /// of one frame a tick at a time and owns nothing else about the frame.
@@ -58,6 +66,17 @@ public:
     [[nodiscard]] bool holdsBody(BodyId id) const;
 
     [[nodiscard]] Transform transformOf(BodyId id) const;
+
+    /// The bodies a ray meets on its way from one point to the other, nearest first and in body order
+    /// where they are equally near, so every client reads the same list.
+    void raycast(const Float3& from, const Float3& to, std::vector<PhysicsHit>& hits) const;
+
+    /// The bodies a sphere overlaps where it stands, in body order.
+    void overlapSphere(const Float3& centre, float radius, std::vector<BodyId>& bodies) const;
+
+    /// The bodies an upright capsule meets as it sweeps from one point to the other, nearest first.
+    void sweepCapsule(
+        const Float3& from, const Float3& to, float radius, float halfHeight, std::vector<PhysicsHit>& hits) const;
 
     /// Puts back on a body what Jolt leaves out of the state buffer it saves.
     void applyProperties(BodyId id, const BodyDefinition& definition);

@@ -318,7 +318,9 @@ the same session.
   reconciliation. Measurements are read when the body is built, so changing a shape or a size means
   building the body again.
 - **Query results are sorted** before use. Jolt returns broad/narrow-phase results and
-  `GetActiveBodies` in non-deterministic order; the wrapper sorts by `BodyID`.
+  `GetActiveBodies` in the order its traversal happens to reach them; `raycast`, `overlapSphere` and
+  `sweepCapsule` sort by `(fraction, BodyID, sub-shape id)` before a system sees them. Queries in v1
+  meet every layer and carry no filters.
 - **Contact callbacks are buffered**, then sorted by `(BodyID a, BodyID b, sub-shape ids)` and
   delivered to systems in that order. Listener callbacks may run on multiple threads inside Jolt.
 - **Character movement** uses Jolt's `CharacterVirtual` (kinematic, deterministic), whose
