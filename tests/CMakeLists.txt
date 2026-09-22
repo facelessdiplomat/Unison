@@ -108,7 +108,7 @@ unison_apply_warnings(unison_core_header_check)
 add_executable(
     unison_tests_arena arena/apply_input_test.cpp arena/arena_input_test.cpp arena/assets_test.cpp
     arena/character_move_test.cpp arena/components_test.cpp arena/hits_test.cpp arena/lifetimes_test.cpp
-    arena/respawn_test.cpp arena/shot_path_test.cpp arena/weapons_test.cpp
+    arena/match_rules_test.cpp arena/respawn_test.cpp arena/shot_path_test.cpp arena/weapons_test.cpp
 )
 
 target_include_directories(unison_tests_arena PRIVATE "${CMAKE_CURRENT_LIST_DIR}")

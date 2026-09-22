@@ -56,6 +56,7 @@ void defineArena(unison::sim::AssetRegistry& assets)
     assets.add<SpawnPoints>(kSpawnPoints, spawnPoints());
     assets.add<PlayerStats>(kPlayerStats, PlayerStats{});
     assets.add<ProjectileStats>(kProjectileStats, ProjectileStats{});
+    assets.add<MatchStats>(kMatchStats, MatchStats{});
 
     assets.freeze();
 }

@@ -20,11 +20,14 @@ namespace
 
 void takeOutOfTheWorld(unison::sim::Frame& frame, entt::entity player, const PlayerStats& stats)
 {
-    frame.events.raise(frame.frameNumber, Died{player, frame.registry.get<Health>(player).lastHitBy});
+    const entt::entity killedBy = frame.registry.get<Health>(player).lastHitBy;
+
+    frame.events.raise(frame.frameNumber, Died{player, killedBy});
 
     unison::sim::removeCharacter(frame, player);
 
     frame.registry.emplace<RespawnTimer>(player, stats.respawnFrames);
+    frame.registry.emplace<Killed>(player, killedBy);
 }
 
 void putBackIntoTheWorld(unison::sim::Frame& frame,

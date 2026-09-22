@@ -20,6 +20,7 @@ inline constexpr unison::AssetId kCrate = unison::makeAssetId("arena.crate");
 inline constexpr unison::AssetId kSpawnPoints = unison::makeAssetId("arena.spawn_points");
 inline constexpr unison::AssetId kPlayerStats = unison::makeAssetId("arena.player_stats");
 inline constexpr unison::AssetId kProjectileStats = unison::makeAssetId("arena.projectile_stats");
+inline constexpr unison::AssetId kMatchStats = unison::makeAssetId("arena.match_stats");
 
 /// Where players come into the match and which way they face when they arrive.
 struct SpawnPoints
@@ -51,6 +52,13 @@ struct ProjectileStats
     std::int32_t damage = 25;
     std::uint32_t lifetimeFrames = 120;
     std::uint32_t cooldownFrames = 12;
+};
+
+/// What a match is played to: how long the players wait before it counts and how many kills end it.
+struct MatchStats
+{
+    std::uint32_t warmupFrames = 180;
+    std::uint32_t killsToWin = 10;
 };
 
 /// Fills the registry with everything a match of the arena is built from and freezes it, so the

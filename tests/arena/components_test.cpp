@@ -64,13 +64,15 @@ TEST_CASE("the arena registers what a snapshot has to carry")
     REQUIRE(isRegistered("Projectile"));
     REQUIRE(isRegistered("Lifetime"));
     REQUIRE(isRegistered("RespawnTimer"));
+    REQUIRE(isRegistered("Score"));
+    REQUIRE(isRegistered("Killed"));
 }
 
 TEST_CASE("the components of the arena are registered from one place and in one order")
 {
     const std::span<const unison::sim::ComponentInfo> components = unison::sim::componentRegistry().components();
 
-    REQUIRE(components.size() == 11U);
+    REQUIRE(components.size() == 13U);
     REQUIRE(components[0].name == "Transform");
-    REQUIRE(components[10].name == "RespawnTimer");
+    REQUIRE(components[12].name == "Killed");
 }

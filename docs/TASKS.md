@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.6.9**, the `MatchRules` system. Last finished: 1.6.8.
+- Next up: **1.6.10**, crates pushed by characters. Last finished: 1.6.9.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 48 |
+| 1 Deterministic simulation core | 7 | 56 | 49 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **63** |
+| **Total** | **31** | **168** | **64** |
 
 ## Charter amendments made while planning
 
@@ -179,7 +179,7 @@ needs from earlier tasks is ticked.
 - [x] 1.6.6 `Hits` system: projectile sweep, `Health` damage, `Hit` event, projectile destroyed on impact. Test: a projectile hitting a player reduces health exactly once.
 - [x] 1.6.7 `Lifetime` system: despawn after `ttl` frames. Test: a projectile despawns at frame `spawn + ttl`.
 - [x] 1.6.8 `Died` (verified-only) and `Respawn` system with timer and `Rng` spawn point. Test: death at 0 health, respawn after the timer at a spawn point.
-- [ ] 1.6.9 `MatchRules` system: warmup, playing, ended phases; score per slot. Test: a kill increments the score; the match ends at the limit.
+- [x] 1.6.9 `MatchRules` system: warmup, playing, ended phases; score per slot. Test: a kill increments the score; the match ends at the limit.
 - [ ] 1.6.10 Crates pushed by characters (`CharacterVirtual` push settings). Test: walking into a crate moves it.
 - [ ] 1.6.11 `makeArenaPipeline()` and `ArenaSimulation` factory (frame + assets + pipeline). Test: 600 frames of scripted inputs run headless with a stable golden checksum.
 - [x] 1.6.12 (+) The engine checks that a game registered the components it puts on entities itself: `addBody` needs `Transform`, `PhysicsBody` and `BodyDefinition` registered, `addCharacter` needs `CharacterController`, and a game that forgets one loses it from every snapshot without a word. Reason: found in 1.6.1, where the arena registered nothing at all and only a test noticed. Test: the registry answers which names a game registered, and the helpers check the ones they emplace.

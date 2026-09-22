@@ -58,4 +58,17 @@ struct RespawnTimer
     std::uint32_t framesLeft = 0;
 };
 
+/// How many players someone has taken out of the match.
+struct Score
+{
+    std::uint32_t kills = 0;
+};
+
+/// Sits on a player who has just been taken out of the match, naming who did it, until the rules of
+/// the match have counted it.
+struct Killed
+{
+    entt::entity by = entt::null;
+};
+
 }
