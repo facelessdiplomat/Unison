@@ -108,7 +108,7 @@ unison_apply_warnings(unison_core_header_check)
 add_executable(
     unison_tests_arena arena/apply_input_test.cpp arena/arena_input_test.cpp
     arena/arena_simulation_test.cpp arena/assets_test.cpp
-    arena/character_move_test.cpp arena/components_test.cpp arena/crates_test.cpp arena/determinism_test.cpp
+    arena/character_move_test.cpp arena/components_test.cpp arena/crates_test.cpp arena/determinism_test.cpp arena/golden_test.cpp
     arena/hits_test.cpp arena/lifetimes_test.cpp
     arena/match_rules_test.cpp arena/respawn_test.cpp arena/shot_path_test.cpp arena/weapons_test.cpp
 )
@@ -118,5 +118,9 @@ target_include_directories(unison_tests_arena PRIVATE "${CMAKE_CURRENT_LIST_DIR}
 target_link_libraries(unison_tests_arena PRIVATE arena_sim Catch2::Catch2WithMain)
 
 target_compile_options(unison_tests_arena PRIVATE /EHsc)
+
+target_compile_definitions(
+    unison_tests_arena PRIVATE "UNISON_GOLDEN_DIR=\"${CMAKE_CURRENT_LIST_DIR}/golden\""
+)
 
 catch_discover_tests(unison_tests_arena PROPERTIES LABELS fast)

@@ -5,7 +5,6 @@
 #include <arena/arena_input.hpp>
 #include <arena/components.hpp>
 #include <support/arena_script.hpp>
-#include <unison/sim/frame_checksum.hpp>
 #include <unison/sim/pipeline_hash.hpp>
 #include <unison/sim/transform.hpp>
 
@@ -19,7 +18,6 @@ namespace
 
 constexpr std::size_t kPlayers = unison::test::kScriptedPlayers;
 constexpr std::uint32_t kFrames = 600;
-constexpr std::uint64_t kGoldenArenaChecksum = 0x05E94D8E12D2D6BCU;
 
 void play(arena::ArenaSimulation& match, std::uint32_t frames)
 {
@@ -54,15 +52,6 @@ TEST_CASE("the players of a match stand where the match put them")
         REQUIRE(stance.position.y > 0.0F);
         REQUIRE(match.frame().registry.all_of<unison::sim::CharacterController>(entity));
     }
-}
-
-TEST_CASE("a match played on the scripted inputs ends where it always has")
-{
-    arena::ArenaSimulation match{kPlayers};
-
-    play(match, kFrames);
-
-    REQUIRE(unison::sim::checksumOf(match.frame()) == kGoldenArenaChecksum);
 }
 
 TEST_CASE("the scripted match is a match worth checking")
