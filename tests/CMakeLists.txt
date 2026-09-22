@@ -40,6 +40,7 @@ include(Catch)
 
 add_executable(
     unison_tests_fast
+    core/fixed_string_test.cpp
     core/fixed_vector_test.cpp
     core/framework_test.cpp
     core/xxhash_vectors_test.cpp
