@@ -622,7 +622,7 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
   two ticks. Hit → damage event; kill → respawn timer.
 - **Dynamic props**: a few rigid-body crates that players and projectiles can push.
 - **Components**: `Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`.
-- **Systems** (in order): `ApplyInput`, `CharacterMove`, `Weapons`, `PhysicsStep`, `Hits`, `Lifetime`, `Respawn`, `MatchRules`.
+- **Systems** (in order): `ApplyInput`, `CharacterMove`, `Weapons`, `PhysicsStep`, `Hits`, `Lifetimes`, `Respawn`, `MatchRules` (the system is plural, because `Lifetime` is the component it counts down).
 - **Input**: `moveX/moveY: int8`, `yaw: int16`, `buttons: uint16 {Jump, Fire}`. The buttons take sixteen bits
   rather than eight so that `ArenaInput` carries no padding, which `InputTraits` requires of an input.
 - **Events**: `EntityCreated`, `EntityDestroyed`, `Fired` (predicted), `Hit` (predicted), `Died` (verified-only), `Respawned` (verified-only).

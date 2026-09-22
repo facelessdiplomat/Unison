@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.6.7**, the `Lifetime` system. Last finished: 1.6.6.
+- Next up: **1.6.8**, dying and respawning. Last finished: 1.6.7.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 46 |
+| 1 Deterministic simulation core | 7 | 56 | 47 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **61** |
+| **Total** | **31** | **168** | **62** |
 
 ## Charter amendments made while planning
 
@@ -177,7 +177,7 @@ needs from earlier tasks is ticked.
 - [x] 1.6.4 `CharacterMove` system: drives `CharacterController`, jump with ground check, gravity. Test: a jump leaves the ground and lands within the expected frames.
 - [x] 1.6.5 `Weapons` system: fire button spawns a projectile with cooldown and raises `Fired`. Test: holding fire respects the cooldown; one event ordinal per shot.
 - [x] 1.6.6 `Hits` system: projectile sweep, `Health` damage, `Hit` event, projectile destroyed on impact. Test: a projectile hitting a player reduces health exactly once.
-- [ ] 1.6.7 `Lifetime` system: despawn after `ttl` frames. Test: a projectile despawns at frame `spawn + ttl`.
+- [x] 1.6.7 `Lifetime` system: despawn after `ttl` frames. Test: a projectile despawns at frame `spawn + ttl`.
 - [ ] 1.6.8 `Died` (verified-only) and `Respawn` system with timer and `Rng` spawn point. Test: death at 0 health, respawn after the timer at a spawn point.
 - [ ] 1.6.9 `MatchRules` system: warmup, playing, ended phases; score per slot. Test: a kill increments the score; the match ends at the limit.
 - [ ] 1.6.10 Crates pushed by characters (`CharacterVirtual` push settings). Test: walking into a crate moves it.
