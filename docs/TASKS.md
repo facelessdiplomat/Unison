@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.3.1**, `ISystem` and `SystemPipeline`. Last finished: 1.4.1.
+- Next up: **1.3.2**, the pipeline hash. Last finished: 1.3.1.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -27,13 +27,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 21 |
+| 1 Deterministic simulation core | 7 | 54 | 22 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **36** |
+| **Total** | **31** | **166** | **37** |
 
 ## Charter amendments made while planning
 
@@ -124,7 +124,7 @@ needs from earlier tasks is ticked.
 - [x] 1.2.6 Entity lifecycle helpers `createEntity(frame)` / `destroyEntity(frame, entity)` raising `EntityCreated` / `EntityDestroyed`. Test: the events carry the entity and appear in the buffer.
 
 ### 1.3 Systems, signals, events
-- [ ] 1.3.1 `ISystem` and `SystemPipeline`: ordered `update(Frame&, const FrameInputs&)`. Test: systems run in registration order exactly once per `advance`.
+- [x] 1.3.1 `ISystem` and `SystemPipeline`: ordered `update(Frame&, const FrameInputs&)`. Test: systems run in registration order exactly once per `advance`.
 - [ ] 1.3.2 Pipeline hash from system names in order, for `SessionConfig`. Test: reordering changes the hash.
 - [x] 1.3.3 `EventBuffer`: `raise<T>(payload)`, `EventKey{frame, typeId, ordinal}`, per-type kind trait (`VerifiedOnly` / `Predicted`), cleared on `advance`. Test: ordinals increase per type per frame; the buffer is empty after advance.
 - [ ] 1.3.4 `Signals`: typed synchronous subscriptions invoked in subscription order. Test: two subscribers receive a signal in order; an unsubscribed one does not.
