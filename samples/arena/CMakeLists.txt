@@ -1,4 +1,4 @@
-add_library(arena_sim OBJECT src/components.cpp)
+add_library(arena_sim OBJECT src/assets.cpp src/components.cpp)
 
 target_include_directories(arena_sim PUBLIC include)
 
