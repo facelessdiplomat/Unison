@@ -1,11 +1,11 @@
 #pragma once
 
+#include <unison/core/contract.hpp>
+
 #include <Jolt/Jolt.h>
 
 #include <Jolt/Math/Math.h>
 #include <Jolt/Math/Trigonometry.h>
-
-#include <cassert>
 
 namespace unison::math
 {
@@ -40,7 +40,7 @@ namespace unison::math
 /// minimum exceeds its maximum is a contract violation.
 [[nodiscard]] constexpr float clamp(float value, float minimum, float maximum)
 {
-    assert(minimum <= maximum);
+    UNISON_ASSERT(minimum <= maximum);
 
     return JPH::Clamp(value, minimum, maximum);
 }

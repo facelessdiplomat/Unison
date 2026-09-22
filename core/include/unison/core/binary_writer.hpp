@@ -1,9 +1,9 @@
 #pragma once
 
+#include <unison/core/contract.hpp>
 #include <unison/core/raw_value.hpp>
 
 #include <bit>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -47,7 +47,7 @@ public:
 
     [[nodiscard]] bool writeString(std::string_view text)
     {
-        assert(text.size() <= std::numeric_limits<std::uint32_t>::max());
+        UNISON_ASSERT(text.size() <= std::numeric_limits<std::uint32_t>::max());
 
         if (sizeof(std::uint32_t) + text.size() > remaining())
         {

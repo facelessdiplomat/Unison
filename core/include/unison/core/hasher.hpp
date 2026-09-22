@@ -1,10 +1,10 @@
 #pragma once
 
+#include <unison/core/contract.hpp>
 #include <unison/core/raw_value.hpp>
 
 #include <xxhash.h>
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -21,13 +21,13 @@ public:
     Hasher()
     {
         [[maybe_unused]] const XXH_errorcode status = XXH3_64bits_reset(&state);
-        assert(status == XXH_OK);
+        UNISON_ASSERT(status == XXH_OK);
     }
 
     void add(std::span<const std::byte> bytes)
     {
         [[maybe_unused]] const XXH_errorcode status = XXH3_64bits_update(&state, bytes.data(), bytes.size());
-        assert(status == XXH_OK);
+        UNISON_ASSERT(status == XXH_OK);
     }
 
     template <RawValue T>

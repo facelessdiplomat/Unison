@@ -1,7 +1,8 @@
 #pragma once
 
+#include <unison/core/contract.hpp>
+
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <type_traits>
 
@@ -22,7 +23,7 @@ public:
 
     constexpr void pushBack(const T& value)
     {
-        assert(count < Capacity);
+        UNISON_ASSERT(count < Capacity);
 
         values[count] = value;
         ++count;
@@ -30,7 +31,7 @@ public:
 
     constexpr void popBack()
     {
-        assert(count > 0);
+        UNISON_ASSERT(count > 0);
 
         --count;
         values[count] = T{};
@@ -46,14 +47,14 @@ public:
 
     [[nodiscard]] constexpr T& operator[](std::size_t index)
     {
-        assert(index < count);
+        UNISON_ASSERT(index < count);
 
         return values[index];
     }
 
     [[nodiscard]] constexpr const T& operator[](std::size_t index) const
     {
-        assert(index < count);
+        UNISON_ASSERT(index < count);
 
         return values[index];
     }

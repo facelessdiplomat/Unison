@@ -73,3 +73,10 @@ add_library(xxhash INTERFACE)
 target_include_directories(xxhash INTERFACE "${xxHash_SOURCE_DIR}")
 
 target_compile_definitions(xxhash INTERFACE XXH_INLINE_ALL)
+
+CPMAddPackage(
+    NAME tl-expected
+    GITHUB_REPOSITORY TartanLlama/expected
+    GIT_TAG v1.1.0
+    OPTIONS "EXPECTED_BUILD_TESTS OFF"
+)

@@ -1,7 +1,8 @@
 #pragma once
 
+#include <unison/core/contract.hpp>
+
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <string_view>
 
@@ -23,8 +24,8 @@ public:
 
     constexpr explicit FixedString(std::string_view text)
     {
-        assert(text.size() <= Capacity);
-        assert(text.find('\0') == std::string_view::npos);
+        UNISON_ASSERT(text.size() <= Capacity);
+        UNISON_ASSERT(text.find('\0') == std::string_view::npos);
 
         for (std::size_t index = 0; index < text.size(); ++index)
         {

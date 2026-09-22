@@ -1,7 +1,8 @@
 #pragma once
 
+#include <unison/core/contract.hpp>
+
 #include <array>
-#include <cassert>
 #include <cstdint>
 #include <limits>
 
@@ -47,7 +48,7 @@ public:
     /// A range whose minimum exceeds its maximum is a contract violation.
     [[nodiscard]] constexpr std::int32_t nextInRange(std::int32_t minimum, std::int32_t maximum)
     {
-        assert(minimum <= maximum);
+        UNISON_ASSERT(minimum <= maximum);
 
         const std::uint64_t span = static_cast<std::uint64_t>(static_cast<std::int64_t>(maximum) - minimum) + 1U;
         const std::uint64_t bucketSize = std::numeric_limits<std::uint64_t>::max() / span;
@@ -67,7 +68,7 @@ public:
 private:
     static constexpr std::uint64_t rotateLeft(std::uint64_t value, int bits)
     {
-        assert(bits > 0 && bits < 64);
+        UNISON_ASSERT(bits > 0 && bits < 64);
 
         return (value << bits) | (value >> (64 - bits));
     }

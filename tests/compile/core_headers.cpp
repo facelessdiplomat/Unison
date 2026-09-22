@@ -1,6 +1,8 @@
 #include <unison/core/asset_id.hpp>
 #include <unison/core/binary_reader.hpp>
 #include <unison/core/binary_writer.hpp>
+#include <unison/core/contract.hpp>
+#include <unison/core/error.hpp>
 #include <unison/core/fixed_string.hpp>
 #include <unison/core/fixed_vector.hpp>
 #include <unison/core/float3.hpp>
@@ -31,6 +33,25 @@ static_assert(unison::RawValue<unison::AssetId>);
 std::uint64_t checkAssetId()
 {
     return static_cast<std::uint64_t>(unison::makeAssetId("floor"));
+}
+
+std::uint64_t checkContract()
+{
+    const unison::FatalHandler previous = unison::installedFatalHandler();
+
+    UNISON_VERIFY(previous != nullptr);
+    UNISON_ASSERT(previous != nullptr);
+
+    unison::installFatalHandler(previous);
+
+    return previous == nullptr ? 0U : 1U;
+}
+
+std::uint64_t checkError()
+{
+    constexpr unison::Error error{unison::ErrorCode::TruncatedInput, "core header compile check"};
+
+    return static_cast<std::uint64_t>(error.code()) + error.message().size();
 }
 
 std::uint64_t checkFixedVector()
@@ -142,6 +163,6 @@ std::uint64_t checkRng()
 
 std::uint64_t unisonCoreHeaderCheck()
 {
-    return checkAssetId() ^ checkBinaryIo() ^ checkFixedString() ^ checkFixedVector() ^ checkFpEnvGuard() ^
-           checkHasher() ^ checkLogSink() ^ checkMath() ^ checkMathTypes() ^ checkRng();
+    return checkAssetId() ^ checkBinaryIo() ^ checkContract() ^ checkError() ^ checkFixedString() ^ checkFixedVector() ^
+           checkFpEnvGuard() ^ checkHasher() ^ checkLogSink() ^ checkMath() ^ checkMathTypes() ^ checkRng();
 }

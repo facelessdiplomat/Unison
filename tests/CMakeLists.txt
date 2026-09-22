@@ -42,6 +42,8 @@ add_executable(
     unison_tests_fast
     core/asset_id_test.cpp
     core/binary_io_test.cpp
+    core/contract_test.cpp
+    core/error_test.cpp
     core/fixed_string_test.cpp
     core/fixed_vector_test.cpp
     core/fp_env_guard_test.cpp
