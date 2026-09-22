@@ -217,7 +217,10 @@ A `Frame` is the complete mutable state of the game at tick `N`:
 - globals: `Rng` state, match state (phase, timers), player-slot table;
 - the `EventBuffer` for events raised during this tick (cleared each tick).
 
-`Frame::advance(inputs)` runs the system pipeline exactly once. Given the same starting
+`advanceFrame(frame, pipeline, inputs)` runs the system pipeline exactly once. It is a free function, not a
+method: a frame holds state and nothing else, and the pipeline belongs to the game rather than to the frame.
+It clears the events of the previous tick before the systems run, so the events a tick raises are still there
+for the view when it returns and none of them outlives the tick. Given the same starting
 state and the same inputs, `advance` produces a bit-identical result on every client.
 
 ### 6.2 Systems

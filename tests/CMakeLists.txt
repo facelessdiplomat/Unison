@@ -56,6 +56,7 @@ add_executable(
     core/rng_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
+    sim/advance_frame_test.cpp
     sim/component_registry_test.cpp
     sim/entt_smoke_test.cpp
     sim/entity_lifecycle_test.cpp
@@ -67,6 +68,7 @@ add_executable(
     sim/padding_free_test.cpp
     sim/pipeline_hash_test.cpp
     sim/registry_clone_test.cpp
+    sim/signals_test.cpp
     sim/system_pipeline_test.cpp
     support/test_components.cpp
     sim/jolt_smoke_test.cpp
