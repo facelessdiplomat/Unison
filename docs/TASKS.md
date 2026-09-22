@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.1**, the first micro-task of phase 1. Last finished: 0.1.9; phase 0 is complete.
+- Next up: **1.1.2**, `FixedString<N>`. Last finished: 1.1.1.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 52 | 0 |
+| 1 Deterministic simulation core | 7 | 52 | 1 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **164** | **15** |
+| **Total** | **31** | **164** | **16** |
 
 ## Charter amendments made while planning
 
@@ -84,7 +84,7 @@ needs from earlier tasks is ticked.
 - [ ] Open question Q2 (SSE2 vs AVX2) is answered in `DESIGN.md` from measured numbers.
 
 ### 1.1 Core primitives (`unison_core`)
-- [ ] 1.1.1 `FixedVector<T, N>`: push, pop, size, index, iteration, `clear`, full-capacity assert; trivially copyable when `T` is. Test: behaviour cases plus `std::is_trivially_copyable_v`.
+- [x] 1.1.1 `FixedVector<T, N>`: push, pop, size, index, iteration, `clear`, full-capacity assert; trivially copyable when `T` is. Test: behaviour cases plus `std::is_trivially_copyable_v`.
 - [ ] 1.1.2 `FixedString<N>`: from `string_view`, comparison, `view()`, zeroed tail. Test: equal strings built differently are byte-identical.
 - [ ] 1.1.3 `Hasher` over XXH3-64: `add(span<const byte>)`, `add(const T&)` for trivially copyable `T`, `finish()`. Test: same bytes same hash, order matters, matches the one-shot XXH3 result.
 - [ ] 1.1.4 `BinaryWriter` / `BinaryReader`: POD values, spans, strings, bounds-checked reads that report failure instead of undefined behaviour. Test: round trip of every supported type; a truncated buffer fails cleanly.
