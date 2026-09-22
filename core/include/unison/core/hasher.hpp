@@ -1,26 +1,16 @@
 #pragma once
 
+#include <unison/core/raw_value.hpp>
+
 #include <xxhash.h>
 
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <type_traits>
 
 namespace unison
 {
-
-namespace detail
-{
-
-template <typename T>
-inline constexpr bool kIsSpan = false;
-
-template <typename T, std::size_t Extent>
-inline constexpr bool kIsSpan<std::span<T, Extent>> = true;
-
-}
 
 /// Streaming XXH3-64 digest: the result depends on the concatenated bytes added and not on how they
 /// were split, and equals the one-shot XXH3 over the same stream. A value is hashed as its object
@@ -40,13 +30,9 @@ public:
         assert(status == XXH_OK);
     }
 
-    template <typename T>
-        requires(!detail::kIsSpan<T>)
+    template <RawValue T>
     void add(const T& value)
     {
-        static_assert(std::is_trivially_copyable_v<T>, "Hasher takes trivially copyable values only");
-        static_assert(!std::is_pointer_v<T>, "hashing a pointer would hash an address, which differs per process");
-
         add(std::as_bytes(std::span<const T, 1>{&value, 1}));
     }
 

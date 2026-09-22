@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.4**, `BinaryWriter` / `BinaryReader`. Last finished: 1.1.3.
+- Next up: **1.1.5**, `FpEnvGuard`. Last finished: 1.1.4.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 52 | 3 |
+| 1 Deterministic simulation core | 7 | 53 | 4 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **164** | **18** |
+| **Total** | **31** | **165** | **19** |
 
 ## Charter amendments made while planning
 
@@ -87,7 +87,7 @@ needs from earlier tasks is ticked.
 - [x] 1.1.1 `FixedVector<T, N>`: push, pop, size, index, iteration, `clear`, full-capacity assert; trivially copyable when `T` is. Test: behaviour cases plus `std::is_trivially_copyable_v`.
 - [x] 1.1.2 `FixedString<N>`: from `string_view`, comparison, `view()`, zeroed tail. Test: equal strings built differently are byte-identical.
 - [x] 1.1.3 `Hasher` over XXH3-64: `add(span<const byte>)`, `add(const T&)` for trivially copyable `T`, `finish()`. Test: same bytes same hash, order matters, matches the one-shot XXH3 result.
-- [ ] 1.1.4 `BinaryWriter` / `BinaryReader`: POD values, spans, strings, bounds-checked reads that report failure instead of undefined behaviour. Test: round trip of every supported type; a truncated buffer fails cleanly.
+- [x] 1.1.4 `BinaryWriter` / `BinaryReader`: POD values, spans, strings, bounds-checked reads that report failure instead of undefined behaviour. Test: round trip of every supported type; a truncated buffer fails cleanly.
 - [ ] 1.1.5 `FpEnvGuard`: sets MXCSR to round-to-nearest with denormals enabled, restores on scope exit. Test: with FTZ set outside, a denormal survives inside the guard and FTZ is back afterwards.
 - [ ] 1.1.6 `LogSink`: process-wide callback with levels; silent when unset. Test: the sink receives level and message.
 - [ ] 1.1.7 `AssetId`: `constexpr` 32-bit hash of a name, usable as a non-type template argument and in `switch`. Test: a fixed name gives a fixed id; distinct names differ.
@@ -95,6 +95,7 @@ needs from earlier tasks is ticked.
 - [ ] 1.1.9 Deterministic scalar facade `unison::math` (`sin`, `cos`, `atan2`, `sqrt`, `clamp`, `lerp` written without FMA) backed by Jolt's implementations. Test: golden bit patterns for a fixed input table.
 - [ ] 1.1.10 `Rng` (xoshiro256**): seed, `nextUint32`, `nextFloat01`, `nextInRange`. Test: golden sequence for seed 42; state is trivially copyable.
 - [ ] 1.1.11 (+) Error primitives: `UNISON_ASSERT` (Debug only), `UNISON_VERIFY` with an installable fatal handler reporting through `LogSink`, an `Error` type, and `tl::expected` pinned in `Dependencies.cmake`. Test: a failing verify invokes the installed handler; an assert has no effect in a Release probe; `expected` round trips value and error.
+- [ ] 1.1.12 (+) Compile-check target for `unison_core`: a translation unit built with `unison_apply_determinism` and `unison_apply_warnings` that instantiates the inline bodies of every public header, so headers are held to `/W4 /WX /EHs-c- /fp:precise` instead of only a syntax check. Reason: `core` is header-only, so `core.cpp` compiles no inline body, and the strict flags had to be verified by hand during 1.1.3 and 1.1.4. Done when: a deliberate warning inside a header body fails the build.
 
 ### 1.2 Frame, registration, snapshots (`unison_sim`)
 - [ ] 1.2.1 `ComponentRegistry` and `UNISON_COMPONENT(Type)`: static list with name, size and alignment; `static_assert` trivially copyable. Test: list order equals registration order; a duplicate registration is rejected at startup.

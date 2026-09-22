@@ -40,10 +40,12 @@ include(Catch)
 
 add_executable(
     unison_tests_fast
+    core/binary_io_test.cpp
     core/fixed_string_test.cpp
     core/fixed_vector_test.cpp
     core/framework_test.cpp
     core/hasher_test.cpp
+    core/raw_value_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
     sim/entt_smoke_test.cpp
