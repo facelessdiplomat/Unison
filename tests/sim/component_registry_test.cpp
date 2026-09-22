@@ -1,6 +1,7 @@
 #include <unison/sim/component_registry.hpp>
 
 #include <support/fatal_handler_probe.hpp>
+#include <support/test_components.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -9,17 +10,6 @@
 
 namespace
 {
-
-struct Position
-{
-    float x = 0.0F;
-    float y = 0.0F;
-};
-
-struct Health
-{
-    std::int32_t points = 0;
-};
 
 constexpr std::string_view kOwnFile = "component_registry_test.cpp";
 constexpr std::string_view kOtherFile = "somewhere_else.cpp";
@@ -31,14 +21,12 @@ unison::sim::ComponentInfo infoOf(std::string_view name, std::size_t size, std::
 
 }
 
-UNISON_COMPONENT(Position);
-
 TEST_CASE("a component registry keeps the order components were added in")
 {
     unison::sim::ComponentRegistry registry;
 
-    registry.add(infoOf("Health", sizeof(Health), alignof(Health)), kOwnFile);
-    registry.add(infoOf("Position", sizeof(Position), alignof(Position)), kOwnFile);
+    registry.add(infoOf("Health", sizeof(unison::test::Health), alignof(unison::test::Health)), kOwnFile);
+    registry.add(infoOf("Position", sizeof(unison::test::Position), alignof(unison::test::Position)), kOwnFile);
 
     const auto components = registry.components();
 
@@ -51,10 +39,10 @@ TEST_CASE("a component registry records the size and alignment of a component")
 {
     unison::sim::ComponentRegistry registry;
 
-    registry.add(infoOf("Position", sizeof(Position), alignof(Position)), kOwnFile);
+    registry.add(infoOf("Position", sizeof(unison::test::Position), alignof(unison::test::Position)), kOwnFile);
 
-    REQUIRE(registry.components()[0].size == sizeof(Position));
-    REQUIRE(registry.components()[0].alignment == alignof(Position));
+    REQUIRE(registry.components()[0].size == sizeof(unison::test::Position));
+    REQUIRE(registry.components()[0].alignment == alignof(unison::test::Position));
 }
 
 TEST_CASE("a component registry rejects a second component with the same name")
@@ -62,8 +50,8 @@ TEST_CASE("a component registry rejects a second component with the same name")
     const unison::test::FatalHandlerProbe probe;
     unison::sim::ComponentRegistry registry;
 
-    registry.add(infoOf("Position", sizeof(Position), alignof(Position)), kOwnFile);
-    registry.add(infoOf("Position", sizeof(Position), alignof(Position)), kOwnFile);
+    registry.add(infoOf("Position", sizeof(unison::test::Position), alignof(unison::test::Position)), kOwnFile);
+    registry.add(infoOf("Position", sizeof(unison::test::Position), alignof(unison::test::Position)), kOwnFile);
 
     REQUIRE(probe.failureCount() == 1U);
 }
@@ -73,8 +61,8 @@ TEST_CASE("a component registry rejects a component registered from another tran
     const unison::test::FatalHandlerProbe probe;
     unison::sim::ComponentRegistry registry;
 
-    registry.add(infoOf("Position", sizeof(Position), alignof(Position)), kOwnFile);
-    registry.add(infoOf("Health", sizeof(Health), alignof(Health)), kOtherFile);
+    registry.add(infoOf("Position", sizeof(unison::test::Position), alignof(unison::test::Position)), kOwnFile);
+    registry.add(infoOf("Health", sizeof(unison::test::Health), alignof(unison::test::Health)), kOtherFile);
 
     REQUIRE(probe.failureCount() == 1U);
 }

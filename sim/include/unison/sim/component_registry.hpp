@@ -4,6 +4,8 @@
 
 #include <unison/sim/padding_free.hpp>
 
+#include <entt/entity/registry.hpp>
+
 #include <cstddef>
 #include <span>
 #include <string_view>
@@ -12,13 +14,14 @@
 namespace unison::sim
 {
 
-/// What snapshots and checksums need to know about one component type. The name identifies it in
-/// reports and across builds; size and alignment describe the bytes a pool of it occupies.
+/// What snapshots and checksums need to know about one component type: the name that identifies it
+/// across builds, the bytes a pool of it occupies, and the one operation that needs the type back.
 struct ComponentInfo
 {
     std::string_view name;
     std::size_t size = 0;
     std::size_t alignment = 0;
+    void (*clonePool)(const entt::registry& source, entt::registry& destination) = nullptr;
 };
 
 /// The ordered list of component types a simulation is built from. The order is the order they were
@@ -41,6 +44,29 @@ private:
     std::string_view registrationFile;
 };
 
+/// Copies every element of one component pool into another registry, keeping the packed order so a
+/// clone iterates in exactly the order its source did.
+template <typename T>
+void clonePoolOf(const entt::registry& source, entt::registry& destination)
+{
+    const auto* sourcePool = source.storage<T>();
+
+    if (sourcePool == nullptr)
+    {
+        return;
+    }
+
+    auto& destinationPool = destination.storage<T>();
+    destinationPool.reserve(sourcePool->size());
+
+    const entt::registry::common_type& sourceEntities = *sourcePool;
+
+    for (auto first = sourceEntities.rbegin(), last = sourceEntities.rend(); first != last; ++first)
+    {
+        destinationPool.emplace(*first, sourcePool->get(*first));
+    }
+}
+
 /// The registry UNISON_COMPONENT writes into, shared by the whole process because a static
 /// initialiser has nowhere else to write.
 [[nodiscard]] ComponentRegistry& componentRegistry();
@@ -55,14 +81,14 @@ public:
 
 }
 
-/// Registers a component type so snapshots and checksums know about it. A pool of it is copied and
-/// hashed as raw bytes, so it must be plain data, trivially copyable and free of padding the
-/// compiler would leave indeterminate.
+/// Registers a component type under the unqualified name written here, so it must be spelled from
+/// inside its own namespace. A pool of it is copied and hashed as raw bytes, so it must be plain
+/// data, trivially copyable and free of the padding a compiler would leave indeterminate.
 #define UNISON_COMPONENT(Type)                                                                                         \
     static_assert(std::is_aggregate_v<Type>, #Type " must be a plain data aggregate to be a component");               \
     static_assert(std::is_trivially_copyable_v<Type>, #Type " must be trivially copyable to be a component");          \
     static_assert(::unison::sim::PaddingFree<Type>, #Type " must have no padding to be a component: reorder fields");  \
     static const ::unison::sim::ComponentRegistration unisonComponentRegistration##Type                                \
     {                                                                                                                  \
-        ::unison::sim::ComponentInfo{#Type, sizeof(Type), alignof(Type)}, __FILE__                                     \
+        ::unison::sim::ComponentInfo{#Type, sizeof(Type), alignof(Type), &::unison::sim::clonePoolOf<Type>}, __FILE__  \
     }

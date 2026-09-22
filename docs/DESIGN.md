@@ -320,7 +320,9 @@ checklists, and by the tests in Section 11.
   target by `unison_apply_language_subset`, not only to the deterministic ones. `/EHs-c-` alone is not
   enough on MSVC: the STL keeps emitting `try`/`catch` that cannot unwind unless `_HAS_EXCEPTIONS=0` is
   defined as well, and Jolt defines it for itself, so a target without it also disagrees with Jolt.
-  `unison_apply_determinism` adds the floating-point half on top. The test executable is the one target that
+  `unison_apply_determinism` adds the floating-point half on top. EnTT needs `ENTT_NOEXCEPTION` for the same
+  reason and polices it itself with `detect_mismatch`, so it is defined on its interface target and reaches
+  every consumer, tests included. The test executable is the one target that
   declares exceptions on, because Catch2 needs them; `tests/cmake/module_determinism` asserts each choice.
 - `/W4 /WX` for our own code.
 - Future Clang/GCC ports: `-ffp-model=precise -ffp-contract=off`, no `-ffast-math`,

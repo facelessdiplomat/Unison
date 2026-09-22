@@ -60,6 +60,8 @@ add_executable(
     sim/entt_smoke_test.cpp
     sim/frame_test.cpp
     sim/padding_free_test.cpp
+    sim/registry_clone_test.cpp
+    support/test_components.cpp
     sim/jolt_smoke_test.cpp
 )
 

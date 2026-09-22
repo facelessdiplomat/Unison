@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.2.3**, the registry clone that preserves entity ids. Last finished: 1.2.2.
+- Next up: **1.2.4**, the frame checksum. Last finished: 1.2.3.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 54 | 15 |
+| 1 Deterministic simulation core | 7 | 54 | 16 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **166** | **30** |
+| **Total** | **31** | **166** | **31** |
 
 ## Charter amendments made while planning
 
@@ -39,6 +39,9 @@ needs from earlier tasks is ticked.
   for computation only. Reason: SIMD alignment padding would enter checksums, and Jolt headers would leak into
   host boundary headers. `DESIGN.md` §6.3 updated.
 - Arena assets are defined in code in v1; loading assets from files is backlog. `DESIGN.md` §14 and §15 updated.
+- EnTT compiles differently with and without exceptions and guards it with `detect_mismatch`, so
+  `ENTT_NOEXCEPTION` is defined on its interface target and reaches every consumer, the test executable
+  included. Found in 1.2.3, the first time a deterministic library linked EnTT code against the tests.
 - `std::has_unique_object_representations_v` cannot express "no padding": it also rejects every type holding a
   `float`, so it rejects every component this engine has. Boost.PFR is pinned instead and the `PaddingFree`
   concept compares member sizes against `sizeof`, recursing through aggregates and arrays. `DESIGN.md` §6.3.
@@ -110,7 +113,7 @@ needs from earlier tasks is ticked.
 ### 1.2 Frame, registration, snapshots (`unison_sim`)
 - [x] 1.2.1 `ComponentRegistry` and `UNISON_COMPONENT(Type)`: static list with name, size and alignment; `static_assert` plain data aggregate, trivially copyable and `PaddingFree` so a component carries no padding at all; registrations must all come from one translation unit, since static initialisation order across translation units is unspecified. Test: list order equals registration order; a duplicate registration is rejected; a registration from a second file is rejected; the `PaddingFree` concept accepts and rejects the right types.
 - [x] 1.2.2 `Frame`: `frameNumber`, `dt`, `entt::registry`, `Globals` (rng, match phase placeholder), `EventBuffer` slot. Test: a default frame is at 0 and empty.
-- [ ] 1.2.3 Registry clone preserving entity ids, versions and free-list order. Test: after cloning, source and clone produce identical ids for 100 mixed creates and destroys.
+- [x] 1.2.3 Registry clone preserving entity ids, versions and free-list order. Test: after cloning, source and clone produce identical ids for 100 mixed creates and destroys.
 - [ ] 1.2.4 Frame checksum over globals and all pools in registration order. Globals are hashed member by member, not as raw bytes: `Globals` holds an `Rng` and a one-byte enum, so the compiler pads between them and `PaddingFree` does not hold for it. Test: equal frames hash equal; a one-byte change changes the hash; the hash does not depend on the order in which EnTT storages were first touched; changing a padding byte of `Globals` does not change the hash.
 - [ ] 1.2.5 `FrameSnapshot`, `takeSnapshot`, `restoreSnapshot` (registry, globals, physics bytes slot). Test: take, mutate, restore gives the original checksum.
 - [ ] 1.2.6 Entity lifecycle helpers `createEntity(frame)` / `destroyEntity(frame, entity)` raising `EntityCreated` / `EntityDestroyed`. Test: the events carry the entity and appear in the buffer.
