@@ -1,4 +1,4 @@
-add_library(unison_sim STATIC src/component_registry.cpp src/frame_checksum.cpp src/frame_snapshot.cpp src/registry_clone.cpp src/sim.cpp)
+add_library(unison_sim STATIC src/component_registry.cpp src/event_buffer.cpp src/frame_checksum.cpp src/frame_snapshot.cpp src/registry_clone.cpp src/sim.cpp)
 
 target_include_directories(unison_sim PUBLIC include)
 
