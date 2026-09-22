@@ -46,6 +46,7 @@ add_executable(
     core/fp_env_guard_test.cpp
     core/framework_test.cpp
     core/hasher_test.cpp
+    core/log_sink_test.cpp
     core/raw_value_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp

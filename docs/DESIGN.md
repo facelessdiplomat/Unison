@@ -195,6 +195,11 @@ state freely; they never mutate it except through `Session` inputs.
     `tl::expected<T, Error>`. Simulation code never returns errors: an invalid state is a contract violation.
 - **Encoding**: little-endian byte order (v1 targets x64 only), `uint32_t` frame numbers, `uint8_t` slot ids,
   `uint32_t` entity ids at the host boundary.
+- **Logging**: `LogSink` is a process-wide callback and is the one piece of global mutable state the
+  engine allows. It exists because `UNISON_VERIFY` is a macro and cannot take an injected dependency, and
+  because a host installs one sink for the whole process. The exception is bounded: the sink is write-only
+  from the simulation's side, nothing in a deterministic library reads it back, and no simulation result
+  depends on whether a sink is installed. Everything else keeps the constructor injection of `CLAUDE.md` 4.
 - **Threading**: the simulation runs on one thread chosen by the host (the game thread in Unreal). Unison never
   creates threads inside deterministic libraries.
 

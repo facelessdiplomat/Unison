@@ -18,20 +18,20 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.1.6**, `LogSink`. Last finished: 1.1.5.
+- Next up: **1.1.7**, `AssetId`. Last finished: 1.1.6.
 
 ## Progress
 
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 53 | 5 |
+| 1 Deterministic simulation core | 7 | 53 | 6 |
 | 2 Rollback session (local) | 8 | 36 | 0 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **165** | **20** |
+| **Total** | **31** | **165** | **21** |
 
 ## Charter amendments made while planning
 
@@ -39,6 +39,8 @@ needs from earlier tasks is ticked.
   for computation only. Reason: SIMD alignment padding would enter checksums, and Jolt headers would leak into
   host boundary headers. `DESIGN.md` §6.3 updated.
 - Arena assets are defined in code in v1; loading assets from files is backlog. `DESIGN.md` §14 and §15 updated.
+- `LogSink` is a process-wide callback, the single exception to `CLAUDE.md` 4 (no global mutable state), because
+  `UNISON_VERIFY` is a macro and cannot take an injected dependency. Bounded and justified in `DESIGN.md` §5.3.
 - Engine-wide conventions added as `DESIGN.md` §5.3: Jolt-native units and axes, three-tier error policy
   (`UNISON_ASSERT` / `UNISON_VERIFY` / `tl::expected`), little-endian encoding, single simulation thread (D32, D34).
 - Work rhythm: stop after every micro-task, report, wait for the owner (D33). Reflected in `CLAUDE.md`.
@@ -89,7 +91,7 @@ needs from earlier tasks is ticked.
 - [x] 1.1.3 `Hasher` over XXH3-64: `add(span<const byte>)`, `add(const T&)` for trivially copyable `T`, `finish()`. Test: same bytes same hash, order matters, matches the one-shot XXH3 result.
 - [x] 1.1.4 `BinaryWriter` / `BinaryReader`: POD values, spans, strings, bounds-checked reads that report failure instead of undefined behaviour. Test: round trip of every supported type; a truncated buffer fails cleanly.
 - [x] 1.1.5 `FpEnvGuard`: sets MXCSR to round-to-nearest with denormals enabled, restores on scope exit. Test: with FTZ set outside, a denormal survives inside the guard and FTZ is back afterwards.
-- [ ] 1.1.6 `LogSink`: process-wide callback with levels; silent when unset. Test: the sink receives level and message.
+- [x] 1.1.6 `LogSink`: process-wide callback with levels; silent when unset. Test: the sink receives level and message.
 - [ ] 1.1.7 `AssetId`: `constexpr` 32-bit hash of a name, usable as a non-type template argument and in `switch`. Test: a fixed name gives a fixed id; distinct names differ.
 - [ ] 1.1.8 POD math storage types `Float3`, `Quaternion` (plain floats, natural alignment) with conversions to and from `JPH::Vec3` / `JPH::Quat`. Test: round trip is bit-exact; `sizeof(Float3) == 12`.
 - [ ] 1.1.9 Deterministic scalar facade `unison::math` (`sin`, `cos`, `atan2`, `sqrt`, `clamp`, `lerp` written without FMA) backed by Jolt's implementations. Test: golden bit patterns for a fixed input table.
