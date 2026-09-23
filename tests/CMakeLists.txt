@@ -59,6 +59,7 @@ add_executable(
     core/rng_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
+    net/loopback_hub_test.cpp
     session/event_history_test.cpp
     session/input_buffer_test.cpp
     session/local_input_test.cpp

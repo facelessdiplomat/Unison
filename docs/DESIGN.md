@@ -171,7 +171,7 @@ state freely; they never mutate it except through `Session` inputs.
 | `unison_core` | static lib | Math re-exports (Jolt `Vec3`, `Quat`, `Mat44`, trig), `FixedVector<T,N>`, `FixedString<N>`, `Hasher` (XXH3), `BinaryWriter/Reader`, `FpEnvGuard`, `LogSink` callback, `AssetId` | Jolt (math only), xxHash |
 | `unison_sim` | static lib | `Frame`, `SystemPipeline`, `ISystem`, `EventBuffer`, `Signals`, `Rng`, `AssetRegistry`, `PhysicsWorld` (Jolt wrapper with deterministic body lifecycle) | EnTT, Jolt, core |
 | `unison_session` | static lib | `Session` (rollback state machine), `InputBuffer`, `SnapshotRing`, `Checksum`, `ReplayWriter/Reader`, `SnapshotSerializer` (late-join), `TimeSync` | sim, net |
-| `unison_net` | static lib | `ITransport`, `LoopbackTransport` + `NetworkSimulator`, `EnetTransport`, relay protocol messages, `RelayCore` (reusable by in-process and standalone relay) | ENet, core |
+| `unison_net` | static lib | `ITransport`, `LoopbackHub` + `NetworkSimulator`, `EnetTransport`, relay protocol messages, `RelayCore` (reusable by in-process and standalone relay) | ENet, core |
 | `unison_view` | static lib | Event dispatch with raise/cancel semantics, `EntityViewMap`, `TransformInterpolator`, read-only frame accessors | session |
 | `unison_relay` | executable | Standalone relay server over ENet, portable (Windows/Linux) | net |
 | `unison_runner` | executable | N clients + in-process relay + network simulator; checksum comparison; exit code for CI | session, view, game sim |
@@ -521,15 +521,22 @@ periodic checksums. Replays are deterministic by construction; `unison_replay pl
 ### 9.1 Transport abstraction
 
 ```cpp
-struct ITransport {
-    virtual void send(PeerId, Channel /*Reliable|Unreliable*/, std::span<const std::byte>) = 0;
-    virtual void poll(std::function<void(PeerId, Channel, std::span<const std::byte>)>) = 0;
-    // connect / disconnect / peers ...
+class IMessageReceiver {
+    virtual void receive(PeerId from, Channel channel, std::span<const std::byte> message) = 0;
+};
+
+class ITransport {
+    virtual void send(PeerId to, Channel channel /*Reliable|Unreliable*/, std::span<const std::byte>) = 0;
+    virtual void poll(IMessageReceiver& receiver) = 0;
+    // connect / disconnect events arrive with ENet (3.1.3)
 };
 ```
 
-- `LoopbackTransport`: in-process; wraps a `NetworkSimulator` with seeded latency, jitter, loss and reordering
-  so that runner results are themselves reproducible.
+A poll hands messages to a receiver interface rather than to a `std::function`, so polling every tick
+allocates nothing and the relay and the session each receive as one small interface.
+
+- `LoopbackHub`: in-process endpoints that deliver to one another; a seeded `NetworkSimulator` sits between
+  them with latency, jitter, loss and reordering, so that runner results are themselves reproducible.
 - `EnetTransport`: ENet client/server with two channels (reliable, unreliable-sequenced).
 
 ### 9.2 Relay protocol (v1)
