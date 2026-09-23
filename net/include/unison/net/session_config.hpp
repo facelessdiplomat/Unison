@@ -14,7 +14,7 @@ struct SessionConfig
     std::uint16_t tickRate = 60;
     std::uint8_t slotCount = 0;
     std::uint8_t inputSize = 0;
-    std::uint32_t maxPrediction = 10;
+    std::uint32_t maxPrediction = 20;
     std::uint32_t checksumInterval = 20;
     std::uint64_t seed = 0;
     std::uint64_t assetHash = 0;

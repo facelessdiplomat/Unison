@@ -38,6 +38,21 @@ TEST_CASE("three players over a late, jittery and lossy network still verify eve
     REQUIRE(outcome.fewestVerifiedFrames >= options.frames);
 }
 
+TEST_CASE("four players over a round trip of 240 ms keep pace with the host at 60 Hz")
+{
+    unison::runner::RunnerOptions options;
+    options.players = 4;
+    options.frames = 300;
+    options.latencyMilliseconds = 120;
+    options.jitterMilliseconds = 30;
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.isComplete);
+    REQUIRE(outcome.hostFrames < options.frames * 6U / 5U);
+}
+
 TEST_CASE("a run waits for every client's checksum of every frame it verified and finds them alike")
 {
     unison::runner::RunnerOptions options;

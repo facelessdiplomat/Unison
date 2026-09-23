@@ -44,6 +44,11 @@ unison::net::SessionConfig withFieldChanged(const unison::net::SessionConfig& co
 
 }
 
+TEST_CASE("a client runs up to twenty frames ahead of what it has verified unless the config says otherwise")
+{
+    REQUIRE(unison::net::SessionConfig{}.maxPrediction == 20U);
+}
+
 TEST_CASE("configs that agree on everything hash alike")
 {
     const unison::net::SessionConfig one = sampleConfig();

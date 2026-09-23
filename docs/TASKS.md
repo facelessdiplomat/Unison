@@ -18,7 +18,12 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.8.5**, the runner's CTest network profiles. Last finished: 2.8.4, the runner's rollback statistics summary.
+- Next up: **2.8.8**, confirmations that carry the frames before them. Last finished: 2.8.7, a prediction
+  window of 20 frames by default.
+- 2.8.7 to 2.8.10 run before 2.8.5: measuring its profiles showed a 240 ms round trip outrunning a window of
+  10 frames at 60 Hz and every lost confirmation stalling a client until the next reliable batch; the owner
+  chose on 2026-09-23 to widen the window and to repeat confirmations. The arena also has to tick at the
+  profiles' 30 Hz and to hold their eight players.
 - Taken ahead of 2.7.1 on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
   classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, which also retired what 2.2.2 left
   behind in restores.
@@ -31,12 +36,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 41 | 39 |
+| 2 Rollback session (local) | 8 | 45 | 40 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **175** | **112** |
+| **Total** | **31** | **179** | **113** |
 
 ## Charter amendments made while planning
 
@@ -274,6 +279,10 @@ needs from earlier tasks is ticked.
 - [x] 2.8.2 In-process topology: N `NetworkedSession` + `RelayCore` over `LoopbackHub` + `NetworkSimulator`, seeded scripted inputs. Done when: 2 players, 600 frames, no faults, exit 0.
 - [x] 2.8.3 Per-frame checksum comparison across clients with a failure report (frame, slots, hashes); exit code 2 on desync, 3 on window overflow. A wiretap in front of the relay writes the clients' checksums into a ledger, and the run lasts until every client has reported the last frame checked. Test: the ledger finds the first frame the clients part ways at, the wiretap files each checksum under its sender and hands every message on, the exit code ranks a desync over an overflow over missed frames, and a clean run compares every frame it verified and finds them alike.
 - [x] 2.8.4 Rollback statistics summary (mean and max depth, rollbacks per second, stalls). Every report closes with a table by slot and a row for all clients together. Test: the mean depth is the frames played again per rollback, the rows give every slot's figures in slot order, the last row adds the counts up and keeps the deepest, and every client of a run reports the frames it played and the rollbacks it took.
+- [x] 2.8.7 (+) A prediction window of 20 frames by default, 333 ms at 60 Hz, instead of 10: a one-way latency of 120 ms makes a round trip of 240 ms, and with the narrower window four clients stalled for nearly half of a run. Found in 2.8.5. Test: the default config allows 20 frames, and four players over a 240 ms round trip at 60 Hz verify 300 frames in fewer than 360 host frames.
+- [ ] 2.8.8 (+) Every confirmation also carries the frames just before it, as every client input already does, so a lost confirmation costs a client one frame rather than the wait for the next reliable batch; the protocol moves to version 3. Found in 2.8.5. Test: the codec round-trips a batch, a client settles a frame whose own confirmation was lost from the next one, and four players at 20 % loss keep pace with the host.
+- [ ] 2.8.9 (+) The arena ticks at the rate its session plays instead of always at 60 Hz, which the 30 Hz profiles need. Found in 2.8.5. Test: an arena made for 30 Hz steps its frame by a thirtieth of a second.
+- [ ] 2.8.10 (+) The arena holds eight players, with four more spawn points halfway along its walls, which the eight-player profiles need. Found in 2.8.5. Test: eight players start at eight different spawn points.
 - [ ] 2.8.5 CTest profiles: 2/4/8 players × 30/60 Hz × loss 0/5/20 % with latency 120 ms and jitter 30 ms.
 - [ ] 2.8.6 Benchmark snapshot ring vs two-frame layout using Phase 1 numbers; Q1 answered in `DESIGN.md`.
 

@@ -430,7 +430,10 @@ not a stale number.
 
 - **Verified frame** `V`: the newest frame for which the relay has confirmed inputs from all slots.
 - **Predicted frame** `P ≥ V`: the frame the local client has simulated to, using predicted inputs for missing remote players.
-- **Prediction window** `P − V` is bounded by `maxPrediction` (default 10 frames at 60 Hz ≈ 167 ms).
+- **Prediction window** `P − V` is bounded by `maxPrediction` (default 20 frames, 333 ms at 60 Hz, enough for a
+  round trip of 240 ms and its jitter). The window is a ceiling, not a target: a rollback goes back as far as
+  the round trip, whatever the window, and a wider window costs only the room of the snapshot ring. At 10
+  frames, 167 ms at 60 Hz, a 240 ms round trip kept clients stalled for nearly half of every run.
   When the bound is reached the client stalls instead of predicting further. A frame the relay has already
   settled may still be played while every frame before it is verified, since playing it verifies it at once;
   that is what lets `maxPrediction = 0` run in lockstep. A stalled tick still rolls back.
