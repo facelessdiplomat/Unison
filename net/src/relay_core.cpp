@@ -4,6 +4,7 @@
 #include <unison/net/message_codec.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <variant>
 
 namespace unison::net
@@ -96,6 +97,23 @@ void RelayCore::handle(PeerId from, const Input& input)
     }
 
     confirmReadyFrames();
+}
+
+void RelayCore::handle(PeerId from, const Checksum& checksum)
+{
+    const std::uint8_t slot = slotOf(from);
+
+    if (slot == kNoSlot)
+    {
+        return;
+    }
+
+    const std::optional<std::uint8_t> minority = referee.record(checksum.frame, slot, checksum.checksum, slotsInPlay());
+
+    if (minority.has_value() && *minority != 0U)
+    {
+        sendToAll(Channel::Reliable, Desync{checksum.frame, *minority});
+    }
 }
 
 void RelayCore::confirmReadyFrames()

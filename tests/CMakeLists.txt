@@ -58,6 +58,7 @@ add_executable(
     core/raw_value_test.cpp
     core/rng_test.cpp
     core/xxhash_vectors_test.cpp
+    net/checksum_referee_test.cpp
     net/clock_test.cpp
     net/enet_smoke_test.cpp
     net/input_collector_test.cpp

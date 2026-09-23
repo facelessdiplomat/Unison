@@ -445,3 +445,52 @@ TEST_CASE("an input message lost on the way costs nothing, since the next one re
         REQUIRE(confirmations[index].slots[1] == std::byte{static_cast<std::uint8_t>(index + 1)});
     }
 }
+
+namespace
+{
+
+std::vector<unison::net::Desync> desyncsIn(const Replies& replies)
+{
+    std::vector<unison::net::Desync> desyncs;
+
+    for (const std::vector<std::byte>& reply : replies)
+    {
+        const auto decoded = unison::net::decode(reply);
+
+        REQUIRE(decoded.has_value());
+
+        if (const auto* desync = std::get_if<unison::net::Desync>(&*decoded))
+        {
+            desyncs.push_back(*desync);
+        }
+    }
+
+    return desyncs;
+}
+
+}
+
+TEST_CASE("a player whose checksum parts ways with the others is reported to everyone")
+{
+    Match match;
+    sendMessage(match.first, match.relay.endpoint.id(), unison::net::Checksum{20, 77});
+    sendMessage(match.second, match.relay.endpoint.id(), unison::net::Checksum{20, 78});
+
+    match.relay.endpoint.poll(match.relay.core);
+
+    const std::vector<unison::net::Desync> desyncs = desyncsIn(Match::repliesOf(match.first));
+    REQUIRE(desyncs.size() == 1U);
+    REQUIRE(desyncs[0].frame == 20U);
+    REQUIRE(desyncs[0].minoritySlots == 0b11U);
+}
+
+TEST_CASE("players whose checksums agree hear nothing about it")
+{
+    Match match;
+    sendMessage(match.first, match.relay.endpoint.id(), unison::net::Checksum{20, 77});
+    sendMessage(match.second, match.relay.endpoint.id(), unison::net::Checksum{20, 77});
+
+    match.relay.endpoint.poll(match.relay.core);
+
+    REQUIRE(desyncsIn(Match::repliesOf(match.first)).empty());
+}

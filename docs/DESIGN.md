@@ -505,6 +505,9 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
   something to compare. A checksum is taken from the verified frame's snapshot, never from the live frame,
   which by then has moved on.
 - The relay compares checksums per frame across clients. On mismatch it broadcasts `DesyncDetected(frame, minority slots)`.
+  A frame is judged once every player has reported it; the majority is a checksum more than half of them
+  report, and without one every player is in the minority, since nobody can tell who is right. Only players
+  report, and at most 64 frames wait for their reports, the oldest giving way.
   Clients dump the offending snapshot to disk; `unison_replay diff` shows the first differing component.
 
 ### 8.6 Late-join, reconnect, spectators

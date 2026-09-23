@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unison/net/checksum_referee.hpp>
 #include <unison/net/clock.hpp>
 #include <unison/net/input_collector.hpp>
 #include <unison/net/protocol.hpp>
@@ -25,7 +26,8 @@ struct RelaySettings
 /// The relay of one match. It lets clients in, seats players in the slots of the config it was given and
 /// turns away a client that speaks another protocol, would play another config or finds every slot taken.
 /// It confirms a frame once every player has sent an input for it, or at the deadline without the missing
-/// ones, and sends the confirmation to everyone. It never simulates, and it answers through its transport.
+/// ones, sends the confirmation to everyone, and tells everyone which players' checksums part ways with the
+/// rest. It never simulates, and it answers through its transport.
 class RelayCore final : public IMessageReceiver
 {
 public:
@@ -49,6 +51,8 @@ private:
     void handle(PeerId from, const Hello& hello);
 
     void handle(PeerId from, const Input& input);
+
+    void handle(PeerId from, const Checksum& checksum);
 
     template <typename T>
     void handle(PeerId, const T&)
@@ -78,6 +82,7 @@ private:
     std::uint64_t configHash;
     std::vector<Member> members;
     InputCollector inputs;
+    ChecksumReferee referee;
     std::vector<std::byte> confirmedSlots;
     std::array<std::byte, kMaxDatagramSize> sendBuffer{};
 };
