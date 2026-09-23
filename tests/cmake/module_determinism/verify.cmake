@@ -22,7 +22,7 @@ if(entryCount EQUAL 0)
 endif()
 
 set(deterministicModules core sim arena)
-set(plainModules session net view relay runner)
+set(plainModules session net view console relay runner)
 set(seenModules "")
 set(joltSeen FALSE)
 set(headerCheckSeen FALSE)

@@ -28,6 +28,7 @@ add_subdirectory(view)
 
 add_subdirectory(samples/arena)
 
+add_subdirectory(tools/console)
 add_subdirectory(tools/relay)
 add_subdirectory(tools/runner)
 

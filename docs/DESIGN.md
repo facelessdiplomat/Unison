@@ -740,7 +740,13 @@ the session's event changes are.
   how deep on average and at most, and how many ticks the client stalled with its window full, closed by a row
   for every client together.
 - `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard input,
-  connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output.
+  connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output. It joins
+  the relay at `--host` and `--port` (127.0.0.1:7777 unless told otherwise), sending from `--from` or from
+  whatever address the system picks, plays the arena for `--players` players, which every console of a match
+  must agree on as the config's seed, asset hash and pipeline hash come from the build, and prints a status
+  line once a second: where it stands, its slot, its verified and predicted frames, the rollbacks of the last
+  second and the round trip. It runs on the real clock until Ctrl+C, `--run-for` seconds or a disconnect,
+  which ends it with exit code 1. `--spectate` comes with spectators (4.5.3).
 - `unison_replay`: record / play / verify / diff.
 
 ### 10.3 Unreal Engine plugin (Phase 5)

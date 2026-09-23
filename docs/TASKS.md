@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.4.1**, the console client's skeleton. Last finished: 3.3.3, the session runner on the real
-  clock. 3.2.3 is deferred until WSL is installed.
+- Next up: **3.4.2**, Q3 and the console's keyboard. Last finished: 3.4.1, the console client's skeleton.
+  3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -40,11 +40,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 16 | 10 |
+| 3 Real networking | 4 | 16 | 11 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **181** | **129** |
+| **Total** | **31** | **181** | **130** |
 
 ## Charter amendments made while planning
 
@@ -320,7 +320,7 @@ needs from earlier tasks is ticked.
 - [x] 3.3.3 Real-clock pacing in `SessionRunner` with `steady_clock` behind the injectable clock interface. Test: the fake clock drives ticks exactly; the real clock is the default. `update()` lets pass what the runner's clock has counted since the last update, and a runner made without a clock owns a `SteadyClock` (3.2.1).
 
 ### 3.4 Console client (`unison_console`, `arena_view_console`)
-- [ ] 3.4.1 Skeleton: `--host --port --name --spectate`, connects, runs the session, prints one status line per second. Done when: two consoles on one machine play through a local relay.
+- [x] 3.4.1 Skeleton: `--host --port --name --spectate`, connects, runs the session, prints one status line per second. Done when: two consoles on one machine play through a local relay. `--spectate` waits for spectators in 4.5.3; `--players`, `--from` and `--run-for` joined the options, and a player stands still until 3.4.2 brings the keyboard. Done on 2026-09-23: a relay on 127.0.0.1:7777 and two consoles with `--from 127.0.0.1` played slots 0 and 1, sixty verified frames a second, round trips of 1 to 4 ms.
 - [ ] 3.4.2 Q3 decided (FTXUI vs plain console); non-blocking keyboard input mapped to `ArenaInput` (WASD, space, Q/E yaw, F fire). Test: key state to input quantisation.
 - [ ] 3.4.3 Text top-down renderer: grid, players with facing, projectiles, crates, health. Test: golden string for a known frame.
 - [ ] 3.4.4 Stats overlay: `V`, `P`, rollbacks per second, RTT, lead, stall indicator. Done when: visible in the console.

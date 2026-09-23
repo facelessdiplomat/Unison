@@ -120,12 +120,14 @@ add_executable(
     tools/checksum_ledger_test.cpp
     tools/checksum_wiretap_test.cpp
     tools/client_outcome_test.cpp
+    tools/console_options_test.cpp
     tools/relay_options_test.cpp
     tools/relay_over_enet_test.cpp
     tools/relay_rooms_test.cpp
     tools/rollback_summary_test.cpp
     tools/run_outcome_test.cpp
     tools/runner_options_test.cpp
+    tools/status_line_test.cpp
     view/event_dispatcher_test.cpp
     view/session_runner_test.cpp
 )
@@ -135,6 +137,7 @@ target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}"
 target_link_libraries(
     unison_tests_fast
     PRIVATE
+    unison_console_core
     unison_net
     unison_relay_core
     unison_runner_core
