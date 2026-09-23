@@ -445,7 +445,11 @@ Each tick:
 3. If any confirmed input differs from what was predicted for frame `F`: **rollback** — restore snapshot `F − 1`
    (registry pools, physics reconcile + `RestoreState`, globals), then re-simulate `F … P` with corrected inputs,
    overwriting snapshots on the way. Events raised in re-simulated frames are diffed against the previous
-   emissions to produce `cancelled` / `raised` notifications for the view.
+   emissions to produce `cancelled` / `raised` notifications for the view. Confirmations are only noted as
+   they arrive; the rollback happens once, at the start of the next tick, from the earliest frame guessed
+   wrong, so a burst of late confirmations costs one replay rather than one each. A replayed frame guesses
+   its still unconfirmed slots afresh from what has been confirmed since, and plays the local player's
+   inputs exactly as they were first played.
 4. Advance `V` to the newest fully confirmed frame; compute its checksum from the snapshot; send checksums on the
    configured interval (reliable channel).
 5. Simulate frame `P + 1`, on the confirmed inputs of every slot the relay has already settled for it and a

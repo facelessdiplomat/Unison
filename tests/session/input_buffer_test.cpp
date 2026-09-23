@@ -163,6 +163,18 @@ TEST_CASE("a window moved on by more than its length holds nothing")
     }
 }
 
+TEST_CASE("an input buffer holds exactly the frames of its window")
+{
+    unison::session::InputBuffer buffer{kCapacity};
+
+    buffer.evictBelow(10);
+
+    REQUIRE_FALSE(buffer.holds(9));
+    REQUIRE(buffer.holds(10));
+    REQUIRE(buffer.holds(10 + kCapacity - 1));
+    REQUIRE_FALSE(buffer.holds(10 + kCapacity));
+}
+
 TEST_CASE("the last confirmed frame before a frame is the newest one the window holds for the slot")
 {
     unison::session::InputBuffer buffer{kCapacity};

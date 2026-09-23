@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace unison::session
@@ -31,11 +32,12 @@ public:
     /// Replaces the input the local player plays from the next tick on.
     void setLocalInput(std::span<const std::byte> input);
 
-    /// Simulates the frame after the predicted one and keeps its snapshot.
+    /// Plays again every frame since the first one guessed wrong, then simulates the frame after the
+    /// predicted one and keeps its snapshot.
     void tick();
 
-    /// Takes the inputs the relay settled for a frame. Returns false for a frame outside the window: one
-    /// already verified, or one too far ahead to hold yet.
+    /// Takes the inputs the relay settled for a frame and notes whether a frame already played was guessed
+    /// wrong. Returns false for a frame outside the window: already verified, or too far ahead to hold.
     [[nodiscard]] bool confirm(std::uint32_t frameNumber, const sim::FrameInputs& confirmed);
 
     [[nodiscard]] std::uint32_t predictedFrame() const;
@@ -47,9 +49,17 @@ public:
     [[nodiscard]] const SnapshotRing& snapshots() const;
 
 private:
-    void prepareInputs(std::uint32_t frameNumber);
+    void rollBack();
+
+    void play(std::uint32_t frameNumber);
+
+    void sampleLocalInput(std::uint32_t frameNumber);
+
+    void guessUnconfirmedInputs(std::uint32_t frameNumber);
 
     void advanceVerified();
+
+    [[nodiscard]] bool wasPlayedAs(std::uint32_t frameNumber, const sim::FrameInputs& confirmed) const;
 
     [[nodiscard]] bool isConfirmed(std::uint32_t frameNumber) const;
 
@@ -63,6 +73,7 @@ private:
     RepeatLastInputPredictor predictor;
     std::uint32_t verified;
     std::uint32_t predicted;
+    std::optional<std::uint32_t> firstMispredicted;
 };
 
 }

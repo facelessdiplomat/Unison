@@ -15,7 +15,7 @@ InputBuffer::InputBuffer(std::uint32_t capacity) : entries(capacity)
 bool InputBuffer::store(
     std::uint32_t frame, std::size_t slot, std::span<const std::byte> input, sim::InputFlags flags, InputState state)
 {
-    if (!isInWindow(frame))
+    if (!holds(frame))
     {
         return false;
     }
@@ -70,14 +70,14 @@ void InputBuffer::evictBelow(std::uint32_t frame)
     firstFrame = frame;
 }
 
-bool InputBuffer::isInWindow(std::uint32_t frame) const
+bool InputBuffer::holds(std::uint32_t frame) const
 {
     return frame >= firstFrame && frame - firstFrame < entries.size();
 }
 
 std::size_t InputBuffer::indexOf(std::uint32_t frame) const
 {
-    UNISON_VERIFY(isInWindow(frame));
+    UNISON_VERIFY(holds(frame));
 
     return frame % entries.size();
 }

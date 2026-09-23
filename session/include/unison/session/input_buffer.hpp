@@ -37,6 +37,8 @@ public:
                              sim::InputFlags flags,
                              InputState state);
 
+    [[nodiscard]] bool holds(std::uint32_t frame) const;
+
     /// The inputs of a frame inside the window, as the systems will read them.
     [[nodiscard]] const sim::FrameInputs& inputsAt(std::uint32_t frame) const;
 
@@ -55,8 +57,6 @@ private:
         sim::FrameInputs inputs;
         std::array<InputState, sim::kMaxSlots> states{};
     };
-
-    [[nodiscard]] bool isInWindow(std::uint32_t frame) const;
 
     [[nodiscard]] std::size_t indexOf(std::uint32_t frame) const;
 
