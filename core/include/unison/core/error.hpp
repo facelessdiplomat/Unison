@@ -11,6 +11,8 @@ namespace unison
 enum class ErrorCode : std::uint16_t
 {
     TruncatedInput,
+    BufferTooSmall,
+    MalformedMessage,
 };
 
 /// A recoverable failure returned from a boundary inside tl::expected. It is small and trivially

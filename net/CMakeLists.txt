@@ -1,4 +1,11 @@
-add_library(unison_net STATIC src/loopback_hub.cpp src/network_simulator.cpp)
+add_library(
+    unison_net STATIC
+    src/loopback_hub.cpp
+    src/message_reader.cpp
+    src/message_writer.cpp
+    src/network_simulator.cpp
+    src/session_config.cpp
+)
 
 target_include_directories(unison_net PUBLIC include)
 

@@ -1,4 +1,4 @@
-#include <unison/session/session_config.hpp>
+#include <unison/net/session_config.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -11,9 +11,9 @@
 namespace
 {
 
-unison::session::SessionConfig sampleConfig()
+unison::net::SessionConfig sampleConfig()
 {
-    unison::session::SessionConfig config;
+    unison::net::SessionConfig config;
     config.tickRate = 60;
     config.slotCount = 4;
     config.inputSize = 8;
@@ -26,9 +26,9 @@ unison::session::SessionConfig sampleConfig()
     return config;
 }
 
-unison::session::SessionConfig withFieldChanged(const unison::session::SessionConfig& config, std::size_t field)
+unison::net::SessionConfig withFieldChanged(const unison::net::SessionConfig& config, std::size_t field)
 {
-    unison::session::SessionConfig changed = config;
+    unison::net::SessionConfig changed = config;
 
     boost::pfr::for_each_field(changed,
                                [field](auto& value, std::size_t index)
@@ -46,21 +46,21 @@ unison::session::SessionConfig withFieldChanged(const unison::session::SessionCo
 
 TEST_CASE("configs that agree on everything hash alike")
 {
-    const unison::session::SessionConfig one = sampleConfig();
-    const unison::session::SessionConfig other = sampleConfig();
+    const unison::net::SessionConfig one = sampleConfig();
+    const unison::net::SessionConfig other = sampleConfig();
 
-    REQUIRE(unison::session::hashOf(one) == unison::session::hashOf(other));
+    REQUIRE(unison::net::hashOf(one) == unison::net::hashOf(other));
 }
 
 TEST_CASE("a change to any field of a config changes its hash")
 {
-    const unison::session::SessionConfig config = sampleConfig();
-    const std::uint64_t hash = unison::session::hashOf(config);
+    const unison::net::SessionConfig config = sampleConfig();
+    const std::uint64_t hash = unison::net::hashOf(config);
 
-    for (std::size_t field = 0; field < boost::pfr::tuple_size_v<unison::session::SessionConfig>; ++field)
+    for (std::size_t field = 0; field < boost::pfr::tuple_size_v<unison::net::SessionConfig>; ++field)
     {
         CAPTURE(field);
 
-        REQUIRE(unison::session::hashOf(withFieldChanged(config, field)) != hash);
+        REQUIRE(unison::net::hashOf(withFieldChanged(config, field)) != hash);
     }
 }

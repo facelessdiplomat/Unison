@@ -13,7 +13,7 @@ namespace unison::session
 namespace
 {
 
-std::uint32_t predictionWindowFor(const SessionConfig& config)
+std::uint32_t predictionWindowFor(const net::SessionConfig& config)
 {
     return config.maxPrediction + 2;
 }
@@ -22,7 +22,7 @@ std::uint32_t predictionWindowFor(const SessionConfig& config)
 
 Session::Session(sim::Frame& frame,
                  const sim::SystemPipeline& pipeline,
-                 const SessionConfig& config,
+                 const net::SessionConfig& config,
                  std::size_t localSlot,
                  std::uint32_t inputDelayFrames)
     : liveFrame{frame}, systemPipeline{pipeline}, config{config}, localSlot{localSlot}, inputDelay{inputDelayFrames},

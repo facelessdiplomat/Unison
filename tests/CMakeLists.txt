@@ -60,13 +60,14 @@ add_executable(
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
     net/loopback_hub_test.cpp
+    net/message_codec_test.cpp
     net/network_simulator_test.cpp
+    net/session_config_test.cpp
     session/event_history_test.cpp
     session/input_buffer_test.cpp
     session/local_input_test.cpp
     session/repeat_last_input_predictor_test.cpp
     session/session_checksum_test.cpp
-    session/session_config_test.cpp
     session/session_events_test.cpp
     session/session_input_delay_test.cpp
     session/session_rollback_test.cpp

@@ -1,11 +1,11 @@
 #pragma once
 
+#include <unison/net/session_config.hpp>
 #include <unison/session/event_history.hpp>
 #include <unison/session/input_buffer.hpp>
 #include <unison/session/local_input.hpp>
 #include <unison/session/repeat_last_input_predictor.hpp>
 #include <unison/session/rollback_stats.hpp>
-#include <unison/session/session_config.hpp>
 #include <unison/session/snapshot_ring.hpp>
 #include <unison/session/verified_checksum.hpp>
 #include <unison/sim/frame.hpp>
@@ -30,7 +30,7 @@ public:
     /// responsiveness for fewer rollbacks; until then the local player plays the neutral input.
     Session(sim::Frame& frame,
             const sim::SystemPipeline& pipeline,
-            const SessionConfig& config,
+            const net::SessionConfig& config,
             std::size_t localSlot,
             std::uint32_t inputDelayFrames = 0);
 
@@ -95,7 +95,7 @@ private:
 
     sim::Frame& liveFrame;
     const sim::SystemPipeline& systemPipeline;
-    SessionConfig config;
+    net::SessionConfig config;
     std::size_t localSlot;
     std::uint32_t inputDelay;
     InputBuffer inputBuffer;

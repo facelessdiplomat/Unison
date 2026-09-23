@@ -14,9 +14,9 @@ namespace
 constexpr std::uint32_t kFrames = 60;
 constexpr std::uint32_t kRelayAnswerTicks = 2;
 
-unison::session::SessionConfig scriptedSession()
+unison::net::SessionConfig scriptedSession()
 {
-    unison::session::SessionConfig config;
+    unison::net::SessionConfig config;
     config.slotCount = unison::test::kSessionSlots;
     config.inputSize = sizeof(unison::test::SampleInput);
     config.maxPrediction = 8;

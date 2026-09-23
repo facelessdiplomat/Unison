@@ -20,9 +20,9 @@ using unison::test::SampleInput;
 
 constexpr std::size_t kLocalSlot = unison::test::kSessionLocalSlot;
 
-unison::session::SessionConfig threePlayers()
+unison::net::SessionConfig threePlayers()
 {
-    unison::session::SessionConfig config;
+    unison::net::SessionConfig config;
     config.slotCount = unison::test::kSessionSlots;
     config.inputSize = sizeof(SampleInput);
     config.maxPrediction = 4;
@@ -256,7 +256,7 @@ TEST_CASE("a session allowed no prediction plays only frames the relay has confi
 {
     unison::sim::Frame frame;
     const unison::sim::SystemPipeline pipeline;
-    unison::session::SessionConfig lockstep = threePlayers();
+    unison::net::SessionConfig lockstep = threePlayers();
     lockstep.maxPrediction = 0;
     unison::session::Session session{frame, pipeline, lockstep, kLocalSlot};
 
@@ -275,7 +275,7 @@ TEST_CASE("a session with more players than a frame has slots breaks a contract"
     const unison::test::FatalHandlerProbe probe;
     unison::sim::Frame frame;
     const unison::sim::SystemPipeline pipeline;
-    unison::session::SessionConfig config = threePlayers();
+    unison::net::SessionConfig config = threePlayers();
     config.slotCount = static_cast<std::uint8_t>(unison::sim::kMaxSlots + 1);
 
     const unison::session::Session session{frame, pipeline, config, kLocalSlot};

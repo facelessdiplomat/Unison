@@ -16,9 +16,9 @@ constexpr std::uint32_t kFrames = 200;
 constexpr std::uint32_t kConfirmationDelay = 3;
 constexpr std::size_t kLocalSlot = 0;
 
-unison::session::SessionConfig scriptedMatch()
+unison::net::SessionConfig scriptedMatch()
 {
-    unison::session::SessionConfig config;
+    unison::net::SessionConfig config;
     config.slotCount = static_cast<std::uint8_t>(unison::test::kScriptedPlayers);
     config.inputSize = sizeof(arena::ArenaInput);
     config.maxPrediction = 8;

@@ -1,8 +1,8 @@
-#include <unison/session/session_config.hpp>
+#include <unison/net/session_config.hpp>
 
 #include <unison/core/hasher.hpp>
 
-namespace unison::session
+namespace unison::net
 {
 
 std::uint64_t hashOf(const SessionConfig& config)

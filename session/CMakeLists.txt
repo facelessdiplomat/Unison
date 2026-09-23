@@ -6,7 +6,6 @@ add_library(
     src/repeat_last_input_predictor.cpp
     src/rollback_stats.cpp
     src/session.cpp
-    src/session_config.cpp
     src/snapshot_ring.cpp
 )
 

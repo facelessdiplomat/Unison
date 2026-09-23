@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.5.3**, the protocol messages. Last finished: 2.5.2, the network simulator.
+- Next up: **2.6.1**, the relay core. Last finished: 2.5.3, the protocol messages; task 2.5 is complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 37 | 19 |
+| 2 Rollback session (local) | 8 | 37 | 20 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **169** | **90** |
+| **Total** | **31** | **169** | **91** |
 
 ## Charter amendments made while planning
 
@@ -88,6 +88,9 @@ needs from earlier tasks is ticked.
   so a system that could tell a guess from the real input would part the clients for good without a rollback
   to notice; without the flag a right guess is byte for byte the confirmed input, and a misprediction is any
   difference at all. The owner's decision. `DESIGN.md` §6.4 updated. Found in 2.1.2.
+- `SessionConfig` and its hash live in `unison_net`, not `unison_session`: the relay has to read the config
+  (slot count, input size) and `Welcome` carries it, while the network layer sits below the session and cannot
+  see its types. The session takes the config from there. `DESIGN.md` §5.2 and §9.2 updated. Found in 2.5.3.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -236,7 +239,7 @@ needs from earlier tasks is ticked.
 ### 2.5 Transport, loopback, network simulator (`unison_net`)
 - [x] 2.5.1 `ITransport`, `PeerId`, `Channel`, `LoopbackHub` with endpoints. Test: messages delivered between two endpoints in order.
 - [x] 2.5.2 `NetworkSimulator` (seeded): latency, jitter, loss, reordering; the reliable channel never loses or reorders. Test: loss rate within tolerance over 10 000 packets; the reliable channel intact.
-- [ ] 2.5.3 Protocol messages (`Hello`, `Welcome`, `Input`, `Confirmed`, `Checksum`, `Desync`, `SnapshotRequest`, `SnapshotChunk`, `Ping`, `Pong`, `Leave`, `Kick`) with writer and reader. Test: round trip of every message; malformed bytes are rejected.
+- [x] 2.5.3 Protocol messages (`Hello`, `Welcome`, `Input`, `Confirmed`, `Checksum`, `Desync`, `SnapshotRequest`, `SnapshotChunk`, `Ping`, `Pong`, `Leave`, `Kick`) with writer and reader. Test: round trip of every message; malformed bytes are rejected.
 
 ### 2.6 Relay core
 - [ ] 2.6.1 `RelayCore`: rooms, slots, `Hello` → `Welcome` with slot and config, spectator role, config hash mismatch → `Kick`. Test: two players get slots 0 and 1; a third with a different config hash is kicked.

@@ -16,9 +16,9 @@ namespace
 constexpr std::uint32_t kFrames = 40;
 constexpr std::uint32_t kConfirmationDelay = 3;
 
-unison::session::SessionConfig scriptedSession(std::uint32_t checksumInterval)
+unison::net::SessionConfig scriptedSession(std::uint32_t checksumInterval)
 {
-    unison::session::SessionConfig config;
+    unison::net::SessionConfig config;
     config.slotCount = unison::test::kSessionSlots;
     config.inputSize = sizeof(unison::test::SampleInput);
     config.maxPrediction = 8;

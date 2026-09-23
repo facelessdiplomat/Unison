@@ -15,9 +15,9 @@ namespace
 
 constexpr std::uint32_t kSlotMoved = unison::sim::EventTraits<unison::test::SlotMoved>::typeId;
 
-unison::session::SessionConfig scriptedSession()
+unison::net::SessionConfig scriptedSession()
 {
-    unison::session::SessionConfig config;
+    unison::net::SessionConfig config;
     config.slotCount = unison::test::kSessionSlots;
     config.inputSize = sizeof(unison::test::SampleInput);
     config.maxPrediction = 8;

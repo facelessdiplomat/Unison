@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace unison::session
+namespace unison::net
 {
 
 /// Everything the clients of one match must agree on before they play it: how fast it ticks, how many

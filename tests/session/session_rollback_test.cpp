@@ -15,9 +15,9 @@ namespace
 constexpr std::uint32_t kFrames = 60;
 constexpr std::uint32_t kConfirmationDelay = 3;
 
-unison::session::SessionConfig scriptedSession()
+unison::net::SessionConfig scriptedSession()
 {
-    unison::session::SessionConfig config;
+    unison::net::SessionConfig config;
     config.slotCount = unison::test::kSessionSlots;
     config.inputSize = sizeof(unison::test::SampleInput);
     config.maxPrediction = 8;
@@ -175,7 +175,7 @@ TEST_CASE("rollback statistics count the ticks that had to wait for the relay")
 {
     unison::sim::Frame frame;
     const unison::sim::SystemPipeline pipeline;
-    unison::session::SessionConfig narrow = scriptedSession();
+    unison::net::SessionConfig narrow = scriptedSession();
     narrow.maxPrediction = 2;
     unison::session::Session session{frame, pipeline, narrow, unison::test::kSessionLocalSlot};
 

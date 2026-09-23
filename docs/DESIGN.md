@@ -171,7 +171,7 @@ state freely; they never mutate it except through `Session` inputs.
 | `unison_core` | static lib | Math re-exports (Jolt `Vec3`, `Quat`, `Mat44`, trig), `FixedVector<T,N>`, `FixedString<N>`, `Hasher` (XXH3), `BinaryWriter/Reader`, `FpEnvGuard`, `LogSink` callback, `AssetId` | Jolt (math only), xxHash |
 | `unison_sim` | static lib | `Frame`, `SystemPipeline`, `ISystem`, `EventBuffer`, `Signals`, `Rng`, `AssetRegistry`, `PhysicsWorld` (Jolt wrapper with deterministic body lifecycle) | EnTT, Jolt, core |
 | `unison_session` | static lib | `Session` (rollback state machine), `InputBuffer`, `SnapshotRing`, `Checksum`, `ReplayWriter/Reader`, `SnapshotSerializer` (late-join), `TimeSync` | sim, net |
-| `unison_net` | static lib | `ITransport`, `LoopbackHub` + `NetworkSimulator`, `EnetTransport`, relay protocol messages, `RelayCore` (reusable by in-process and standalone relay) | ENet, core |
+| `unison_net` | static lib | `ITransport`, `LoopbackHub` + `NetworkSimulator`, `EnetTransport`, `SessionConfig`, relay protocol messages, `RelayCore` (reusable by in-process and standalone relay) | ENet, core |
 | `unison_view` | static lib | Event dispatch with raise/cancel semantics, `EntityViewMap`, `TransformInterpolator`, read-only frame accessors | session |
 | `unison_relay` | executable | Standalone relay server over ENet, portable (Windows/Linux) | net |
 | `unison_runner` | executable | N clients + in-process relay + network simulator; checksum comparison; exit code for CI | session, view, game sim |
@@ -546,15 +546,22 @@ allocates nothing and the relay and the session each receive as one small interf
 
 | Message | Direction | Channel | Payload |
 |---------|-----------|---------|---------|
-| `Hello` | client → relay | reliable | protocol version, session config hash, requested role (player / spectator), reconnect token |
-| `Welcome` | relay → client | reliable | slot id, session config, start frame, current verified frame, reconnect token |
-| `Input` | client → relay | unreliable | first frame, K inputs |
-| `Confirmed` | relay → all | unreliable (+ periodic reliable resend) | frame, all slots' inputs and flags |
+| `Hello` | client → relay | reliable | protocol version, session config hash, requested role (player / spectator), reconnect token (0 for none) |
+| `Welcome` | relay → client | reliable | slot id, session config, start frame, frame confirmed so far, reconnect token |
+| `Input` | client → relay | unreliable | first frame, input size, frame count, that many inputs (K = 4 by default) |
+| `Confirmed` | relay → all | unreliable (+ periodic reliable resend) | frame, slot count, input size, per slot a flags byte then the input |
 | `Checksum` | client → relay | reliable | frame, hash |
-| `Desync` | relay → all | reliable | frame, slots in minority |
-| `SnapshotRequest` / `SnapshotChunk` | relay ↔ clients | reliable | frame, chunk index, bytes |
-| `Ping` / `Pong` | both | unreliable | timestamps, relay frame |
-| `Leave` / `Kick` | both | reliable | reason |
+| `Desync` | relay → all | reliable | frame, one bit per slot in the minority |
+| `SnapshotRequest` / `SnapshotChunk` | relay ↔ clients | reliable | frame; for a chunk also its index, the chunk count and length-prefixed bytes |
+| `Ping` / `Pong` | both | unreliable | sender's timestamp in microseconds; the pong echoes it with the frame the relay confirmed so far |
+| `Leave` / `Kick` | both | reliable | reason (quit, protocol mismatch, config mismatch, room full) |
+
+On the wire a message is a one-byte type tag followed by its fields in order, little-endian, with nothing
+left over. The tag is the position of the message in `net::Message`, so new messages are only appended.
+Decoding untrusted bytes reports truncation and anything malformed — an unknown tag or value, sizes that
+disagree with the bytes, a chunk numbered past its count, bytes left over — through `tl::expected`; the
+byte spans of a decoded message view the buffer it was read from. `SessionConfig` lives in `unison_net`,
+because the relay reads it and `Welcome` carries it, and the session sits above the network layer.
 
 The protocol lives in `unison_net`; the same `RelayCore` state machine runs inside the
 runner (in-process) and inside `unison_relay` (ENet), so tests exercise the real relay logic.
