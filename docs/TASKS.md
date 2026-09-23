@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.4.6 (+)**, spawn points that face the middle of the arena. Last finished: 3.4.3, the arena's
-  text map. 3.2.3 is deferred until WSL is installed.
+- Next up: **3.4.4**, the console's stats overlay. Last finished: 3.4.6, spawn points that face the middle
+  of the arena. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -40,11 +40,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 17 | 13 |
+| 3 Real networking | 4 | 17 | 14 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **182** | **132** |
+| **Total** | **31** | **182** | **133** |
 
 ## Charter amendments made while planning
 
@@ -323,7 +323,7 @@ needs from earlier tasks is ticked.
 - [x] 3.4.1 Skeleton: `--host --port --name --spectate`, connects, runs the session, prints one status line per second. Done when: two consoles on one machine play through a local relay. `--spectate` waits for spectators in 4.5.3; `--players`, `--from` and `--run-for` joined the options, and a player stands still until 3.4.2 brings the keyboard. Done on 2026-09-23: a relay on 127.0.0.1:7777 and two consoles with `--from 127.0.0.1` played slots 0 and 1, sixty verified frames a second, round trips of 1 to 4 ms.
 - [x] 3.4.2 Q3 decided (FTXUI vs plain console); non-blocking keyboard input mapped to `ArenaInput` (WASD, space, Q/E yaw, F fire). Test: key state to input quantisation. Plain console, the owner's choice of 2026-09-23: Windows' console input reports keys going up as well as down, which no terminal does. `ArenaControls` turns the aim by the time a key was held, and a lost focus lets every key go; reading the keyboard itself is checked by hand.
 - [x] 3.4.3 Text top-down renderer: grid, players with facing, projectiles, crates, health. Test: golden string for a known frame. `arena_view_console` draws the arena from above, half a metre a column and a metre a row, with a line for every player below it; the console shows it from 3.4.4 on. It tells which way a player looks from the yaw by quarter turns itself rather than calling the arena's inline `facingOf`, so no simulation code is compiled under a host's flags (`DESIGN.md` §7.3). Also: walls fence the map, a crate and a shot show where they are, every quarter turn has its arrow, and a player waiting to come back is off the map.
-- [ ] 3.4.6 (+) Every spawn point faces the middle of the arena, as `DESIGN.md` §14 says. The yaws were written as if a yaw turned from +X towards +Z, while `facingOf` reads one from +Z towards +X, so six of the eight spawns look past the middle or away from it in the frame a player appears; 3.4.3's map showed it. Test: `facingOf` of every spawn's yaw points from the spawn at the middle.
+- [x] 3.4.6 (+) Every spawn point faces the middle of the arena, as `DESIGN.md` §14 says. The yaws were written as if a yaw turned from +X towards +Z, while `facingOf` reads one from +Z towards +X, so six of the eight spawns look past the middle or away from it in the frame a player appears; 3.4.3's map showed it. Test: `facingOf` of every spawn's yaw points from the spawn at the middle. The scripted match's golden checksums stay as they were, since the next input's yaw takes over from a spawn's; the map's golden shows player 1 looking at the middle. Starting a host's aim where the spawn faces went to the backlog of `DESIGN.md` §15.
 - [ ] 3.4.4 Stats overlay: `V`, `P`, rollbacks per second, RTT, lead, stall indicator. Done when: visible in the console.
 - [ ] 3.4.5 `docs/LAN_TEST.md`: procedure for two machines; Definition of Done item 2 executed and the result recorded.
 

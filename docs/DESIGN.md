@@ -845,7 +845,10 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
 - **Tick**: a match ticks at the rate its host asks for, 60 Hz unless told otherwise, and each tick steps the
   frame by that share of a second. Timers counted in frames (warm-up, respawn, cooldown, lifetime) count
   ticks, so at 30 Hz they last twice as long.
-- **Players**: capsule `CharacterVirtual`; move, jump, aim yaw, fire.
+- **Players**: capsule `CharacterVirtual`; move, jump, aim yaw, fire. A yaw of nothing looks along +Z and a
+  quarter turn looks along +X (`facingOf`); every yaw of the arena reads that way, a spawn point's included.
+  An input's yaw is absolute, so a player faces the way their spawn point does only in the frame they appear,
+  until a host starts its aim there (backlog).
 - **Projectiles**: swept spheres with a lifetime, carried as entities rather than as Jolt bodies; each tick a
   shot sweeps from where it was to where it is going, so a shot at 30 m/s cannot pass through a wall between
   two ticks. Hit → damage event; kill → respawn timer.
@@ -892,7 +895,8 @@ events, interpolation, debug HUD, Arena UE sample. *Exit*: Definition of Done it
 navigation (Recast for baking, Detour at runtime with deterministic math shims); authoritative-server mode;
 DSL/codegen; 2D physics module (Box2D v3, cross-platform deterministic); encryption / Steam relay via
 GameNetworkingSockets; lobbies and matchmaking; multiple local players per client; delta-compressed inputs
-for 16+ players; frame-local heap allocator; asset loading from files.
+for 16+ players; frame-local heap allocator; asset loading from files; a host's aim that starts where the
+player's spawn point faces.
 
 ---
 
