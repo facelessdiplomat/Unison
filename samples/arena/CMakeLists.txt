@@ -7,3 +7,13 @@ target_link_libraries(arena_sim PUBLIC unison_sim)
 unison_apply_determinism(arena_sim)
 
 unison_apply_warnings(arena_sim)
+
+add_library(arena_view_console OBJECT view/src/text_map.cpp)
+
+target_include_directories(arena_view_console PUBLIC view/include)
+
+target_link_libraries(arena_view_console PUBLIC arena_sim)
+
+unison_apply_language_subset(arena_view_console)
+
+unison_apply_warnings(arena_view_console)

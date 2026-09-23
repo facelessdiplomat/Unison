@@ -178,7 +178,7 @@ state freely; they never mutate it except through `Session` inputs.
 | `unison_replay` | executable | record / play / verify / diff | session, game sim |
 | `unison_console` | executable | Console client with text visualisation and keyboard input | view, net, game sim |
 | `arena_sim` | static lib | The sample game's deterministic code | sim |
-| `arena_view_console` | static lib | Text renderer for Arena | view, arena_sim |
+| `arena_view_console` | static lib | Text renderer for Arena: the top-down map the console draws | arena_sim |
 | `Unison` (UE plugin) | UE plugin | `UnisonRuntime` module linking the libs above; subsystem, input, entity views, events, debug HUD | UE, all libs |
 
 ### 5.3 Engine-wide conventions
@@ -408,7 +408,7 @@ checklists, and by the tests in Section 11.
 | `std::sort` only with a total order (no ties); otherwise `std::stable_sort` | Order of equal elements in `std::sort` is implementation-defined. |
 | No pointer values in logic, hashes, or comparisons | Addresses differ between processes. |
 | No uninitialised memory; components use `= {}` | Padding and garbage would poison checksums. |
-| Simulation code lives only in deterministic libraries; host modules never instantiate simulation templates | Host compilers (e.g. UE's toolchain flags) would compile the same code with different floating-point semantics. |
+| Simulation code lives only in deterministic libraries; host modules never instantiate simulation templates or call the simulation's inline functions | Host compilers (e.g. UE's toolchain flags) would compile the same code with different floating-point semantics, and the linker keeps one copy of an inline function for every caller. |
 | Public boundary headers expose POD data and non-inline functions | Same reason; also keeps a future C ABI feasible. |
 | Randomness only from `Frame::rng` (xoshiro256** seeded from the session config) | `std::rand`, `std::random_device` are not part of state. |
 | Jolt query results, active-body lists and contact callbacks are sorted before use | Jolt documents these as non-deterministic in order. |
@@ -750,7 +750,12 @@ the session's event changes are.
   blocking from Windows' console input, which reports keys going down and up while the window has focus, and
   a lost focus lets every key go: W and S move forward and back, A and D to the sides, Space jumps, F fires,
   and Q and E turn the aim half a turn a second for as long as they are held, by the time held rather than by
-  how often the loop asks. A console without a console window, its input redirected, stands still.
+  how often the loop asks. A console without a console window, its input redirected, stands still. Its map
+  comes from `arena_view_console`: the arena from above, +X to the right and +Z down, half a metre a column
+  and a metre a row, `#` for walls, `=` for ramps, `C` for crates, `*` for shots and every player by the
+  number of their slot with an arrow for the quarter turn they look along, and below it a line for every
+  player with their health, or that they wait to come back, and their kills. The map reads the arena's
+  components and runs none of its code (§7.3).
 - `unison_replay`: record / play / verify / diff.
 
 ### 10.3 Unreal Engine plugin (Phase 5)
@@ -851,7 +856,7 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
 - **Input**: `moveX/moveY: int8`, `yaw: int16`, `buttons: uint16 {Jump, Fire}`. The buttons take sixteen bits
   rather than eight so that `ArenaInput` carries no padding, which `InputTraits` requires of an input.
 - **Events**: `EntityCreated`, `EntityDestroyed`, `Fired` (predicted), `Hit` (predicted), `Died` (verified-only), `Respawned` (verified-only).
-- **Views**: text top-down map in the console; capsule/box meshes in UE.
+- **Views**: text top-down map in the console (`arena_view_console`, §10.2); capsule/box meshes in UE.
 
 ---
 
