@@ -63,6 +63,7 @@ add_executable(
     session/local_input_test.cpp
     session/repeat_last_input_predictor_test.cpp
     session/session_config_test.cpp
+    session/session_test.cpp
     session/snapshot_ring_test.cpp
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp
