@@ -1,6 +1,7 @@
 #include <unison/sim/frame_checksum.hpp>
 
 #include <unison/sim/body_definition.hpp>
+#include <unison/sim/frame_snapshot.hpp>
 #include <unison/sim/physics_body.hpp>
 #include <unison/sim/transform.hpp>
 
@@ -24,6 +25,21 @@ entt::entity spawn(unison::sim::Frame& frame, float x, std::int32_t points)
     frame.registry.emplace<unison::test::Health>(entity, points);
 
     return entity;
+}
+
+void addFallingCrate(unison::sim::Frame& frame)
+{
+    unison::sim::BodyDefinition crate;
+    crate.motion = unison::sim::BodyMotion::Dynamic;
+    crate.layer = unison::sim::PhysicsLayer::Moving;
+
+    unison::sim::AssetRegistry assets;
+    assets.add<unison::sim::BodyDefinition>(unison::makeAssetId("crate"), crate);
+    assets.freeze();
+
+    const entt::entity entity = frame.registry.create();
+    frame.registry.emplace<unison::sim::Transform>(entity, unison::Float3{0.0F, 5.0F, 0.0F}, unison::Quaternion{});
+    unison::sim::addBody(frame, assets, entity, unison::makeAssetId("crate"));
 }
 
 std::byte* paddingOf(unison::sim::Globals& globals)
@@ -122,22 +138,27 @@ TEST_CASE("the checksum follows the bodies of the physics world")
 {
     unison::sim::Frame frame;
     frame.dt = 1.0F / 60.0F;
-
-    unison::sim::BodyDefinition crate;
-    crate.motion = unison::sim::BodyMotion::Dynamic;
-    crate.layer = unison::sim::PhysicsLayer::Moving;
-
-    unison::sim::AssetRegistry assets;
-    assets.add<unison::sim::BodyDefinition>(unison::makeAssetId("crate"), crate);
-    assets.freeze();
-
-    const entt::entity entity = frame.registry.create();
-    frame.registry.emplace<unison::sim::Transform>(entity, unison::Float3{0.0F, 5.0F, 0.0F}, unison::Quaternion{});
-    unison::sim::addBody(frame, assets, entity, unison::makeAssetId("crate"));
+    addFallingCrate(frame);
 
     const std::uint64_t before = unison::sim::checksumOf(frame);
 
     frame.physics.step(frame.dt);
 
     REQUIRE(unison::sim::checksumOf(frame) != before);
+}
+
+TEST_CASE("a snapshot folds into the checksum its frame had when it was taken")
+{
+    unison::sim::Frame frame;
+    frame.dt = 1.0F / 60.0F;
+    addFallingCrate(frame);
+    const entt::entity scored = spawn(frame, 2.0F, 20);
+    const std::uint64_t taken = unison::sim::checksumOf(frame);
+    unison::sim::FrameSnapshot snapshot;
+    unison::sim::takeSnapshot(frame, snapshot);
+
+    frame.physics.step(frame.dt);
+    frame.registry.get<unison::test::Health>(scored).points = 21;
+
+    REQUIRE(unison::sim::checksumOf(snapshot) == taken);
 }

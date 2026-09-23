@@ -5,6 +5,7 @@
 #include <unison/session/repeat_last_input_predictor.hpp>
 #include <unison/session/session_config.hpp>
 #include <unison/session/snapshot_ring.hpp>
+#include <unison/session/verified_checksum.hpp>
 #include <unison/sim/frame.hpp>
 #include <unison/sim/system_pipeline.hpp>
 
@@ -12,6 +13,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace unison::session
 {
@@ -48,6 +50,12 @@ public:
     /// Whether the last tick had to wait for the relay instead of simulating a frame.
     [[nodiscard]] bool isStalled() const;
 
+    /// The checksums of the frames verified on the config's interval since they were last cleared, oldest
+    /// first, each taken from the frame's snapshot. Taking them after every tick misses none.
+    [[nodiscard]] std::span<const VerifiedChecksum> verifiedChecksums() const;
+
+    void clearVerifiedChecksums();
+
     [[nodiscard]] const InputBuffer& inputs() const;
 
     [[nodiscard]] const SnapshotRing& snapshots() const;
@@ -81,6 +89,7 @@ private:
     std::uint32_t predicted;
     std::optional<std::uint32_t> firstMispredicted;
     bool stalled = false;
+    std::vector<VerifiedChecksum> pendingChecksums;
 };
 
 }

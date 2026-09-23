@@ -2,6 +2,7 @@
 
 #include <unison/core/contract.hpp>
 #include <unison/sim/advance_frame.hpp>
+#include <unison/sim/frame_checksum.hpp>
 #include <unison/sim/frame_snapshot.hpp>
 
 #include <algorithm>
@@ -28,7 +29,9 @@ Session::Session(sim::Frame& frame,
 {
     UNISON_VERIFY(config.slotCount <= sim::kMaxSlots);
     UNISON_VERIFY(localSlot < config.slotCount);
+    UNISON_VERIFY(config.checksumInterval > 0);
 
+    pendingChecksums.reserve(windowFor(config));
     inputBuffer.evictBelow(verified);
     snapshotRing.store(liveFrame);
 }
@@ -96,6 +99,16 @@ std::uint32_t Session::verifiedFrame() const
 bool Session::isStalled() const
 {
     return stalled;
+}
+
+std::span<const VerifiedChecksum> Session::verifiedChecksums() const
+{
+    return pendingChecksums;
+}
+
+void Session::clearVerifiedChecksums()
+{
+    pendingChecksums.clear();
 }
 
 const InputBuffer& Session::inputs() const
@@ -167,6 +180,11 @@ void Session::advanceVerified()
     while (verified < settled && isConfirmed(verified + 1))
     {
         ++verified;
+
+        if (verified % config.checksumInterval == 0)
+        {
+            pendingChecksums.push_back(VerifiedChecksum{verified, sim::checksumOf(snapshotRing.snapshotAt(verified))});
+        }
     }
 
     inputBuffer.evictBelow(verified);

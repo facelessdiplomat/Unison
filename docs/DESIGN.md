@@ -484,6 +484,9 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
 
 - Checksum = XXH3-64 over globals, every component pool (registration order, packed arrays), and the Jolt state buffer.
 - Interval: every verified frame in tools and tests; every 20 verified frames in network sessions by default.
+  The interval is part of `SessionConfig`, so every client checksums the same frames and the relay always has
+  something to compare. A checksum is taken from the verified frame's snapshot, never from the live frame,
+  which by then has moved on.
 - The relay compares checksums per frame across clients. On mismatch it broadcasts `DesyncDetected(frame, minority slots)`.
   Clients dump the offending snapshot to disk; `unison_replay diff` shows the first differing component.
 

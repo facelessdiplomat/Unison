@@ -6,69 +6,28 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <support/fatal_handler_probe.hpp>
+#include <support/session_script.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <string_view>
 
 namespace
 {
 
-struct SampleInput
-{
-    std::int8_t moveX = 0;
-    std::int8_t moveY = 0;
-    std::int16_t yaw = 0;
-    std::uint32_t buttons = 0;
-};
+using unison::test::InputRecorder;
+using unison::test::SampleInput;
 
-constexpr std::size_t kLocalSlot = 1;
-
-class InputRecorder final : public unison::sim::ISystem
-{
-public:
-    void update(unison::sim::Frame&, const unison::sim::FrameInputs& inputs) override
-    {
-        played = inputs;
-        ++runs;
-    }
-
-    [[nodiscard]] std::string_view name() const override
-    {
-        return "InputRecorder";
-    }
-
-    [[nodiscard]] const unison::sim::FrameInputs& lastPlayed() const
-    {
-        return played;
-    }
-
-    [[nodiscard]] std::uint32_t runCount() const
-    {
-        return runs;
-    }
-
-private:
-    unison::sim::FrameInputs played;
-    std::uint32_t runs = 0;
-};
+constexpr std::size_t kLocalSlot = unison::test::kSessionLocalSlot;
 
 unison::session::SessionConfig threePlayers()
 {
     unison::session::SessionConfig config;
-    config.slotCount = 3;
+    config.slotCount = unison::test::kSessionSlots;
     config.inputSize = sizeof(SampleInput);
     config.maxPrediction = 4;
 
     return config;
-}
-
-bool confirmAsPlayed(unison::session::Session& session, std::uint32_t frameNumber)
-{
-    const unison::sim::FrameInputs asPlayed = session.inputs().inputsAt(frameNumber);
-
-    return session.confirm(frameNumber, asPlayed);
 }
 
 }
@@ -142,9 +101,9 @@ TEST_CASE("frames confirmed as they were played are verified without being playe
     session.tick();
     session.tick();
 
-    const bool confirmedFirst = confirmAsPlayed(session, 1);
-    const bool confirmedSecond = confirmAsPlayed(session, 2);
-    const bool confirmedThird = confirmAsPlayed(session, 3);
+    const bool confirmedFirst = unison::test::confirmAsPlayed(session, 1);
+    const bool confirmedSecond = unison::test::confirmAsPlayed(session, 2);
+    const bool confirmedThird = unison::test::confirmAsPlayed(session, 3);
 
     REQUIRE(confirmedFirst);
     REQUIRE(confirmedSecond);
@@ -212,7 +171,7 @@ TEST_CASE("verifying frames moves the window on so the session can keep playing"
     for (std::uint32_t round = 0; round < 18; ++round)
     {
         session.tick();
-        REQUIRE(confirmAsPlayed(session, session.predictedFrame()));
+        REQUIRE(unison::test::confirmAsPlayed(session, session.predictedFrame()));
     }
 
     REQUIRE(probe.failureCount() == 0U);
@@ -228,7 +187,7 @@ TEST_CASE("a confirmation of a frame already verified is turned away")
     const unison::sim::FrameInputs firstAsPlayed = session.inputs().inputsAt(1);
     REQUIRE(session.confirm(1, firstAsPlayed));
     session.tick();
-    REQUIRE(confirmAsPlayed(session, 2));
+    REQUIRE(unison::test::confirmAsPlayed(session, 2));
 
     const bool accepted = session.confirm(1, firstAsPlayed);
 
@@ -262,7 +221,7 @@ TEST_CASE("a stalled session plays on once the relay confirms a frame")
         session.tick();
     }
 
-    REQUIRE(confirmAsPlayed(session, 1));
+    REQUIRE(unison::test::confirmAsPlayed(session, 1));
 
     session.tick();
 

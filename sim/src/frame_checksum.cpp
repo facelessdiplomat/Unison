@@ -25,15 +25,6 @@ void hashGlobals(Hasher& hasher, const Globals& globals)
     hasher.add(globals.bodyIds.takenSlotCount());
 }
 
-void hashPhysics(Hasher& hasher, const PhysicsWorld& physics)
-{
-    std::vector<std::byte> state;
-
-    physics.saveState(state);
-
-    hasher.add(std::span<const std::byte>{state});
-}
-
 void hashIdentifiers(Hasher& hasher, const entt::registry& registry)
 {
     const auto* entities = registry.storage<entt::entity>();
@@ -50,23 +41,37 @@ void hashIdentifiers(Hasher& hasher, const entt::registry& registry)
     }
 }
 
+std::uint64_t
+checksumOfState(const Globals& globals, const entt::registry& registry, std::span<const std::byte> physicsState)
+{
+    Hasher hasher;
+
+    hashGlobals(hasher, globals);
+    hashIdentifiers(hasher, registry);
+
+    for (const ComponentInfo& component : componentRegistry().components())
+    {
+        component.hashPool(hasher, registry);
+    }
+
+    hasher.add(physicsState);
+
+    return hasher.finish();
+}
+
 }
 
 std::uint64_t checksumOf(const Frame& frame)
 {
-    Hasher hasher;
+    std::vector<std::byte> physicsState;
+    frame.physics.saveState(physicsState);
 
-    hashGlobals(hasher, frame.globals);
-    hashIdentifiers(hasher, frame.registry);
+    return checksumOfState(frame.globals, frame.registry, physicsState);
+}
 
-    for (const ComponentInfo& component : componentRegistry().components())
-    {
-        component.hashPool(hasher, frame.registry);
-    }
-
-    hashPhysics(hasher, frame.physics);
-
-    return hasher.finish();
+std::uint64_t checksumOf(const FrameSnapshot& snapshot)
+{
+    return checksumOfState(snapshot.globals, snapshot.registry, snapshot.physicsState);
 }
 
 }
