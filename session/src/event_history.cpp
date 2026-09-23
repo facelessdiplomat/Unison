@@ -2,6 +2,7 @@
 
 #include <unison/core/contract.hpp>
 
+#include <algorithm>
 #include <cstddef>
 
 namespace unison::session
@@ -28,6 +29,32 @@ bool isPredictedAndMissingFrom(const sim::EventBuffer& events, std::size_t index
     return events.kindAt(index) == sim::EventKind::Predicted && !raises(other, events.keyAt(index));
 }
 
+void noteRaised(EventChanges& changes, const sim::EventBuffer& events, std::size_t index)
+{
+    const auto cancelled = std::ranges::find(changes.cancelled, events.keyAt(index));
+
+    if (cancelled != changes.cancelled.end())
+    {
+        changes.cancelled.erase(cancelled);
+
+        return;
+    }
+
+    changes.raised.append(events, index);
+}
+
+void noteCancelled(EventChanges& changes, const sim::EventKey& key)
+{
+    if (raises(changes.raised, key))
+    {
+        changes.raised.remove(key);
+
+        return;
+    }
+
+    changes.cancelled.push_back(key);
+}
+
 }
 
 EventHistory::EventHistory(std::uint32_t capacity) : entries(capacity)
@@ -48,7 +75,7 @@ void EventHistory::record(std::uint32_t frameNumber, const sim::EventBuffer& eve
     {
         if (isPredictedAndMissingFrom(events, index, entry.events))
         {
-            changes.raised.append(events, index);
+            noteRaised(changes, events, index);
         }
     }
 
@@ -56,7 +83,7 @@ void EventHistory::record(std::uint32_t frameNumber, const sim::EventBuffer& eve
     {
         if (isPredictedAndMissingFrom(entry.events, index, events))
         {
-            changes.cancelled.push_back(entry.events.keyAt(index));
+            noteCancelled(changes, entry.events.keyAt(index));
         }
     }
 

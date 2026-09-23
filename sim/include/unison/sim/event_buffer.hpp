@@ -71,6 +71,9 @@ public:
     /// passes events on without knowing their types. Appending from the buffer itself breaks a contract.
     void append(const EventBuffer& source, std::size_t index);
 
+    /// Takes the event with the given key back out; its payload bytes stay until the buffer is cleared.
+    void remove(const EventKey& key);
+
     [[nodiscard]] std::size_t size() const;
 
     [[nodiscard]] const EventKey& keyAt(std::size_t index) const;

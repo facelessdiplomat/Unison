@@ -21,6 +21,11 @@ void EventBuffer::append(const EventBuffer& source, std::size_t index)
     records.push_back(Record{record.key, record.kind, offset, record.size});
 }
 
+void EventBuffer::remove(const EventKey& key)
+{
+    std::erase_if(records, [&key](const Record& record) { return record.key == key; });
+}
+
 std::size_t EventBuffer::size() const
 {
     return records.size();

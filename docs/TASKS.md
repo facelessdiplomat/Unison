@@ -18,7 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.4.4**, netting out pending event changes. Last finished: 2.4.3, the event dispatcher.
+- Next up: **2.5.1**, the transport interface and the loopback hub. Last finished: 2.4.4, netting out
+  pending event changes; task 2.4 is complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +29,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 37 | 16 |
+| 2 Rollback session (local) | 8 | 37 | 17 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **169** | **87** |
+| **Total** | **31** | **169** | **88** |
 
 ## Charter amendments made while planning
 
@@ -231,7 +232,7 @@ needs from earlier tasks is ticked.
 - [x] 2.4.1 The session records event keys per frame above `V`; after resimulation it computes `cancelled` and `raised` sets. Test: an event predicted at `F` and absent after resimulation is cancelled; a new one is raised.
 - [x] 2.4.2 Verified-only events released when `V` passes their frame. Test: not visible before, visible exactly once after.
 - [x] 2.4.3 `EventDispatcher` with typed `on<T>` / `onCancelled<T>` handlers and per-key deduplication. Test: a handler runs once per key even if drained twice.
-- [ ] 2.4.4 (+) Pending event changes net out: two rollbacks between two drains can raise a key and then cancel it, or cancel it and then raise it again, and the two lists alone cannot tell the view which came first. A key raised and then cancelled before the view takes the changes is never shown; one cancelled and then raised again stays shown. Found in 2.4.3. Test: the raised and cancelled keys of a batch never overlap, and each order ends as it should.
+- [x] 2.4.4 (+) Pending event changes net out: two rollbacks between two drains can raise a key and then cancel it, or cancel it and then raise it again, and the two lists alone cannot tell the view which came first. A key raised and then cancelled before the view takes the changes is never shown; one cancelled and then raised again stays shown. Found in 2.4.3. Test: the raised and cancelled keys of a batch never overlap, and each order ends as it should.
 
 ### 2.5 Transport, loopback, network simulator (`unison_net`)
 - [ ] 2.5.1 `ITransport`, `PeerId`, `Channel`, `LoopbackHub` with endpoints. Test: messages delivered between two endpoints in order.

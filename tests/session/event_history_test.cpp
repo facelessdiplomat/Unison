@@ -157,3 +157,35 @@ TEST_CASE("a verified frame releases none of its predicted events again")
 
     REQUIRE(unison::test::keysOf(changes.raised) == std::vector<unison::sim::EventKey>{settled});
 }
+
+TEST_CASE("an event raised and then cancelled before the changes are taken is never shown")
+{
+    unison::session::EventHistory history{kCapacity};
+    unison::sim::EventBuffer before;
+    before.raise(4, unison::test::SlotMoved{0});
+    const unison::sim::EventBuffer after;
+    unison::session::EventChanges changes;
+
+    history.record(5, before, changes);
+    history.record(5, after, changes);
+
+    REQUIRE(changes.raised.size() == 0U);
+    REQUIRE(changes.cancelled.empty());
+}
+
+TEST_CASE("an event cancelled and then raised again before the changes are taken stays shown")
+{
+    unison::session::EventHistory history{kCapacity};
+    unison::sim::EventBuffer shown;
+    shown.raise(4, unison::test::SlotMoved{0});
+    unison::session::EventChanges alreadyTaken;
+    history.record(5, shown, alreadyTaken);
+    const unison::sim::EventBuffer withoutIt;
+    unison::session::EventChanges changes;
+
+    history.record(5, withoutIt, changes);
+    history.record(5, shown, changes);
+
+    REQUIRE(changes.raised.size() == 0U);
+    REQUIRE(changes.cancelled.empty());
+}

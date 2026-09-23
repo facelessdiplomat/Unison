@@ -294,7 +294,9 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
     deduplicates by key. A replay counts an event as the same event when its key is the same; the payload
     is not compared, so an event re-raised with a slightly different payload is neither cancelled nor
     raised again. The session keeps the events of every frame it may still replay, indexed by the frame it
-    played, since the frame in a key is the one the tick started from.
+    played, since the frame in a key is the one the tick started from. The changes gathered between two
+    drains net out, so their raised and cancelled keys never overlap: a key raised and cancelled in between
+    is never shown, and one cancelled and raised again stays shown.
 - **Signals** are synchronous sim-internal callbacks (e.g. `OnHit`) and never leave the simulation.
 
 ### 6.6 Assets

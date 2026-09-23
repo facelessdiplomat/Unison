@@ -146,3 +146,15 @@ TEST_CASE("event keys order by frame, then by type, then by ordinal")
     REQUIRE(lowerType < lowerOrdinal);
     REQUIRE(lowerOrdinal < later);
 }
+
+TEST_CASE("a removed event is gone and the others keep their payloads")
+{
+    unison::sim::EventBuffer buffer;
+    const unison::sim::EventKey removed = buffer.raise(kFrame, Scored{1, 10});
+    buffer.raise(kFrame, Scored{2, 20});
+
+    buffer.remove(removed);
+
+    REQUIRE(buffer.size() == 1U);
+    REQUIRE(buffer.payloadAt<Scored>(0).points == 20U);
+}
