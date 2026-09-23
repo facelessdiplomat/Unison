@@ -21,7 +21,6 @@ namespace arena
 namespace
 {
 
-constexpr float kTickSeconds = 1.0F / 60.0F;
 constexpr float kWallDistance = 12.0F;
 constexpr float kWallHeight = 2.0F;
 
@@ -93,14 +92,15 @@ void bringInPlayers(unison::sim::Frame& frame, const unison::sim::AssetRegistry&
 
 }
 
-ArenaSimulation::ArenaSimulation(std::size_t players)
+ArenaSimulation::ArenaSimulation(std::size_t players, std::uint16_t tickRate)
     : assetTables{definedArena()}, applyInput{assetTables.get<PlayerStats>(kPlayerStats)},
       characterMove{assetTables.get<PlayerStats>(kPlayerStats)}, weapons{assetTables}, hits{assetTables},
       respawn{assetTables}, matchRules{assetTables}
 {
     UNISON_VERIFY(players <= kPlayerCount);
+    UNISON_VERIFY(tickRate > 0);
 
-    liveFrame.dt = kTickSeconds;
+    liveFrame.dt = tickRate > 0 ? 1.0F / static_cast<float>(tickRate) : 0.0F;
 
     systemPipeline.add(applyInput);
     systemPipeline.add(characterMove);

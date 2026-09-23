@@ -13,7 +13,7 @@ RunnerClient::RunnerClient(net::LoopbackHub& hub,
                            const net::SessionConfig& config,
                            const net::IClock& clock,
                            std::uint32_t player)
-    : endpoint{hub.join()}, link{endpoint, network}, match{config.slotCount},
+    : endpoint{hub.join()}, link{endpoint, network}, match{config.slotCount, config.tickRate},
       networked{match.frame(), match.pipeline(), config, link, relay},
       runner{networked, dispatcher, clock, config.tickRate}, player{config.seed, player}
 {

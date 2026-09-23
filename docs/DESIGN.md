@@ -759,6 +759,9 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
 ## 14. Sample Game: Arena
 
 - **World**: flat floor, static boxes and ramps (Jolt static bodies from asset tables defined in code; file loading is backlog), 4 spawn points.
+- **Tick**: a match ticks at the rate its host asks for, 60 Hz unless told otherwise, and each tick steps the
+  frame by that share of a second. Timers counted in frames (warm-up, respawn, cooldown, lifetime) count
+  ticks, so at 30 Hz they last twice as long.
 - **Players**: capsule `CharacterVirtual`; move, jump, aim yaw, fire.
 - **Projectiles**: swept spheres with a lifetime, carried as entities rather than as Jolt bodies; each tick a
   shot sweeps from where it was to where it is going, so a shot at 30 m/s cannot pass through a wall between

@@ -5,6 +5,7 @@
 #include <arena/arena_input.hpp>
 #include <arena/components.hpp>
 #include <support/arena_script.hpp>
+#include <support/fatal_handler_probe.hpp>
 #include <unison/sim/pipeline_hash.hpp>
 #include <unison/sim/transform.hpp>
 
@@ -40,6 +41,29 @@ TEST_CASE("a match is set up with its world, its players and its systems in orde
     REQUIRE(match.frame().registry.view<const arena::PlayerSlot>().size() == kPlayers);
     REQUIRE(match.frame().physics.bodies().count() > kPlayers);
     REQUIRE(match.assets().isFrozen());
+}
+
+TEST_CASE("a match ticks sixty times a second unless its host asks for another rate")
+{
+    const arena::ArenaSimulation match{kPlayers};
+
+    REQUIRE(match.frame().dt == 1.0F / 60.0F);
+}
+
+TEST_CASE("a match made to tick thirty times a second steps its frame by a thirtieth of a second")
+{
+    const arena::ArenaSimulation match{kPlayers, 30};
+
+    REQUIRE(match.frame().dt == 1.0F / 30.0F);
+}
+
+TEST_CASE("a match that would never tick breaks a contract")
+{
+    const unison::test::FatalHandlerProbe probe;
+
+    const arena::ArenaSimulation match{kPlayers, 0};
+
+    REQUIRE(probe.failureCount() == 1U);
 }
 
 TEST_CASE("the players of a match stand where the match put them")

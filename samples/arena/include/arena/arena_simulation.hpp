@@ -15,9 +15,13 @@
 #include <unison/sim/system_pipeline.hpp>
 
 #include <cstddef>
+#include <cstdint>
 
 namespace arena
 {
+
+/// How many times a second a match ticks unless its host asks for another rate.
+inline constexpr std::uint16_t kDefaultTickRate = 60;
 
 /// A whole match, ready for a host to step: the assets it is built from, the frame its state lives
 /// in, the systems that play it and the one order they run in. It owns all of them, so a host that
@@ -25,7 +29,9 @@ namespace arena
 class ArenaSimulation
 {
 public:
-    explicit ArenaSimulation(std::size_t players);
+    /// Sets a match up for the players, each tick a `tickRate`-th of a second long; a rate of nought breaks a
+    /// contract.
+    explicit ArenaSimulation(std::size_t players, std::uint16_t tickRate = kDefaultTickRate);
 
     ArenaSimulation(const ArenaSimulation&) = delete;
     ArenaSimulation& operator=(const ArenaSimulation&) = delete;

@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.8.9**, an arena that ticks at its session's rate. Last finished: 2.8.8, confirmations that
-  carry the frames before them.
+- Next up: **2.8.10**, an arena for eight players. Last finished: 2.8.9, an arena that ticks at its
+  session's rate.
 - 2.8.7 to 2.8.10 run before 2.8.5: measuring its profiles showed a 240 ms round trip outrunning a window of
   10 frames at 60 Hz and every lost confirmation stalling a client until the next reliable batch; the owner
   chose on 2026-09-23 to widen the window and to repeat confirmations. The arena also has to tick at the
@@ -36,12 +36,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 45 | 41 |
+| 2 Rollback session (local) | 8 | 45 | 42 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **179** | **114** |
+| **Total** | **31** | **179** | **115** |
 
 ## Charter amendments made while planning
 
@@ -281,7 +281,7 @@ needs from earlier tasks is ticked.
 - [x] 2.8.4 Rollback statistics summary (mean and max depth, rollbacks per second, stalls). Every report closes with a table by slot and a row for all clients together. Test: the mean depth is the frames played again per rollback, the rows give every slot's figures in slot order, the last row adds the counts up and keeps the deepest, and every client of a run reports the frames it played and the rollbacks it took.
 - [x] 2.8.7 (+) A prediction window of 20 frames by default, 333 ms at 60 Hz, instead of 10: a one-way latency of 120 ms makes a round trip of 240 ms, and with the narrower window four clients stalled for nearly half of a run. Found in 2.8.5. Test: the default config allows 20 frames, and four players over a 240 ms round trip at 60 Hz verify 300 frames in fewer than 360 host frames.
 - [x] 2.8.8 (+) Every confirmation also carries the frames just before it, as every client input already does, so a lost confirmation costs a client one frame rather than the wait for the next reliable batch; the protocol moves to version 3. Found in 2.8.5. Test: the codec round-trips a batch, a client settles a frame whose own confirmation was lost from the next one, and four players at 20 % loss keep pace with the host.
-- [ ] 2.8.9 (+) The arena ticks at the rate its session plays instead of always at 60 Hz, which the 30 Hz profiles need. Found in 2.8.5. Test: an arena made for 30 Hz steps its frame by a thirtieth of a second.
+- [x] 2.8.9 (+) The arena ticks at the rate its session plays instead of always at 60 Hz, which the 30 Hz profiles need. Found in 2.8.5. Test: an arena made for 30 Hz steps its frame by a thirtieth of a second.
 - [ ] 2.8.10 (+) The arena holds eight players, with four more spawn points halfway along its walls, which the eight-player profiles need. Found in 2.8.5. Test: eight players start at eight different spawn points.
 - [ ] 2.8.5 CTest profiles: 2/4/8 players × 30/60 Hz × loss 0/5/20 % with latency 120 ms and jitter 30 ms.
 - [ ] 2.8.6 Benchmark snapshot ring vs two-frame layout using Phase 1 numbers; Q1 answered in `DESIGN.md`.
