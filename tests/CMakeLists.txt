@@ -59,6 +59,7 @@ add_executable(
     core/rng_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
+    net/input_collector_test.cpp
     net/loopback_hub_test.cpp
     net/message_codec_test.cpp
     net/network_simulator_test.cpp

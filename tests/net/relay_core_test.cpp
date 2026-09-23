@@ -5,6 +5,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -174,4 +175,165 @@ TEST_CASE("bytes that are no message go unanswered")
     ReplyCollector collector{replies};
     client.poll(collector);
     REQUIRE(replies.empty());
+}
+
+namespace
+{
+
+unison::net::SessionConfig threeSlotsOfTwoBytes()
+{
+    unison::net::SessionConfig config;
+    config.slotCount = 3;
+    config.inputSize = 2;
+
+    return config;
+}
+
+struct Match
+{
+    Match() : relay{threeSlotsOfTwoBytes()}, first{relay.hub.join()}, second{relay.hub.join()}
+    {
+        sendMessage(first, relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+        sendMessage(second, relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+        relay.endpoint.poll(relay.core);
+        static_cast<void>(repliesOf(first));
+        static_cast<void>(repliesOf(second));
+    }
+
+    static Replies repliesOf(unison::net::ITransport& client)
+    {
+        Replies replies;
+        ReplyCollector collector{replies};
+        client.poll(collector);
+
+        return replies;
+    }
+
+    void sendInputs(unison::net::ITransport& client, std::uint32_t firstFrame, std::span<const std::byte> inputs)
+    {
+        const auto frameCount = static_cast<std::uint8_t>(inputs.size() / 2);
+        sendMessage(client, relay.endpoint.id(), unison::net::Input{firstFrame, 2, frameCount, inputs});
+        relay.endpoint.poll(relay.core);
+    }
+
+    Relay relay;
+    unison::net::LoopbackEndpoint& first;
+    unison::net::LoopbackEndpoint& second;
+};
+
+std::array<std::byte, 2> inputOf(std::uint8_t value)
+{
+    return {std::byte{value}, std::byte{value}};
+}
+
+std::vector<unison::net::Confirmed> confirmationsIn(const Replies& replies)
+{
+    std::vector<unison::net::Confirmed> confirmations;
+
+    for (const std::vector<std::byte>& reply : replies)
+    {
+        const auto decoded = unison::net::decode(reply);
+
+        REQUIRE(decoded.has_value());
+
+        if (const auto* confirmed = std::get_if<unison::net::Confirmed>(&*decoded))
+        {
+            confirmations.push_back(*confirmed);
+        }
+    }
+
+    return confirmations;
+}
+
+}
+
+TEST_CASE("a frame is confirmed with the input of every player once all of them have sent one")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(10));
+    match.sendInputs(match.second, 1, inputOf(20));
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(confirmations[0].frame == 1U);
+    REQUIRE(confirmations[0].slotCount == 3U);
+    REQUIRE(confirmations[0].inputSize == 2U);
+
+    const std::array<std::byte, 9> slots{std::byte{1},
+                                         std::byte{10},
+                                         std::byte{10},
+                                         std::byte{1},
+                                         std::byte{20},
+                                         std::byte{20},
+                                         std::byte{0},
+                                         std::byte{0},
+                                         std::byte{0}};
+    REQUIRE(std::ranges::equal(confirmations[0].slots, slots));
+}
+
+TEST_CASE("a frame is not confirmed while a player's input is missing")
+{
+    Match match;
+
+    match.sendInputs(match.first, 1, inputOf(10));
+
+    REQUIRE(confirmationsIn(Match::repliesOf(match.first)).empty());
+}
+
+TEST_CASE("frames are confirmed in order, and each of them once")
+{
+    Match match;
+    const std::array<std::byte, 6> threeFrames{
+        std::byte{1}, std::byte{1}, std::byte{2}, std::byte{2}, std::byte{3}, std::byte{3}};
+    match.sendInputs(match.second, 1, threeFrames);
+    match.sendInputs(match.first, 1, threeFrames);
+    match.sendInputs(match.first, 1, threeFrames);
+
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(Match::repliesOf(match.second));
+
+    REQUIRE(confirmations.size() == 3U);
+    REQUIRE(confirmations[0].frame == 1U);
+    REQUIRE(confirmations[1].frame == 2U);
+    REQUIRE(confirmations[2].frame == 3U);
+}
+
+TEST_CASE("a spectator is sent every confirmed frame too")
+{
+    Match match;
+    unison::net::LoopbackEndpoint& spectator = match.relay.hub.join();
+    sendMessage(spectator, match.relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Spectator));
+    match.relay.endpoint.poll(match.relay.core);
+    static_cast<void>(Match::repliesOf(spectator));
+
+    match.sendInputs(match.first, 1, inputOf(10));
+    match.sendInputs(match.second, 1, inputOf(20));
+
+    REQUIRE(confirmationsIn(Match::repliesOf(spectator)).size() == 1U);
+}
+
+TEST_CASE("inputs from a client without a slot are ignored")
+{
+    Match match;
+    unison::net::LoopbackEndpoint& spectator = match.relay.hub.join();
+    sendMessage(spectator, match.relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Spectator));
+    match.relay.endpoint.poll(match.relay.core);
+
+    match.sendInputs(spectator, 1, inputOf(30));
+    match.sendInputs(match.first, 1, inputOf(10));
+
+    REQUIRE(confirmationsIn(Match::repliesOf(match.first)).empty());
+}
+
+TEST_CASE("inputs of another size than the config's are ignored")
+{
+    Match match;
+    const std::array<std::byte, 3> threeBytes{std::byte{1}, std::byte{2}, std::byte{3}};
+    sendMessage(match.first, match.relay.endpoint.id(), unison::net::Input{1, 3, 1, threeBytes});
+    match.relay.endpoint.poll(match.relay.core);
+
+    match.sendInputs(match.second, 1, inputOf(20));
+
+    REQUIRE(confirmationsIn(Match::repliesOf(match.first)).empty());
 }

@@ -19,6 +19,15 @@ inline constexpr std::size_t kMaxDatagramSize = 1200;
 /// The slot a welcome names for a spectator, who has none.
 inline constexpr std::uint8_t kNoSlot = 0xFF;
 
+/// What a confirmation says about one slot's input: that it arrived, or that the relay gave up waiting and
+/// repeated the last one. The bits are the ones a frame's inputs carry for its systems.
+enum class SlotFlags : std::uint8_t
+{
+    None = 0,
+    Present = 1U << 0U,
+    Dropped = 1U << 1U
+};
+
 /// Whether a client joins to play in a slot or only to watch.
 enum class Role : std::uint8_t
 {
