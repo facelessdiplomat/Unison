@@ -9,6 +9,7 @@ add_library(
     src/match_clock.cpp
     src/message_reader.cpp
     src/message_writer.cpp
+    src/millisecond_timer.cpp
     src/network_simulator.cpp
     src/outbox.cpp
     src/relay_core.cpp
@@ -19,6 +20,10 @@ add_library(
 target_include_directories(unison_net PUBLIC include)
 
 target_link_libraries(unison_net PUBLIC unison_core enet)
+
+if(WIN32)
+    target_link_libraries(unison_net PRIVATE winmm)
+endif()
 
 unison_apply_language_subset(unison_net)
 

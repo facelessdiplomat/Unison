@@ -4,6 +4,7 @@
 #include <unison/core/log_sink.hpp>
 #include <unison/net/clock.hpp>
 #include <unison/net/enet_transport.hpp>
+#include <unison/net/millisecond_timer.hpp>
 #include <unison/net/relay_core.hpp>
 
 #include <chrono>
@@ -42,6 +43,8 @@ void relayUntil(std::uint64_t stopAt,
                 unison::relay::RelayRooms& rooms,
                 const unison::net::IClock& clock)
 {
+    const unison::net::MillisecondTimer millisecondTimer;
+
     while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt)
     {
         transport.poll(rooms);

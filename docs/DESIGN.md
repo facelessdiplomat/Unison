@@ -682,7 +682,10 @@ core frees its slot and confirms the frames it no longer sends inputs for with t
 waiting out the deadline, and the room closes once its last peer has gone. Ctrl+C or `SIGTERM` stops the
 loop, and the transport says goodbye to every peer as it goes. The loop polls the transport, lets every room
 confirm the frames whose deadline has passed and sleeps a millisecond, on a `SteadyClock` that counts from
-start-up; `--input-deadline`, `--resend-interval` and `--peer-timeout` set the room's `RelaySettings` and the
+start-up. While it runs, a `MillisecondTimer` asks Windows for a timer of a millisecond, as the console's loop
+does too: a sleep otherwise lasts a tick of Windows' default 15.6 ms timer, which held both loops to 64 Hz,
+kept every message waiting up to 16 ms at either end and read round trips of 16 to 32 ms on localhost.
+`--input-deadline`, `--resend-interval` and `--peer-timeout` set the room's `RelaySettings` and the
 transport, and `--run-for` stops it after that many seconds. It logs through `LogSink` to standard output. Bytes that decode to no message go unanswered, and so
 does a `Ping` from a peer that is not in the match; a member's ping is answered at once on the unreliable
 channel with its own stamp, the newest frame the relay has confirmed and the frame its `MatchClock` has due

@@ -13,6 +13,7 @@
 #include <unison/core/log_sink.hpp>
 #include <unison/net/clock.hpp>
 #include <unison/net/enet_transport.hpp>
+#include <unison/net/millisecond_timer.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/session/networked_session.hpp>
 #include <unison/sim/asset_hash.hpp>
@@ -187,6 +188,7 @@ void playUntilStopped(const unison::console::ConsoleOptions& options,
     }
 
     StatusDisplay display{options, networked, match.frame()};
+    const unison::net::MillisecondTimer millisecondTimer;
     networked.join();
 
     while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt &&
