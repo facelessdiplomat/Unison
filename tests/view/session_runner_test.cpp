@@ -44,8 +44,7 @@ struct Rig
         client.join();
         otherOutbox.send(relayEnd.id(),
                          unison::net::Channel::Reliable,
-                         unison::net::Hello{
-                             unison::net::kProtocolVersion, unison::net::hashOf(config), unison::net::Role::Player, 0});
+                         unison::net::Hello{unison::net::kProtocolVersion, config, unison::net::Role::Player, 0});
         relayEnd.poll(relay);
     }
 

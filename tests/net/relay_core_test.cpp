@@ -96,7 +96,7 @@ Replies repliesTo(Relay& relay, const unison::net::Hello& hello)
 
 unison::net::Hello helloFor(const unison::net::SessionConfig& config, unison::net::Role role)
 {
-    return unison::net::Hello{unison::net::kProtocolVersion, unison::net::hashOf(config), role, 0};
+    return unison::net::Hello{unison::net::kProtocolVersion, config, role, 0};
 }
 
 }

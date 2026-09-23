@@ -71,14 +71,14 @@ const std::array<std::byte, 6> kSixBytes{
 
 }
 
-TEST_CASE("a hello survives the wire")
+TEST_CASE("a hello survives the wire with the whole config")
 {
-    const unison::net::Hello sent{7, 0xabcdefU, unison::net::Role::Spectator, 99};
+    const unison::net::Hello sent{7, sampleConfig(), unison::net::Role::Spectator, 99};
 
     const auto received = decodedAs<unison::net::Hello>(encoded(sent));
 
     REQUIRE(received.protocolVersion == 7U);
-    REQUIRE(received.configHash == 0xabcdefU);
+    REQUIRE(unison::net::hashOf(received.config) == unison::net::hashOf(sampleConfig()));
     REQUIRE(received.role == unison::net::Role::Spectator);
     REQUIRE(received.reconnectToken == 99U);
 }

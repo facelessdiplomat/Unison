@@ -180,7 +180,7 @@ TEST_CASE("joining says hello to the relay as a player of the config the client 
     const std::vector<unison::net::Hello> hellos = rig.relayMail().all<unison::net::Hello>();
     REQUIRE(hellos.size() == 1U);
     REQUIRE(hellos.front().protocolVersion == unison::net::kProtocolVersion);
-    REQUIRE(hellos.front().configHash == unison::net::hashOf(rig.config));
+    REQUIRE(unison::net::hashOf(hellos.front().config) == unison::net::hashOf(rig.config));
     REQUIRE(hellos.front().role == unison::net::Role::Player);
     REQUIRE(rig.atRelay.channels.front() == unison::net::Channel::Reliable);
     REQUIRE(rig.client.state() == ConnectionState::Joining);

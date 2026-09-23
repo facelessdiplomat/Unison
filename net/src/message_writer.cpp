@@ -25,7 +25,7 @@ bool writeFields(BinaryWriter& writer, const SessionConfig& config)
 
 bool writeFields(BinaryWriter& writer, const Hello& hello)
 {
-    return writer.writeValue(hello.protocolVersion) && writer.writeValue(hello.configHash) &&
+    return writer.writeValue(hello.protocolVersion) && writeFields(writer, hello.config) &&
            writer.writeValue(hello.role) && writer.writeValue(hello.reconnectToken);
 }
 

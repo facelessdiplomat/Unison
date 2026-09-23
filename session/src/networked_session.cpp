@@ -22,8 +22,7 @@ NetworkedSession::NetworkedSession(sim::Frame& frame,
 
 void NetworkedSession::join()
 {
-    outbox.send(
-        relay, net::Channel::Reliable, net::Hello{net::kProtocolVersion, net::hashOf(config), net::Role::Player, 0});
+    outbox.send(relay, net::Channel::Reliable, net::Hello{net::kProtocolVersion, config, net::Role::Player, 0});
 
     connection = ConnectionState::Joining;
 }

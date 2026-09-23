@@ -637,7 +637,7 @@ departure on too. A peer arriving needs no report: it says hello.
 
 | Message | Direction | Channel | Payload |
 |---------|-----------|---------|---------|
-| `Hello` | client → relay | reliable | protocol version, session config hash, requested role (player / spectator), reconnect token (0 for none) |
+| `Hello` | client → relay | reliable | protocol version, the whole session config (the relay hashes it itself, and a standalone relay opens a room from it), requested role (player / spectator), reconnect token (0 for none) |
 | `Welcome` | relay → client | reliable | slot id, session config, start frame, frame confirmed so far, reconnect token |
 | `Input` | client → relay | unreliable | first frame, input size, frame count, that many inputs (K = 4 by default) |
 | `Confirmed` | relay → all | unreliable (+ periodic reliable resend) | first frame, slot count, input size, frame count, then frame after frame per slot a flags byte and the input (the newest frame and up to three before it) |
@@ -660,9 +660,11 @@ Inside it, a `Roster` records who is in the match and which slot each of them pl
 (eight) since a mask of slots has a bit for each, and an `Outbox` writes every message for the wire and
 hands it to the transport.
 A `RelayCore` hosts one match with the config it was created with: a `Hello` in the wrong protocol version
-or with another config hash is answered with `Kick`, a player takes the lowest free slot or is kicked when
-none is left, and a spectator is welcomed without a slot (`kNoSlot`). Rooms that come and go with their
-players are the standalone relay's concern (3.2.2). Bytes that decode to no message go unanswered, and so
+or whose config hashes otherwise is answered with `Kick`, a player takes the lowest free slot or is kicked
+when none is left, and a spectator is welcomed without a slot (`kNoSlot`). A `Hello` carries the whole
+config rather than its hash because the relay never simulates and cannot know a game's asset and pipeline
+hashes: the standalone relay opens a room from the first `Hello` of a config, one room per config, since
+lobbies are out of scope in v1, and rooms that come and go with their players are its concern (3.2.2). Bytes that decode to no message go unanswered, and so
 does a `Ping` from a peer that is not in the match; a member's ping is answered at once on the unreliable
 channel with its own stamp, the newest frame the relay has confirmed and the frame its `MatchClock` has due
 (§8.3), and the sender works out the round trip from its own clock.

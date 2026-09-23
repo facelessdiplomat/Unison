@@ -92,7 +92,8 @@ tl::expected<Hello, Error> readFields<Hello>(BinaryReader& reader)
 {
     Hello hello;
 
-    if (!readAll(reader, hello.protocolVersion, hello.configHash, hello.role, hello.reconnectToken))
+    if (!readAll(reader, hello.protocolVersion) || !readConfig(reader, hello.config) ||
+        !readAll(reader, hello.role, hello.reconnectToken))
     {
         return truncated();
     }

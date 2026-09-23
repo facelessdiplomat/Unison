@@ -57,7 +57,7 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
-    if (hello.configHash != configHash)
+    if (hashOf(hello.config) != configHash)
     {
         turnAway(from, LeaveReason::ConfigMismatch);
 

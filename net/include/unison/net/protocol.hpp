@@ -12,7 +12,7 @@ namespace unison::net
 {
 
 /// The version of the relay protocol this build speaks; a client speaking another is turned away.
-inline constexpr std::uint16_t kProtocolVersion = 4;
+inline constexpr std::uint16_t kProtocolVersion = 5;
 
 /// The most bytes one message may take: as many as an unreliable message may carry, whichever channel it
 /// goes on.
@@ -49,12 +49,13 @@ enum class LeaveReason : std::uint8_t
     RoomFull
 };
 
-/// A client asks to join: the protocol it speaks, the hash of the config it would play, the role it wants,
-/// and the token of a slot it held before a drop, zero for none.
+/// A client asks to join: the protocol it speaks, the whole config it would play, from which a relay opens
+/// a room or checks the client against the room it has, the role it wants, and the token of a slot it held
+/// before a drop, zero for none.
 struct Hello
 {
     std::uint16_t protocolVersion = kProtocolVersion;
-    std::uint64_t configHash = 0;
+    SessionConfig config;
     Role role = Role::Player;
     std::uint64_t reconnectToken = 0;
 };
