@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.3.1**, two networked sessions over ENet on localhost. Last finished: 3.2.2, rooms that close
-  when empty and a relay that stops on Ctrl+C; 3.2.3 is deferred until WSL is installed.
+- Next up: **3.3.2**, the networked session's connection states. Last finished: 3.3.1, two networked
+  sessions through a relay over ENet on localhost. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -40,11 +40,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 16 | 7 |
+| 3 Real networking | 4 | 16 | 8 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **181** | **126** |
+| **Total** | **31** | **181** | **127** |
 
 ## Charter amendments made while planning
 
@@ -300,7 +300,7 @@ needs from earlier tasks is ticked.
 
 **Exit criteria**
 - [ ] Definition of Done item 2 (LAN session, 10 minutes, zero desyncs) executed and recorded in `docs/LAN_TEST.md`.
-- [ ] Relay plus two clients over localhost UDP pass in CTest.
+- [x] Relay plus two clients over localhost UDP pass in CTest.
 
 ### 3.1 ENet transport
 - [x] 3.1.1 `EnetTransport` server: listen, accept, `PeerId` mapping, reliable and unreliable-sequenced channels. Test: the server receives a client's message on localhost. Also: an address taken or no address at all fails with `NetworkUnavailable`, the server answers a client by the peer id it gave it, and two clients go by different ids.
@@ -315,7 +315,7 @@ needs from earlier tasks is ticked.
 - [ ] ~~3.2.3 Portability check: the relay builds and runs under Linux (WSL, gcc or clang). Optional in v1; record the result here.~~ Deferred on 2026-09-23: WSL is not installed on the development machine, and installing it is the owner's decision. The relay depends only on the standard library, ENet and cxxopts, all of which build on Linux; what is left untried is our own code under gcc or clang.
 
 ### 3.3 Networked session over UDP
-- [ ] 3.3.1 Integration test: relay core plus two `NetworkedSession`s over `EnetTransport` on localhost, 1000 frames, equal checksums.
+- [x] 3.3.1 Integration test: relay core plus two `NetworkedSession`s over `EnetTransport` on localhost, 1000 frames, equal checksums. The relay side is `RelayRooms`, as in `unison_relay`, and the clients play the arena on its scripted inputs; the clock is a manual one, so the thousand frames take seconds in Debug rather than seventeen.
 - [ ] 3.3.2 Connection state machine (`Connecting`, `Joining`, `Playing`, `Stalled`, `Disconnected`) with events for the host. Test: transitions on connect, stall, disconnect.
 - [ ] 3.3.3 Real-clock pacing in `SessionRunner` with `steady_clock` behind the injectable clock interface. Test: the fake clock drives ticks exactly; the real clock is the default.
 

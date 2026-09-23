@@ -755,6 +755,7 @@ settled already changes nothing. Anything from a peer other than the relay is dr
 | Unit | Catch2 | fixed containers, hashing, serialization round-trips, input buffer, snapshot ring, relay state machine |
 | Determinism | Catch2 + golden files | items 1–5 of Section 7.4 |
 | Integration | `unison_runner` via CTest | 2/4/8 clients at 30 and 60 Hz losing 0, 5 or 20 % of the unreliable messages, over a one-way latency of 120 ms with 30 ms of jitter: eighteen profiles of five seconds of play each, labelled `profile` |
+| Integration over UDP | Catch2 | the relay's rooms and two arena clients over `EnetTransport` on 127.0.0.1, a thousand frames, every checksum alike, on a manual clock so the test runs as fast as the machine does |
 | Benchmarks | Catch2 `BENCHMARK` | tick, snapshot, restore, resimulate k frames, checksum |
 | Manual | LAN session, UE sample | Definition of Done items 2 and 7 |
 
