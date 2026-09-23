@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.2.1**, the snapshot ring. Last finished: 2.1.3, local input sampling; task 2.1 is complete.
+- Next up: **2.2.2**, snapshot buffer reuse. Last finished: 2.2.1, the snapshot ring.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 3 |
+| 2 Rollback session (local) | 8 | 36 | 4 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **74** |
+| **Total** | **31** | **168** | **75** |
 
 ## Charter amendments made while planning
 
@@ -214,7 +214,7 @@ needs from earlier tasks is ticked.
 - [x] 2.1.3 Local input sampling: `setLocalInput` stored per host frame, sampled once per tick for the local slot. Test: the same input is reused when the host does not update it.
 
 ### 2.2 Snapshot ring
-- [ ] 2.2.1 `SnapshotRing(capacity)`: `store(frame, snapshot)`, `get(frame)`, overwrite oldest, `evictBelow(frame)`. Test: capacity wraparound and lookups.
+- [x] 2.2.1 `SnapshotRing(capacity)`: `store(frame)`, `holds(frame)`, `snapshotAt(frame)`, overwrite oldest, `evictBelow(frame)`. The ring takes the snapshot into a place it owns rather than being handed one: a snapshot holds a registry, which only moves, and 2.2.2 reuses those places. Test: capacity wraparound and lookups.
 - [ ] 2.2.2 Buffer reuse after warm-up, including `restoreSnapshot`, which replaces the registry wholesale today and so throws away the capacity of every pool on each rollback. Test: internal buffer capacities stop growing over 1000 frames.
 
 ### 2.3 Session state machine
