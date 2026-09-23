@@ -2,6 +2,7 @@
 #include "console_screen.hpp"
 
 #include <unison/console/arena_controls.hpp>
+#include <unison/console/console_exit.hpp>
 #include <unison/console/console_options.hpp>
 #include <unison/console/screen.hpp>
 #include <unison/console/status_line.hpp>
@@ -81,6 +82,7 @@ unison::console::ConsoleStatus statusOf(const unison::console::ConsoleOptions& o
     status.rollbacksLastSecond = rollbacksLastSecond;
     status.roundTripMicroseconds = networked.timeSync().roundTripMicroseconds();
     status.leadMicroseconds = networked.timeSync().leadMicroseconds();
+    status.desync = networked.lastDesync();
 
     if (const unison::session::Session* played = networked.session())
     {
@@ -96,6 +98,11 @@ std::uint32_t rollbacksSoFar(const unison::session::NetworkedSession& networked)
     const unison::session::Session* played = networked.session();
 
     return played == nullptr ? 0U : played->rollbackStats().rollbacks;
+}
+
+bool isInPlay(const unison::session::NetworkedSession& networked)
+{
+    return networked.state() != unison::session::ConnectionState::Disconnected && !networked.lastDesync().has_value();
 }
 
 class Steering
@@ -191,8 +198,7 @@ void playUntilStopped(const unison::console::ConsoleOptions& options,
     const unison::net::MillisecondTimer millisecondTimer;
     networked.join();
 
-    while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt &&
-           networked.state() != unison::session::ConnectionState::Disconnected)
+    while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt && isInPlay(networked))
     {
         const arena::ArenaInput input = steering.inputAt(clock.nowMicroseconds());
 
@@ -255,7 +261,9 @@ int main(int argc, char** argv)
     unison::view::SessionRunner runner{networked, dispatcher, clock, config.tickRate};
 
     playUntilStopped(*options, match, networked, runner, clock);
-    logStatus(statusOf(*options, networked, 0));
 
-    return networked.state() == unison::session::ConnectionState::Disconnected ? 1 : 0;
+    const unison::console::ConsoleStatus lastStatus = statusOf(*options, networked, 0);
+    logStatus(lastStatus);
+
+    return unison::console::exitCodeOf(lastStatus);
 }

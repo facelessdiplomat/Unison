@@ -757,8 +757,9 @@ the session's event changes are.
   keeps pace. The screen needs a console that understands the terminal's escape sequences; with its output
   redirected the console prints the status line once a second instead. The screen is drawn in the window's
   own buffer, so when the console ends, its last screen and its last status line stay in view.
-  It runs on the real clock until Ctrl+C, `--run-for` seconds or a disconnect,
-  which ends it with exit code 1. `--spectate` comes with spectators (4.5.3). The keyboard is read without
+  It runs on the real clock until Ctrl+C, `--run-for` seconds, a disconnect, which ends it with exit code 1,
+  or a desync the relay reports, which ends it with exit code 2 whatever else happened and puts the frame and
+  the slots out of step at the end of the status line. `--spectate` comes with spectators (4.5.3). The keyboard is read without
   blocking from Windows' console input, which reports keys going down and up while the window has focus, and
   a lost focus lets every key go: W and S move forward and back, A and D to the sides, Space jumps, F fires,
   and Q and E turn the aim half a turn a second for as long as they are held, by the time held rather than by

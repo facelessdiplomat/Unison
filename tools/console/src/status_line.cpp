@@ -1,6 +1,8 @@
 #include <unison/console/status_line.hpp>
 
+#include <bit>
 #include <format>
+#include <limits>
 
 namespace unison::console
 {
@@ -9,6 +11,7 @@ namespace
 {
 
 constexpr std::uint64_t kMicrosecondsPerMillisecond = 1'000;
+constexpr int kSlotBits = std::numeric_limits<std::uint8_t>::digits;
 
 std::string inMatch(const ConsoleStatus& status, std::string_view standing)
 {
@@ -24,9 +27,7 @@ std::string inMatch(const ConsoleStatus& status, std::string_view standing)
                        status.leadMicroseconds / static_cast<std::int64_t>(kMicrosecondsPerMillisecond));
 }
 
-}
-
-std::string statusLineOf(const ConsoleStatus& status)
+std::string standingOf(const ConsoleStatus& status)
 {
     using session::ConnectionState;
 
@@ -51,6 +52,41 @@ std::string statusLineOf(const ConsoleStatus& status)
     }
 
     return inMatch(status, status.state == ConnectionState::Stalled ? "stalled" : "playing");
+}
+
+std::string slotsOf(std::uint8_t slotBits)
+{
+    std::string slots;
+
+    for (int slot = 0; slot < kSlotBits; ++slot)
+    {
+        if ((slotBits & (1U << slot)) != 0U)
+        {
+            slots += slots.empty() ? std::format("{}", slot) : std::format(", {}", slot);
+        }
+    }
+
+    return slots;
+}
+
+std::string desyncOf(const std::optional<net::Desync>& desync)
+{
+    if (!desync.has_value())
+    {
+        return std::string{};
+    }
+
+    return std::format(", desync on frame {} by {} {}",
+                       desync->frame,
+                       std::has_single_bit(desync->minoritySlots) ? "slot" : "slots",
+                       slotsOf(desync->minoritySlots));
+}
+
+}
+
+std::string statusLineOf(const ConsoleStatus& status)
+{
+    return standingOf(status) + desyncOf(status.desync);
 }
 
 }

@@ -1,4 +1,6 @@
-add_library(unison_console_core STATIC src/console_options.cpp src/screen.cpp src/status_line.cpp)
+add_library(
+    unison_console_core STATIC src/console_exit.cpp src/console_options.cpp src/screen.cpp src/status_line.cpp
+)
 
 target_include_directories(unison_console_core PUBLIC include)
 

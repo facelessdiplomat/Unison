@@ -121,6 +121,7 @@ add_executable(
     tools/checksum_ledger_test.cpp
     tools/checksum_wiretap_test.cpp
     tools/client_outcome_test.cpp
+    tools/console_exit_test.cpp
     tools/console_options_test.cpp
     tools/relay_options_test.cpp
     tools/relay_over_enet_test.cpp

@@ -39,6 +39,31 @@ TEST_CASE("a client behind the relay's clock has a lead below nothing")
     REQUIRE(unison::console::statusLineOf(status).ends_with("lead -16 ms"));
 }
 
+TEST_CASE("the status line of a client the relay found out of step names the frame and the slot")
+{
+    unison::console::ConsoleStatus status = playingStatus();
+    status.desync = unison::net::Desync{1'240, 0b10};
+
+    REQUIRE(unison::console::statusLineOf(status).ends_with("lead 1 ms, desync on frame 1240 by slot 1"));
+}
+
+TEST_CASE("a desync of several slots names every one of them")
+{
+    unison::console::ConsoleStatus status = playingStatus();
+    status.desync = unison::net::Desync{1'240, 0b101};
+
+    REQUIRE(unison::console::statusLineOf(status).ends_with("desync on frame 1240 by slots 0, 2"));
+}
+
+TEST_CASE("a client that left its match still tells of the desync it was told of")
+{
+    unison::console::ConsoleStatus status = playingStatus();
+    status.state = unison::session::ConnectionState::Disconnected;
+    status.desync = unison::net::Desync{1'240, 0b10};
+
+    REQUIRE(unison::console::statusLineOf(status) == "ada disconnected, desync on frame 1240 by slot 1");
+}
+
 TEST_CASE("the status line of a stalled client says it is stalled")
 {
     unison::console::ConsoleStatus status = playingStatus();
