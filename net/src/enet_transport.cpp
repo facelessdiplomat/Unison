@@ -88,7 +88,8 @@ struct EnetTransport::Host
         std::vector<Waiting> waiting;
     };
 
-    explicit Host(ENetHost* handle) : handle{handle}
+    Host(ENetHost* handle, std::chrono::milliseconds peerTimeout)
+        : handle{handle}, peerTimeoutMilliseconds{static_cast<enet_uint32>(peerTimeout.count())}
     {
     }
 
@@ -121,6 +122,7 @@ struct EnetTransport::Host
 
     PeerId name(ENetPeer* connection, bool isConnected)
     {
+        enet_peer_timeout(connection, 0, peerTimeoutMilliseconds, peerTimeoutMilliseconds);
         peers.push_back(Peer{PeerId{++lastPeerId}, connection, isConnected, {}});
 
         return peers.back().id;
@@ -148,18 +150,30 @@ struct EnetTransport::Host
         enet_host_flush(handle.get());
     }
 
-    void forget(const ENetPeer* connection)
+    std::optional<PeerId> forget(const ENetPeer* connection)
     {
-        std::erase_if(peers, [connection](const Peer& peer) { return peer.connection == connection; });
+        const Peer* peer = find(connection);
+
+        if (peer == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        const PeerId gone = peer->id;
+        std::erase_if(peers, [connection](const Peer& known) { return known.connection == connection; });
+
+        return gone;
     }
 
     EnetShutdown shutdown;
     std::unique_ptr<ENetHost, HostDeleter> handle;
+    enet_uint32 peerTimeoutMilliseconds;
     std::vector<Peer> peers;
     std::uint32_t lastPeerId = 0;
 };
 
-tl::expected<std::unique_ptr<EnetTransport>, Error> EnetTransport::listen(const EnetAddress& at, std::size_t maxPeers)
+tl::expected<std::unique_ptr<EnetTransport>, Error>
+EnetTransport::listen(const EnetAddress& at, std::size_t maxPeers, std::chrono::milliseconds peerTimeout)
 {
     const std::optional<ENetAddress> address = addressOf(at);
 
@@ -182,11 +196,12 @@ tl::expected<std::unique_ptr<EnetTransport>, Error> EnetTransport::listen(const 
         return unavailable("the address cannot be listened on");
     }
 
-    return std::make_unique<EnetTransport>(Passkey{}, std::make_unique<Host>(handle));
+    return std::make_unique<EnetTransport>(Passkey{}, std::make_unique<Host>(handle, peerTimeout));
 }
 
 tl::expected<EnetConnection, Error> EnetTransport::connect(const EnetAddress& to,
-                                                           const std::optional<EnetAddress>& from)
+                                                           const std::optional<EnetAddress>& from,
+                                                           std::chrono::milliseconds peerTimeout)
 {
     const std::optional<ENetAddress> server = addressOf(to);
     const std::optional<ENetAddress> local = from.has_value() ? addressOf(*from) : std::nullopt;
@@ -210,7 +225,7 @@ tl::expected<EnetConnection, Error> EnetTransport::connect(const EnetAddress& to
         return unavailable("the address to connect from cannot be used");
     }
 
-    auto transport = std::make_unique<EnetTransport>(Passkey{}, std::make_unique<Host>(handle));
+    auto transport = std::make_unique<EnetTransport>(Passkey{}, std::make_unique<Host>(handle, peerTimeout));
     ENetPeer* connection = enet_host_connect(handle, &*server, kChannelCount, 0);
 
     if (connection == nullptr)
@@ -266,7 +281,11 @@ void EnetTransport::poll(IMessageReceiver& receiver)
                 host->markConnected(event.peer);
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
-                host->forget(event.peer);
+                if (const std::optional<PeerId> gone = host->forget(event.peer))
+                {
+                    receiver.peerLeft(*gone);
+                }
+
                 break;
             case ENET_EVENT_TYPE_RECEIVE:
             {

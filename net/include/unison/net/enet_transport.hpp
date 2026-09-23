@@ -5,6 +5,7 @@
 
 #include <tl/expected.hpp>
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -23,13 +24,18 @@ struct EnetAddress
     std::uint16_t port = 0;
 };
 
+/// How long an ENet peer may stay silent before its transport takes it for gone, unless told otherwise.
+inline constexpr std::chrono::milliseconds kDefaultPeerTimeout{5'000};
+
 struct EnetConnection;
 
 /// A transport over ENet's UDP connections. Our reliable channel is ENet's reliable, ordered one, and our
 /// unreliable channel is ENet's unreliable but sequenced one, which drops a message overtaken by a later
 /// one. Every peer is named by a peer id no other peer of the transport is ever given; a message sent is on
 /// its way at once, one sent to a peer still connecting waits for the connection, and one for a peer that
-/// has gone is dropped, as the network would drop it. A transport that goes away says goodbye to its peers.
+/// has gone is dropped, as the network would drop it. A peer that says goodbye or stays silent for longer
+/// than the peer timeout is reported gone on the next poll, and a transport that goes away says goodbye to
+/// its peers.
 class EnetTransport final : public ITransport
 {
     struct Passkey
@@ -42,14 +48,16 @@ class EnetTransport final : public ITransport
 public:
     /// Listens at the address for up to `maxPeers` peers; an address that is none, or that cannot be listened
     /// on, fails, and so does a network the system cannot start.
-    [[nodiscard]] static tl::expected<std::unique_ptr<EnetTransport>, Error> listen(const EnetAddress& at,
-                                                                                    std::size_t maxPeers);
+    [[nodiscard]] static tl::expected<std::unique_ptr<EnetTransport>, Error>
+    listen(const EnetAddress& at, std::size_t maxPeers, std::chrono::milliseconds peerTimeout = kDefaultPeerTimeout);
 
     /// Connects to a server listening at `to`, from `from`, or from any interface through a port the system
     /// picks when it is not given; the connection comes up as the transport is polled. An address that is
     /// none fails, and so does a network the system cannot start.
     [[nodiscard]] static tl::expected<EnetConnection, Error>
-    connect(const EnetAddress& to, const std::optional<EnetAddress>& from = std::nullopt);
+    connect(const EnetAddress& to,
+            const std::optional<EnetAddress>& from = std::nullopt,
+            std::chrono::milliseconds peerTimeout = kDefaultPeerTimeout);
 
     EnetTransport(Passkey, std::unique_ptr<Host> host);
 

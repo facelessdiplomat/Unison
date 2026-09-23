@@ -25,7 +25,13 @@ public:
         ++received;
     }
 
+    void peerLeft(unison::net::PeerId peer) override
+    {
+        departures.push_back(peer);
+    }
+
     std::uint32_t received = 0;
+    std::vector<unison::net::PeerId> departures;
 };
 
 void send(unison::net::IMessageReceiver& receiver, unison::net::PeerId from, const unison::net::Message& message)
@@ -68,4 +74,16 @@ TEST_CASE("every message reaches the relay behind the wiretap")
 
     REQUIRE(relay.received == 3U);
     REQUIRE(ledger.framesReportedByAll() == 0U);
+}
+
+TEST_CASE("a peer that leaves is reported to the relay behind the wiretap")
+{
+    Relay relay;
+    unison::runner::ChecksumLedger ledger{2};
+    const std::array peers{kFirst, kSecond};
+    unison::runner::ChecksumWiretap wiretap{relay, ledger, peers};
+
+    wiretap.peerLeft(kSecond);
+
+    REQUIRE(relay.departures == std::vector<unison::net::PeerId>{kSecond});
 }

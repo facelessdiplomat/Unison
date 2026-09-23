@@ -34,7 +34,13 @@ public:
         messages.push_back(Received{from, channel, {message.begin(), message.end()}});
     }
 
+    void peerLeft(unison::net::PeerId peer) override
+    {
+        departures.push_back(peer);
+    }
+
     std::vector<Received> messages;
+    std::vector<unison::net::PeerId> departures;
 };
 
 std::unique_ptr<unison::net::EnetTransport> listeningServer()
@@ -350,6 +356,69 @@ TEST_CASE("a transport that goes away says goodbye, so the other side hears of i
 
     REQUIRE(isConnected);
     REQUIRE(isGone);
+}
+
+namespace
+{
+
+std::vector<unison::net::PeerId> departuresWithin(std::chrono::milliseconds patience, unison::net::ITransport& watching)
+{
+    Inbox inbox;
+    const auto giveUpAt = std::chrono::steady_clock::now() + patience;
+
+    while (inbox.departures.empty() && std::chrono::steady_clock::now() < giveUpAt)
+    {
+        watching.poll(inbox);
+    }
+
+    return inbox.departures;
+}
+
+}
+
+TEST_CASE("a peer that says goodbye is reported gone at once")
+{
+    const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();
+    Echo echo{*server};
+    std::optional<unison::net::EnetConnection> client{connectionTo(*server)};
+    client->transport->send(client->server, unison::net::Channel::Reliable, kHello);
+    const std::vector<Received> echoed = messagesUntil(1, *client->transport, *server, echo);
+    REQUIRE(echoed.size() == 1U);
+
+    client.reset();
+    const std::vector<unison::net::PeerId> departures = departuresWithin(std::chrono::milliseconds{500}, *server);
+
+    REQUIRE(departures.size() == 1U);
+}
+
+TEST_CASE("a peer that stops answering is reported gone once its timeout has passed")
+{
+    auto listening = unison::net::EnetTransport::listen(
+        unison::net::EnetAddress{"127.0.0.1", 0}, kPeers, std::chrono::milliseconds{250});
+    REQUIRE(listening.has_value());
+    const std::unique_ptr<unison::net::EnetTransport> server = std::move(*listening);
+    RawClient silentClient{server->port()};
+    silentClient.connectThrough(*server);
+
+    const std::vector<unison::net::PeerId> departures = departuresWithin(std::chrono::seconds{3}, *server);
+
+    REQUIRE(departures.size() == 1U);
+}
+
+TEST_CASE("a client whose server goes away hears of it")
+{
+    std::optional<std::unique_ptr<unison::net::EnetTransport>> server{listeningServer()};
+    Echo echo{**server};
+    const unison::net::EnetConnection client = connectionTo(**server);
+    client.transport->send(client.server, unison::net::Channel::Reliable, kHello);
+    const std::vector<Received> echoed = messagesUntil(1, *client.transport, **server, echo);
+    REQUIRE(echoed.size() == 1U);
+
+    server.reset();
+    const std::vector<unison::net::PeerId> departures =
+        departuresWithin(std::chrono::milliseconds{500}, *client.transport);
+
+    REQUIRE(departures == std::vector<unison::net::PeerId>{client.server});
 }
 
 TEST_CASE("two clients of a listening transport go by different names")

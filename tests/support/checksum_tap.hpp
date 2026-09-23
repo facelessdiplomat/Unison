@@ -39,6 +39,11 @@ public:
         relay.receive(from, channel, message);
     }
 
+    void peerLeft(net::PeerId peer) override
+    {
+        relay.peerLeft(peer);
+    }
+
     ChecksumReports firstReports;
     ChecksumReports secondReports;
 

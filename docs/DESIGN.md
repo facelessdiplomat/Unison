@@ -597,17 +597,20 @@ periodic checksums. Replays are deterministic by construction; `unison_replay pl
 ```cpp
 class IMessageReceiver {
     virtual void receive(PeerId from, Channel channel, std::span<const std::byte> message) = 0;
+    virtual void peerLeft(PeerId peer) {}
 };
 
 class ITransport {
     virtual void send(PeerId to, Channel channel /*Reliable|Unreliable*/, std::span<const std::byte>) = 0;
     virtual void poll(IMessageReceiver& receiver) = 0;
-    // connect / disconnect events arrive with ENet (3.1.3)
 };
 ```
 
 A poll hands messages to a receiver interface rather than to a `std::function`, so polling every tick
-allocates nothing and the relay and the session each receive as one small interface.
+allocates nothing and the relay and the session each receive as one small interface. A poll also reports a
+peer that has gone, whether it said goodbye or stopped answering; a receiver that does not follow peers
+ignores it by default, and one that hands messages on, such as the runner's checksum wiretap, hands the
+departure on too. A peer arriving needs no report: it says hello.
 
 - `LoopbackHub`: in-process endpoints that deliver to one another at once. A `SimulatedLink` wraps any
   transport so that what it sends first crosses a seeded `NetworkSimulator` with latency, jitter (the delay
@@ -622,8 +625,9 @@ allocates nothing and the relay and the session each receive as one small interf
   comes up as the transport is polled, and what is sent before then waits for it and goes in order. Every
   peer gets a peer id the transport never gives again, a send is flushed at once rather than waiting for
   the next poll, a message for a peer that has gone is dropped, and a transport that goes away says goodbye
-  to every peer, so the other side hears of it at once rather than at a timeout. ENet's headers, which bring
-  in `winsock2.h`, stay inside the transport's source file.
+  to every peer, so the other side hears of it at once rather than at a timeout. A peer silent for longer
+  than the peer timeout (five seconds unless the transport is told otherwise) is reported gone too. ENet's
+  headers, which bring in `winsock2.h`, stay inside the transport's source file.
 
 ### 9.2 Relay protocol (v1)
 

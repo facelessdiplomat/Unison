@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.1.3**, timeouts and disconnects through `ITransport`. Last finished: 3.1.2, the ENet
-  transport's client.
+- Next up: **3.1.4**, the ENet transport's message size policy. Last finished: 3.1.3, timeouts and
+  disconnects through `ITransport`.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -40,11 +40,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 15 | 2 |
+| 3 Real networking | 4 | 15 | 3 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **180** | **121** |
+| **Total** | **31** | **180** | **122** |
 
 ## Charter amendments made while planning
 
@@ -305,7 +305,7 @@ needs from earlier tasks is ticked.
 ### 3.1 ENet transport
 - [x] 3.1.1 `EnetTransport` server: listen, accept, `PeerId` mapping, reliable and unreliable-sequenced channels. Test: the server receives a client's message on localhost. Also: an address taken or no address at all fails with `NetworkUnavailable`, the server answers a client by the peer id it gave it, and two clients go by different ids.
 - [x] 3.1.2 `EnetTransport` client: connect, send, receive, disconnect. Test: echo round trip on localhost. Also: what is sent before the connection is up goes once it is, in order; an address that is none fails; a transport that goes away says goodbye, so the other side hears of it at once.
-- [ ] 3.1.3 Timeouts and disconnect events surfaced through `ITransport`. Test: dropping one side raises a disconnect on the other within the timeout.
+- [x] 3.1.3 Timeouts and disconnect events surfaced through `ITransport`. Test: dropping one side raises a disconnect on the other within the timeout. A receiver hears `peerLeft(peer)` on the poll after a peer said goodbye or stayed silent past the peer timeout, five seconds by default; the runner's wiretap hands it on to the relay. Also: a goodbye is reported at once, and a client hears of its server going away.
 - [ ] 3.1.4 Message size policy: unreliable messages capped at an MTU-safe size, reliable ones fragmented by ENet. Test: an oversized unreliable send is rejected; a large reliable message arrives whole.
 
 ### 3.2 Relay server executable (`unison_relay`)
