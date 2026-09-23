@@ -20,8 +20,9 @@ public:
     /// The newest frame in the log, zero while it is empty.
     [[nodiscard]] std::uint32_t lastFrame() const;
 
-    /// The slots of a frame the log holds; asking for any other breaks a contract.
-    [[nodiscard]] std::span<const std::byte> slotsOf(std::uint32_t frame) const;
+    /// The slots of `frameCount` frames from `firstFrame` on, frame after frame; asking for a frame the log
+    /// does not hold breaks a contract.
+    [[nodiscard]] std::span<const std::byte> slotsOf(std::uint32_t firstFrame, std::uint32_t frameCount) const;
 
 private:
     std::size_t frameSize;

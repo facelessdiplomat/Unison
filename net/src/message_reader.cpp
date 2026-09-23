@@ -138,8 +138,10 @@ tl::expected<Confirmed, Error> readFields<Confirmed>(BinaryReader& reader)
 {
     Confirmed confirmed;
 
-    if (!readAll(reader, confirmed.frame, confirmed.slotCount, confirmed.inputSize) ||
-        !readBytesInto(reader, std::size_t{confirmed.slotCount} * (1U + confirmed.inputSize), confirmed.slots))
+    if (!readAll(reader, confirmed.firstFrame, confirmed.slotCount, confirmed.inputSize, confirmed.frameCount) ||
+        !readBytesInto(reader,
+                       confirmedFrameSize(confirmed.slotCount, confirmed.inputSize) * confirmed.frameCount,
+                       confirmed.slots))
     {
         return truncated();
     }

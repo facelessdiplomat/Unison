@@ -101,6 +101,8 @@ private:
     {
     }
 
+    void settle(std::uint32_t frameNumber, std::span<const std::byte> slots);
+
     void sendInputs();
 
     void sendChecksums();

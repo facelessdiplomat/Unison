@@ -109,17 +109,44 @@ TEST_CASE("an input batch survives the wire")
     REQUIRE(std::ranges::equal(received.inputs, kSixBytes));
 }
 
-TEST_CASE("a confirmed frame survives the wire")
+TEST_CASE("a batch of confirmed frames survives the wire")
 {
-    const unison::net::Confirmed sent{41, 2, 2, kSixBytes};
+    const unison::net::Confirmed sent{41, 1, 2, 2, kSixBytes};
 
     const std::vector<std::byte> bytes = encoded(sent);
     const auto received = decodedAs<unison::net::Confirmed>(bytes);
 
-    REQUIRE(received.frame == 41U);
-    REQUIRE(received.slotCount == 2U);
+    REQUIRE(received.firstFrame == 41U);
+    REQUIRE(received.slotCount == 1U);
     REQUIRE(received.inputSize == 2U);
+    REQUIRE(received.frameCount == 2U);
     REQUIRE(std::ranges::equal(received.slots, kSixBytes));
+}
+
+TEST_CASE("as many confirmed frames as a datagram holds fit in one, and one more does not")
+{
+    constexpr std::uint8_t kSlots = 8;
+    constexpr std::uint8_t kInputSize = 64;
+    constexpr std::size_t kFrameSize = kSlots * (1U + kInputSize);
+    const std::uint32_t fitting = unison::net::confirmedFramesPerDatagram(kSlots, kInputSize);
+    const std::vector<std::byte> slots((fitting + 1U) * kFrameSize);
+    std::vector<std::byte> datagram(unison::net::kMaxDatagramSize);
+
+    const auto fits = unison::net::encode(
+        unison::net::Confirmed{
+            1, kSlots, kInputSize, static_cast<std::uint8_t>(fitting), std::span{slots}.first(fitting * kFrameSize)},
+        datagram);
+    const auto overflows = unison::net::encode(
+        unison::net::Confirmed{1, kSlots, kInputSize, static_cast<std::uint8_t>(fitting + 1U), slots}, datagram);
+
+    REQUIRE(fitting >= 1U);
+    REQUIRE(fits.has_value());
+    REQUIRE_FALSE(overflows.has_value());
+}
+
+TEST_CASE("frames without slots take no room, so a confirmation holds as many of them as its count can say")
+{
+    REQUIRE(unison::net::confirmedFramesPerDatagram(0, 8) == 255U);
 }
 
 TEST_CASE("a checksum survives the wire")
@@ -243,6 +270,14 @@ TEST_CASE("an input batch promising more inputs than it carries is rejected as t
     REQUIRE(failureOf(bytes) == unison::ErrorCode::TruncatedInput);
 }
 
+TEST_CASE("a batch of confirmed frames promising more frames than it carries is rejected as truncated")
+{
+    std::vector<std::byte> bytes = encoded(unison::net::Confirmed{41, 1, 2, 2, kSixBytes});
+    bytes.resize(bytes.size() - 3);
+
+    REQUIRE(failureOf(bytes) == unison::ErrorCode::TruncatedInput);
+}
+
 TEST_CASE("a snapshot chunk numbered past its count is rejected")
 {
     constexpr std::size_t kChunkIndexOffset = sizeof(std::uint8_t) + sizeof(std::uint32_t);
@@ -262,12 +297,12 @@ TEST_CASE("an input batch whose bytes disagree with its sizes breaks a contract"
     REQUIRE(probe.failureCount() == 1U);
 }
 
-TEST_CASE("a confirmed frame whose bytes disagree with its sizes breaks a contract")
+TEST_CASE("a batch of confirmed frames whose bytes disagree with its sizes breaks a contract")
 {
     const unison::test::FatalHandlerProbe probe;
     std::vector<std::byte> buffer(kRoomForAnyMessage);
 
-    static_cast<void>(unison::net::encode(unison::net::Confirmed{41, 3, 2, kSixBytes}, buffer));
+    static_cast<void>(unison::net::encode(unison::net::Confirmed{41, 3, 2, 1, kSixBytes}, buffer));
 
     REQUIRE(probe.failureCount() == 1U);
 }

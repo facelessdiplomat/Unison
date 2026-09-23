@@ -3,7 +3,9 @@
 #include <unison/core/binary_writer.hpp>
 #include <unison/core/contract.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <variant>
 
 namespace unison::net
@@ -44,10 +46,12 @@ bool writeFields(BinaryWriter& writer, const Input& input)
 
 bool writeFields(BinaryWriter& writer, const Confirmed& confirmed)
 {
-    UNISON_VERIFY(confirmed.slots.size() == std::size_t{confirmed.slotCount} * (1U + confirmed.inputSize));
+    UNISON_VERIFY(confirmed.slots.size() ==
+                  confirmedFrameSize(confirmed.slotCount, confirmed.inputSize) * confirmed.frameCount);
 
-    return writer.writeValue(confirmed.frame) && writer.writeValue(confirmed.slotCount) &&
-           writer.writeValue(confirmed.inputSize) && writer.writeBytes(confirmed.slots);
+    return writer.writeValue(confirmed.firstFrame) && writer.writeValue(confirmed.slotCount) &&
+           writer.writeValue(confirmed.inputSize) && writer.writeValue(confirmed.frameCount) &&
+           writer.writeBytes(confirmed.slots);
 }
 
 bool writeFields(BinaryWriter& writer, const Checksum& checksum)
@@ -109,6 +113,22 @@ tl::expected<std::size_t, Error> encode(const Message& message, std::span<std::b
     }
 
     return writer.size();
+}
+
+std::uint32_t confirmedFramesPerDatagram(std::uint8_t slotCount, std::uint8_t inputSize)
+{
+    constexpr std::size_t kHeaderSize = sizeof(std::uint8_t) + sizeof(Confirmed::firstFrame) +
+                                        sizeof(Confirmed::slotCount) + sizeof(Confirmed::inputSize) +
+                                        sizeof(Confirmed::frameCount);
+    constexpr std::size_t kMostFrames = std::numeric_limits<decltype(Confirmed::frameCount)>::max();
+    const std::size_t frameSize = confirmedFrameSize(slotCount, inputSize);
+
+    if (frameSize == 0)
+    {
+        return kMostFrames;
+    }
+
+    return static_cast<std::uint32_t>(std::min(kMostFrames, (kMaxDatagramSize - kHeaderSize) / frameSize));
 }
 
 }

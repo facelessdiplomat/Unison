@@ -85,20 +85,32 @@ struct Rig
 
     void confirm(std::uint32_t frameNumber, const unison::sim::FrameInputs& inputs)
     {
+        confirmInOneMessage(frameNumber, std::vector<unison::sim::FrameInputs>{inputs});
+    }
+
+    void confirmInOneMessage(std::uint32_t firstFrame, const std::vector<unison::sim::FrameInputs>& frames)
+    {
         const std::size_t stride = 1U + config.inputSize;
-        std::vector<std::byte> slots(config.slotCount * stride);
+        const std::size_t frameSize = config.slotCount * stride;
+        std::vector<std::byte> slots(frames.size() * frameSize);
 
-        for (std::size_t slot = 0; slot < config.slotCount; ++slot)
+        for (std::size_t index = 0; index < frames.size(); ++index)
         {
-            slots[slot * stride] = static_cast<std::byte>(inputs.flagsAt(slot));
+            for (std::size_t slot = 0; slot < config.slotCount; ++slot)
+            {
+                const std::size_t at = index * frameSize + slot * stride;
+                const auto input = frames[index].bytesAt(slot).first(config.inputSize);
 
-            const auto input = inputs.bytesAt(slot).first(config.inputSize);
-            std::copy(input.begin(), input.end(), slots.begin() + static_cast<std::ptrdiff_t>(slot * stride + 1U));
+                slots[at] = static_cast<std::byte>(frames[index].flagsAt(slot));
+                std::copy(input.begin(), input.end(), slots.begin() + static_cast<std::ptrdiff_t>(at + 1U));
+            }
         }
 
-        relayOutbox.send(clientEnd.id(),
-                         unison::net::Channel::Unreliable,
-                         unison::net::Confirmed{frameNumber, config.slotCount, config.inputSize, slots});
+        relayOutbox.send(
+            clientEnd.id(),
+            unison::net::Channel::Unreliable,
+            unison::net::Confirmed{
+                firstFrame, config.slotCount, config.inputSize, static_cast<std::uint8_t>(frames.size()), slots});
     }
 
     void playWithMove(std::int8_t moveX)
@@ -265,6 +277,40 @@ TEST_CASE("a frame the relay confirms is verified")
     rig.playWithMove(2);
 
     REQUIRE(rig.client.session()->verifiedFrame() == 1U);
+}
+
+TEST_CASE("a client settles a frame whose own confirmation was lost from the one that came after it")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+    rig.playWithMove(1);
+    rig.playWithMove(2);
+    rig.confirmInOneMessage(1, {unison::test::scriptedSessionInputs(1), unison::test::scriptedSessionInputs(2)});
+
+    rig.playWithMove(3);
+
+    REQUIRE(rig.client.session()->verifiedFrame() == 2U);
+}
+
+TEST_CASE("frames a confirmation repeats that the client has settled already change nothing")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+    rig.playWithMove(1);
+    rig.playWithMove(2);
+    const unison::sim::FrameInputs first = rig.client.session()->inputs().inputsAt(1);
+    const unison::sim::FrameInputs second = rig.client.session()->inputs().inputsAt(2);
+    rig.confirm(1, first);
+    rig.playWithMove(3);
+    const unison::session::RollbackStats before = rig.client.session()->rollbackStats();
+    rig.confirmInOneMessage(1, {first, second});
+
+    rig.playWithMove(4);
+
+    REQUIRE(rig.client.session()->verifiedFrame() == 2U);
+    REQUIRE(rig.client.session()->rollbackStats().rollbacks == before.rollbacks);
 }
 
 TEST_CASE("a client reports the checksum of every frame it verifies on the interval")

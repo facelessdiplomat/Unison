@@ -26,11 +26,15 @@ struct RelaySettings
     std::uint32_t reliableResendInterval = 10;
 };
 
+/// How many of the newest confirmed frames every confirmation carries when a datagram holds them, so that a
+/// confirmation lost on the way costs nothing as long as the next one arrives.
+inline constexpr std::uint32_t kRedundantConfirmations = 4;
+
 /// The relay of one match. It lets clients in, seats players in the slots of the config it was given and
 /// turns away a client that speaks another protocol, would play another config or finds every slot taken.
 /// It confirms a frame once every player has sent an input for it, or at the deadline without the missing
-/// ones, sends the confirmation to everyone, and tells everyone which players' checksums part ways with the
-/// rest. It never simulates, and it answers through its transport.
+/// ones, sends the confirmation with the frames confirmed just before it to everyone, and tells everyone which
+/// players' checksums part ways with the rest. It never simulates, and it answers through its transport.
 class RelayCore final : public IMessageReceiver
 {
 public:
@@ -66,6 +70,8 @@ private:
 
     void resendReliably(std::uint32_t lastFrame);
 
+    void sendConfirmed(Channel channel, std::uint32_t firstFrame, std::uint32_t lastFrame);
+
     void sendToAll(Channel channel, const Message& message);
 
     const IClock& clock;
@@ -78,6 +84,7 @@ private:
     ChecksumReferee referee;
     ConfirmedLog confirmedLog;
     std::vector<std::byte> confirmedSlots;
+    std::uint32_t framesPerDatagram;
 };
 
 }

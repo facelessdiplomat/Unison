@@ -528,10 +528,13 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
   `unison_relay`) and checks deadlines in `update()` as well as when inputs arrive. A frame nobody has sent
   an input for has no deadline: the relay waits for the first one. A dropped slot repeats the last input
   confirmed for it, neutral before the first.
-- A confirmation goes out on the unreliable channel at once and, every `reliableResendInterval` frames
-  (10 by default, about 167 ms at 60 Hz), the last batch goes out again on the reliable channel from the
-  relay's log of confirmed frames, so a client that lost confirmations recovers them without asking; it
-  simply ignores the ones it already has.
+- A confirmation goes out on the unreliable channel at once, carrying the three frames confirmed before it
+  as well (`kRedundantConfirmations = 4`, fewer when a datagram cannot hold them), so a lost confirmation
+  costs a client one frame rather than the wait for the next reliable batch: at a fifth of the messages lost
+  and a 240 ms round trip, four clients kept pace with the host only once confirmations were repeated. Every
+  `reliableResendInterval` frames (10 by default, about 167 ms at 60 Hz) the last batch goes out again on the
+  reliable channel from the relay's log of confirmed frames, in as few messages as it fits, so a client that
+  lost confirmations recovers them without asking; it simply ignores the ones it already has.
 - Frames are confirmed in order and each once. A slot nobody plays is confirmed absent: no flags and the
   neutral input. The first input a slot sends for a frame is the one that stands; inputs from a client
   without a slot, of another size than the config's, for a frame already confirmed or for one more than
@@ -600,7 +603,7 @@ allocates nothing and the relay and the session each receive as one small interf
 | `Hello` | client → relay | reliable | protocol version, session config hash, requested role (player / spectator), reconnect token (0 for none) |
 | `Welcome` | relay → client | reliable | slot id, session config, start frame, frame confirmed so far, reconnect token |
 | `Input` | client → relay | unreliable | first frame, input size, frame count, that many inputs (K = 4 by default) |
-| `Confirmed` | relay → all | unreliable (+ periodic reliable resend) | frame, slot count, input size, per slot a flags byte then the input |
+| `Confirmed` | relay → all | unreliable (+ periodic reliable resend) | first frame, slot count, input size, frame count, then frame after frame per slot a flags byte and the input (the newest frame and up to three before it) |
 | `Checksum` | client → relay | reliable | frame, hash |
 | `Desync` | relay → all | reliable | frame, one bit per slot in the minority |
 | `SnapshotRequest` / `SnapshotChunk` | relay ↔ clients | reliable | frame; for a chunk also its index, the chunk count and length-prefixed bytes |
@@ -631,8 +634,9 @@ A client plays through a `NetworkedSession`. It says hello when the host asks it
 in the slot the `Welcome` names, and on every host frame takes in what the relay sent and pings it when a
 ping is due (§8.3). On every tick it ticks the session, sends the input of its newest frame with up to three
 before it that the relay has not confirmed yet (`K = 4`) on the unreliable channel, and sends the checksums
-of the frames it verified on the reliable one, through an `Outbox` of its own. A confirmation of a frame the session no longer holds, as the relay's reliable resends
-often are, is dropped; so is anything from a peer other than the relay. A `Kick` ends the playing, and a
+of the frames it verified on the reliable one, through an `Outbox` of its own. Every frame a confirmation carries is settled in turn; one the
+session no longer holds, as the relay's repeats and reliable resends often are, is dropped, and one it has
+settled already changes nothing. Anything from a peer other than the relay is dropped too. A `Kick` ends the playing, and a
 `Desync` is kept for the host to read.
 
 ---

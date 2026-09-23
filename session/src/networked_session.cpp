@@ -141,17 +141,12 @@ void NetworkedSession::handle(const net::Confirmed& confirmed)
         return;
     }
 
-    const std::size_t stride = 1U + confirmed.inputSize;
-    sim::FrameInputs inputs;
+    const std::size_t frameSize = net::confirmedFrameSize(config.slotCount, config.inputSize);
 
-    for (std::size_t slot = 0; slot < confirmed.slotCount; ++slot)
+    for (std::uint32_t offset = 0; offset < confirmed.frameCount; ++offset)
     {
-        const std::span<const std::byte> entry = confirmed.slots.subspan(slot * stride, stride);
-
-        inputs.setBytes(slot, entry.subspan(1), static_cast<sim::InputFlags>(std::to_integer<std::uint8_t>(entry[0])));
+        settle(confirmed.firstFrame + offset, confirmed.slots.subspan(offset * frameSize, frameSize));
     }
-
-    static_cast<void>(played->confirm(confirmed.frame, inputs));
 }
 
 void NetworkedSession::handle(const net::Pong& pong)
@@ -172,6 +167,21 @@ void NetworkedSession::handle(const net::Kick&)
 void NetworkedSession::handle(const net::Desync& desync)
 {
     reportedDesync = desync;
+}
+
+void NetworkedSession::settle(std::uint32_t frameNumber, std::span<const std::byte> slots)
+{
+    const std::size_t stride = 1U + config.inputSize;
+    sim::FrameInputs inputs;
+
+    for (std::size_t slot = 0; slot < config.slotCount; ++slot)
+    {
+        const std::span<const std::byte> entry = slots.subspan(slot * stride, stride);
+
+        inputs.setBytes(slot, entry.subspan(1), static_cast<sim::InputFlags>(std::to_integer<std::uint8_t>(entry[0])));
+    }
+
+    static_cast<void>(played->confirm(frameNumber, inputs));
 }
 
 void NetworkedSession::sendInputs()

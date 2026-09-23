@@ -249,6 +249,39 @@ std::vector<unison::net::Confirmed> confirmationsIn(const Replies& replies)
     return confirmations;
 }
 
+std::size_t frameSizeOf(const unison::net::Confirmed& confirmed)
+{
+    return unison::net::confirmedFrameSize(confirmed.slotCount, confirmed.inputSize);
+}
+
+std::uint32_t newestFrameOf(const unison::net::Confirmed& confirmed)
+{
+    return confirmed.firstFrame + confirmed.frameCount - 1U;
+}
+
+std::span<const std::byte> slotsOfFrame(const unison::net::Confirmed& confirmed, std::uint32_t frame)
+{
+    REQUIRE(frame >= confirmed.firstFrame);
+    REQUIRE(frame <= newestFrameOf(confirmed));
+
+    return confirmed.slots.subspan((frame - confirmed.firstFrame) * frameSizeOf(confirmed), frameSizeOf(confirmed));
+}
+
+std::vector<std::uint32_t> framesIn(const std::vector<unison::net::Confirmed>& confirmations)
+{
+    std::vector<std::uint32_t> frames;
+
+    for (const unison::net::Confirmed& confirmed : confirmations)
+    {
+        for (std::uint32_t frame = confirmed.firstFrame; frame <= newestFrameOf(confirmed); ++frame)
+        {
+            frames.push_back(frame);
+        }
+    }
+
+    return frames;
+}
+
 }
 
 TEST_CASE("a frame is confirmed with the input of every player once all of them have sent one")
@@ -261,7 +294,8 @@ TEST_CASE("a frame is confirmed with the input of every player once all of them 
     const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
 
     REQUIRE(confirmations.size() == 1U);
-    REQUIRE(confirmations[0].frame == 1U);
+    REQUIRE(confirmations[0].firstFrame == 1U);
+    REQUIRE(confirmations[0].frameCount == 1U);
     REQUIRE(confirmations[0].slotCount == 3U);
     REQUIRE(confirmations[0].inputSize == 2U);
 
@@ -298,9 +332,76 @@ TEST_CASE("frames are confirmed in order, and each of them once")
     const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(Match::repliesOf(match.second));
 
     REQUIRE(confirmations.size() == 3U);
-    REQUIRE(confirmations[0].frame == 1U);
-    REQUIRE(confirmations[1].frame == 2U);
-    REQUIRE(confirmations[2].frame == 3U);
+    REQUIRE(newestFrameOf(confirmations[0]) == 1U);
+    REQUIRE(newestFrameOf(confirmations[1]) == 2U);
+    REQUIRE(newestFrameOf(confirmations[2]) == 3U);
+}
+
+TEST_CASE("a confirmation also carries the three frames confirmed before it")
+{
+    Match match;
+
+    for (std::uint8_t frame = 1; frame <= 5; ++frame)
+    {
+        match.sendInputs(match.first, frame, inputOf(frame));
+        match.sendInputs(match.second, frame, inputOf(static_cast<std::uint8_t>(100U + frame)));
+    }
+
+    const Replies replies = Match::repliesOf(match.first);
+    const unison::net::Confirmed newest = confirmationsIn(replies).back();
+
+    REQUIRE(newest.firstFrame == 2U);
+    REQUIRE(newest.frameCount == 4U);
+
+    for (std::uint32_t frame = 2; frame <= 5; ++frame)
+    {
+        CAPTURE(frame);
+
+        REQUIRE(slotsOfFrame(newest, frame)[1] == std::byte{static_cast<std::uint8_t>(frame)});
+    }
+}
+
+TEST_CASE("the first confirmations carry only the frames confirmed so far")
+{
+    Match match;
+
+    for (std::uint8_t frame = 1; frame <= 2; ++frame)
+    {
+        match.sendInputs(match.first, frame, inputOf(frame));
+        match.sendInputs(match.second, frame, inputOf(frame));
+    }
+
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(Match::repliesOf(match.first));
+
+    REQUIRE(confirmations.size() == 2U);
+    REQUIRE(confirmations[0].firstFrame == 1U);
+    REQUIRE(confirmations[0].frameCount == 1U);
+    REQUIRE(confirmations[1].firstFrame == 1U);
+    REQUIRE(confirmations[1].frameCount == 2U);
+}
+
+TEST_CASE("a confirmation carries no more frames than fit in one datagram")
+{
+    unison::net::SessionConfig config;
+    config.slotCount = unison::net::kMaxSlots;
+    config.inputSize = 64;
+    Relay relay{config};
+    unison::net::LoopbackEndpoint& player = relay.hub.join();
+    sendMessage(player, relay.endpoint.id(), helloFor(config, unison::net::Role::Player));
+    const std::array<std::byte, 64> input{};
+
+    for (std::uint32_t frame = 1; frame <= 3; ++frame)
+    {
+        sendMessage(player, relay.endpoint.id(), unison::net::Input{frame, 64, 1, input});
+    }
+
+    relay.endpoint.poll(relay.core);
+
+    const Replies replies = Match::repliesOf(player);
+    const unison::net::Confirmed newest = confirmationsIn(replies).back();
+
+    REQUIRE(newestFrameOf(newest) == 3U);
+    REQUIRE(newest.frameCount == unison::net::confirmedFramesPerDatagram(config.slotCount, config.inputSize));
 }
 
 TEST_CASE("a spectator is sent every confirmed frame too")
@@ -391,8 +492,8 @@ TEST_CASE("a player dropped from a frame repeats the last input confirmed for it
     const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
     const std::array<std::byte, 3> repeated{std::byte{2}, std::byte{20}, std::byte{20}};
     REQUIRE(confirmations.size() == 1U);
-    REQUIRE(confirmations[0].frame == 2U);
-    REQUIRE(std::ranges::equal(confirmations[0].slots.subspan(3, 3), repeated));
+    REQUIRE(newestFrameOf(confirmations[0]) == 2U);
+    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 2).subspan(3, 3), repeated));
 }
 
 TEST_CASE("an input that arrives after its frame was confirmed without it is ignored")
@@ -443,9 +544,11 @@ TEST_CASE("an input message lost on the way costs nothing, since the next one re
     {
         CAPTURE(index);
 
-        REQUIRE(confirmations[index].frame == index + 1);
-        REQUIRE(confirmations[index].slots[0] == std::byte{1});
-        REQUIRE(confirmations[index].slots[1] == std::byte{static_cast<std::uint8_t>(index + 1)});
+        const std::span<const std::byte> slots = slotsOfFrame(confirmations[index], index + 1);
+
+        REQUIRE(newestFrameOf(confirmations[index]) == index + 1);
+        REQUIRE(slots[0] == std::byte{1});
+        REQUIRE(slots[1] == std::byte{static_cast<std::uint8_t>(index + 1)});
     }
 }
 
@@ -498,9 +601,11 @@ TEST_CASE("players whose checksums agree hear nothing about it")
     REQUIRE(desyncsIn(Match::repliesOf(match.first)).empty());
 }
 
-TEST_CASE("a client that loses every unreliable message still receives every confirmed frame")
+namespace
 {
-    constexpr std::uint32_t kFrames = 20;
+
+Replies repliesAcrossALinkLosingEveryUnreliableMessage(std::uint32_t frames)
+{
     unison::net::LoopbackHub hub;
     unison::net::LoopbackEndpoint& relayEndpoint = hub.join();
     unison::net::NetworkSimulator network{unison::net::NetworkConditions{0, 0, 1.0F}, 20260923};
@@ -513,7 +618,7 @@ TEST_CASE("a client that loses every unreliable message still receives every con
     sendMessage(second, relayEndpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
     relayEndpoint.poll(relay);
 
-    for (std::uint32_t frame = 1; frame <= kFrames; ++frame)
+    for (std::uint32_t frame = 1; frame <= frames; ++frame)
     {
         const std::array<std::byte, 2> input = inputOf(static_cast<std::uint8_t>(frame));
         sendMessage(first, relayEndpoint.id(), unison::net::Input{frame, 2, 1, input});
@@ -522,15 +627,34 @@ TEST_CASE("a client that loses every unreliable message still receives every con
         network.advance(0);
     }
 
-    const Replies replies = Match::repliesOf(first);
-    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    return Match::repliesOf(first);
+}
 
-    REQUIRE(confirmations.size() == kFrames);
+}
+
+TEST_CASE("a client that loses every unreliable message still receives every confirmed frame")
+{
+    constexpr std::uint32_t kFrames = 20;
+
+    const Replies replies = repliesAcrossALinkLosingEveryUnreliableMessage(kFrames);
+    const std::vector<std::uint32_t> frames = framesIn(confirmationsIn(replies));
+
+    REQUIRE(frames.size() == kFrames);
 
     for (std::uint32_t index = 0; index < kFrames; ++index)
     {
-        REQUIRE(confirmations[index].frame == index + 1);
+        REQUIRE(frames[index] == index + 1);
     }
+}
+
+TEST_CASE("the frames the relay sends again reliably go out in as few messages as they fit")
+{
+    const Replies replies = repliesAcrossALinkLosingEveryUnreliableMessage(20);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+
+    REQUIRE(confirmations.size() == 2U);
+    REQUIRE(confirmations[0].frameCount == 10U);
+    REQUIRE(confirmations[1].frameCount == 10U);
 }
 
 TEST_CASE("a relay that would never send its confirmed frames again breaks a contract")

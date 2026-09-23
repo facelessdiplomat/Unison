@@ -3,6 +3,7 @@
 #include <unison/core/contract.hpp>
 #include <unison/net/message_codec.hpp>
 
+#include <algorithm>
 #include <optional>
 #include <variant>
 
@@ -22,10 +23,12 @@ RelayCore::RelayCore(ITransport& transport,
                      const RelaySettings& settings)
     : clock{clock}, config{config}, settings{settings}, configHash{hashOf(config)}, roster{config.slotCount},
       outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames},
-      confirmedLog{std::size_t{config.slotCount} * (1U + config.inputSize)},
-      confirmedSlots(std::size_t{config.slotCount} * (1U + config.inputSize))
+      confirmedLog{confirmedFrameSize(config.slotCount, config.inputSize)},
+      confirmedSlots(confirmedFrameSize(config.slotCount, config.inputSize)),
+      framesPerDatagram{confirmedFramesPerDatagram(config.slotCount, config.inputSize)}
 {
     UNISON_VERIFY(settings.reliableResendInterval > 0);
+    UNISON_VERIFY(framesPerDatagram > 0);
 }
 
 void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message)
@@ -139,7 +142,9 @@ void RelayCore::confirmReadyFrames()
 
         inputs.confirmNextFrame(inPlay, confirmedSlots);
         confirmedLog.append(confirmedSlots);
-        sendToAll(Channel::Unreliable, Confirmed{frame, config.slotCount, config.inputSize, confirmedSlots});
+
+        const std::uint32_t repeated = std::min({kRedundantConfirmations, framesPerDatagram, frame});
+        sendConfirmed(Channel::Unreliable, frame - repeated + 1, frame);
 
         if (frame % settings.reliableResendInterval == 0)
         {
@@ -150,10 +155,23 @@ void RelayCore::confirmReadyFrames()
 
 void RelayCore::resendReliably(std::uint32_t lastFrame)
 {
-    for (std::uint32_t frame = lastFrame - settings.reliableResendInterval + 1; frame <= lastFrame; ++frame)
+    for (std::uint32_t first = lastFrame - settings.reliableResendInterval + 1; first <= lastFrame;
+         first += framesPerDatagram)
     {
-        sendToAll(Channel::Reliable, Confirmed{frame, config.slotCount, config.inputSize, confirmedLog.slotsOf(frame)});
+        sendConfirmed(Channel::Reliable, first, std::min(lastFrame, first + framesPerDatagram - 1));
     }
+}
+
+void RelayCore::sendConfirmed(Channel channel, std::uint32_t firstFrame, std::uint32_t lastFrame)
+{
+    const std::uint32_t frameCount = lastFrame - firstFrame + 1;
+
+    sendToAll(channel,
+              Confirmed{firstFrame,
+                        config.slotCount,
+                        config.inputSize,
+                        static_cast<std::uint8_t>(frameCount),
+                        confirmedLog.slotsOf(firstFrame, frameCount)});
 }
 
 void RelayCore::admit(PeerId peer, std::uint8_t slot)

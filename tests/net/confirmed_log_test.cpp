@@ -36,8 +36,21 @@ TEST_CASE("a confirmed log numbers its frames from one in the order they were ap
     log.append(frameOf(2));
 
     REQUIRE(log.lastFrame() == 2U);
-    REQUIRE(std::ranges::equal(log.slotsOf(1), frameOf(1)));
-    REQUIRE(std::ranges::equal(log.slotsOf(2), frameOf(2)));
+    REQUIRE(std::ranges::equal(log.slotsOf(1, 1), frameOf(1)));
+    REQUIRE(std::ranges::equal(log.slotsOf(2, 1), frameOf(2)));
+}
+
+TEST_CASE("a confirmed log hands out frames in a row, one after another")
+{
+    unison::net::ConfirmedLog log{kFrameSize};
+    log.append(frameOf(1));
+    log.append(frameOf(2));
+    log.append(frameOf(3));
+
+    const std::array<std::byte, 2 * kFrameSize> secondAndThird{
+        std::byte{2}, std::byte{2}, std::byte{2}, std::byte{3}, std::byte{3}, std::byte{3}};
+
+    REQUIRE(std::ranges::equal(log.slotsOf(2, 2), secondAndThird));
 }
 
 TEST_CASE("asking a confirmed log for a frame it does not hold breaks a contract")
@@ -46,7 +59,7 @@ TEST_CASE("asking a confirmed log for a frame it does not hold breaks a contract
     unison::net::ConfirmedLog log{kFrameSize};
     log.append(frameOf(1));
 
-    static_cast<void>(log.slotsOf(2));
+    static_cast<void>(log.slotsOf(1, 2));
 
     REQUIRE(probe.failureCount() == 1U);
 }
