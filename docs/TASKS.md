@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.3.7**, rollback statistics. Last finished: 2.3.6, verified checksums.
+- Next up: **2.3.8**, input delay. Last finished: 2.3.7, rollback statistics.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 11 |
+| 2 Rollback session (local) | 8 | 36 | 12 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **82** |
+| **Total** | **31** | **168** | **83** |
 
 ## Charter amendments made while planning
 
@@ -224,7 +224,7 @@ needs from earlier tasks is ticked.
 - [x] 2.3.4 Rollback on misprediction: restore `F − 1`, resimulate to `P`, overwrite snapshots. Test: the final checksum equals a straight-line simulation with the true inputs, for a test pipeline and for the scripted arena match with its physics.
 - [x] 2.3.5 Prediction window: `tick()` stalls when `P − V >= maxPrediction`, unless the next frame is settled and would be verified at once, which keeps `maxPrediction = 0` usable as lockstep. Test: stall flag set, `P` unchanged, resumes after confirmation; a stalled tick still rolls back; lockstep plays only confirmed frames.
 - [x] 2.3.6 Verified checksums taken from the snapshot at confirmation on `checksumInterval`, which joins `SessionConfig` so every client checksums the same frames. Test: the checksum of frame `F` equals a fresh simulation to `F`; only frames on the interval are checksummed.
-- [ ] 2.3.7 `RollbackStats` (count, max depth, resimulated frames, per-second rates). Test: values after a scripted misprediction.
+- [x] 2.3.7 `RollbackStats` (count, max depth, resimulated frames, stalled ticks, frames played, per-second rates over the time played). Test: values after a scripted misprediction.
 - [ ] 2.3.8 Optional `inputDelayFrames`. Test: delay 2 applies the input two frames later and reduces rollbacks in a scripted scenario.
 
 ### 2.4 Event raise/cancel diffing (`unison_session`, `unison_view`)

@@ -127,6 +127,67 @@ TEST_CASE("a rollback plays the local player's inputs again as they were first p
     REQUIRE(recorder.playedAt(3).get<unison::test::SampleInput>(unison::test::kSessionLocalSlot).moveX == 3);
 }
 
+TEST_CASE("rollback statistics count every rollback, the deepest one and every frame played again")
+{
+    unison::sim::Frame frame;
+    const unison::sim::SystemPipeline pipeline;
+    unison::session::Session session{frame, pipeline, scriptedSession(), unison::test::kSessionLocalSlot};
+    const unison::test::SampleInput local = unison::test::inputWithMove(1);
+    session.setLocalInput(unison::test::bytesOf(local));
+    session.tick();
+    session.tick();
+    session.tick();
+    REQUIRE(session.confirm(1, firstFrameWithSlotZeroMoving()));
+    session.tick();
+    unison::sim::FrameInputs thirdContradicted = session.inputs().inputsAt(3);
+    thirdContradicted.set(2, unison::test::inputWithMove(-1), unison::sim::InputFlags::Present);
+    REQUIRE(session.confirm(3, thirdContradicted));
+
+    session.tick();
+
+    const unison::session::RollbackStats& stats = session.rollbackStats();
+    REQUIRE(stats.rollbacks == 2U);
+    REQUIRE(stats.deepestRollback == 3U);
+    REQUIRE(stats.resimulatedFrames == 5U);
+    REQUIRE(stats.framesPlayed == 5U);
+}
+
+TEST_CASE("rollback statistics give their rates per second of play")
+{
+    unison::session::RollbackStats stats;
+    stats.rollbacks = 2;
+    stats.resimulatedFrames = 5;
+    stats.framesPlayed = 5;
+
+    REQUIRE(stats.rollbacksPerSecond(60) == 24.0);
+    REQUIRE(stats.resimulatedFramesPerSecond(60) == 60.0);
+}
+
+TEST_CASE("rollback statistics have no rates before a frame is played")
+{
+    const unison::session::RollbackStats stats;
+
+    REQUIRE(stats.rollbacksPerSecond(60) == 0.0);
+    REQUIRE(stats.resimulatedFramesPerSecond(60) == 0.0);
+}
+
+TEST_CASE("rollback statistics count the ticks that had to wait for the relay")
+{
+    unison::sim::Frame frame;
+    const unison::sim::SystemPipeline pipeline;
+    unison::session::SessionConfig narrow = scriptedSession();
+    narrow.maxPrediction = 2;
+    unison::session::Session session{frame, pipeline, narrow, unison::test::kSessionLocalSlot};
+
+    for (std::uint32_t round = 0; round < 5; ++round)
+    {
+        session.tick();
+    }
+
+    REQUIRE(session.rollbackStats().stalledTicks == 3U);
+    REQUIRE(session.rollbackStats().framesPlayed == 2U);
+}
+
 TEST_CASE("a rollback guesses the frames it plays again from the input just confirmed")
 {
     unison::sim::Frame frame;

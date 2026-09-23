@@ -3,6 +3,7 @@
 #include <unison/session/input_buffer.hpp>
 #include <unison/session/local_input.hpp>
 #include <unison/session/repeat_last_input_predictor.hpp>
+#include <unison/session/rollback_stats.hpp>
 #include <unison/session/session_config.hpp>
 #include <unison/session/snapshot_ring.hpp>
 #include <unison/session/verified_checksum.hpp>
@@ -50,6 +51,8 @@ public:
     /// Whether the last tick had to wait for the relay instead of simulating a frame.
     [[nodiscard]] bool isStalled() const;
 
+    [[nodiscard]] const RollbackStats& rollbackStats() const;
+
     /// The checksums of the frames verified on the config's interval since they were last cleared, oldest
     /// first, each taken from the frame's snapshot. Taking them after every tick misses none.
     [[nodiscard]] std::span<const VerifiedChecksum> verifiedChecksums() const;
@@ -89,6 +92,7 @@ private:
     std::uint32_t predicted;
     std::optional<std::uint32_t> firstMispredicted;
     bool stalled = false;
+    RollbackStats stats;
     std::vector<VerifiedChecksum> pendingChecksums;
 };
 

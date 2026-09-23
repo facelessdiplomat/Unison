@@ -51,6 +51,8 @@ void Session::tick()
 
     if (stalled)
     {
+        ++stats.stalledTicks;
+
         return;
     }
 
@@ -59,6 +61,7 @@ void Session::tick()
     play(next);
 
     predicted = next;
+    ++stats.framesPlayed;
     advanceVerified();
 }
 
@@ -101,6 +104,11 @@ bool Session::isStalled() const
     return stalled;
 }
 
+const RollbackStats& Session::rollbackStats() const
+{
+    return stats;
+}
+
 std::span<const VerifiedChecksum> Session::verifiedChecksums() const
 {
     return pendingChecksums;
@@ -129,7 +137,12 @@ void Session::rollBack()
     }
 
     const std::uint32_t first = *firstMispredicted;
+    const std::uint32_t depth = predicted - first + 1;
     firstMispredicted.reset();
+
+    ++stats.rollbacks;
+    stats.deepestRollback = std::max(stats.deepestRollback, depth);
+    stats.resimulatedFrames += depth;
 
     sim::restoreSnapshot(snapshotRing.snapshotAt(first - 1), liveFrame);
 

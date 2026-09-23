@@ -3,6 +3,7 @@ add_library(
     src/input_buffer.cpp
     src/local_input.cpp
     src/repeat_last_input_predictor.cpp
+    src/rollback_stats.cpp
     src/session.cpp
     src/session_config.cpp
     src/snapshot_ring.cpp
