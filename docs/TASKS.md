@@ -18,8 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.3.1**, the session config and its hash. Last finished: 2.2.2, snapshot buffer reuse; task 2.2 is
-  complete.
+- Next up: **2.3.2**, `Session::tick()`. Last finished: 2.3.1, the session config and its hash.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -29,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 5 |
+| 2 Rollback session (local) | 8 | 36 | 6 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **76** |
+| **Total** | **31** | **168** | **77** |
 
 ## Charter amendments made while planning
 
@@ -219,7 +218,7 @@ needs from earlier tasks is ticked.
 - [x] 2.2.2 Buffer reuse after warm-up, including `restoreSnapshot`, which replaces the registry wholesale today and so throws away the capacity of every pool on each rollback. Test: a match rolled back through the ring never gives room back, and a second pass over the same 600 frames needs no more room than the first; a fixed frame count for the warm-up would have measured when the script first kills a player (frame 576) rather than reuse.
 
 ### 2.3 Session state machine
-- [ ] 2.3.1 `SessionConfig` (tick rate, slots, seed, asset hash, pipeline hash, input size, max prediction, build id) and its hash. Test: any field change changes the hash.
+- [x] 2.3.1 `SessionConfig` (tick rate, slots, seed, asset hash, pipeline hash, input size, max prediction, build id) and its hash. Test: any field change changes the hash.
 - [ ] 2.3.2 `Session::tick()`: simulate `P + 1` with predicted inputs, store the snapshot. Test: `P` advances; the snapshot for `P` exists.
 - [ ] 2.3.3 `Session::onConfirmed(frame, inputs)` with a matching prediction advances `V` without rollback. Test: `V` follows; rollback count stays 0.
 - [ ] 2.3.4 Rollback on misprediction: restore `F − 1`, resimulate to `P`, overwrite snapshots. Test: the final checksum equals a straight-line simulation with the true inputs.
