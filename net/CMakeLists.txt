@@ -4,6 +4,7 @@ add_library(
     src/message_reader.cpp
     src/message_writer.cpp
     src/network_simulator.cpp
+    src/relay_core.cpp
     src/session_config.cpp
 )
 

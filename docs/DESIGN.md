@@ -565,6 +565,10 @@ because the relay reads it and `Welcome` carries it, and the session sits above 
 
 The protocol lives in `unison_net`; the same `RelayCore` state machine runs inside the
 runner (in-process) and inside `unison_relay` (ENet), so tests exercise the real relay logic.
+A `RelayCore` hosts one match with the config it was created with: a `Hello` in the wrong protocol version
+or with another config hash is answered with `Kick`, a player takes the lowest free slot or is kicked when
+none is left, and a spectator is welcomed without a slot (`kNoSlot`). Rooms that come and go with their
+players are the standalone relay's concern (3.2.2). Bytes that decode to no message go unanswered.
 
 ---
 

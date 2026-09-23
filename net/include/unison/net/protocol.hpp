@@ -13,6 +13,12 @@ namespace unison::net
 /// The version of the relay protocol this build speaks; a client speaking another is turned away.
 inline constexpr std::uint16_t kProtocolVersion = 1;
 
+/// The most bytes one message may take, small enough to cross the internet in one piece.
+inline constexpr std::size_t kMaxDatagramSize = 1200;
+
+/// The slot a welcome names for a spectator, who has none.
+inline constexpr std::uint8_t kNoSlot = 0xFF;
+
 /// Whether a client joins to play in a slot or only to watch.
 enum class Role : std::uint8_t
 {
