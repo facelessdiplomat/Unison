@@ -488,6 +488,10 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
   replaced by "repeat last input" and flagged `dropped`. Late inputs for confirmed frames are ignored.
 - Confirmed input sets are broadcast to all clients and spectators and appended to the relay's input log
   (kept in memory for late-join / reconnect and optionally written as a replay).
+- The relay is given the time through an `IClock` (a `ManualClock` in tests and the runner, a real clock in
+  `unison_relay`) and checks deadlines in `update()` as well as when inputs arrive. A frame nobody has sent
+  an input for has no deadline: the relay waits for the first one. A dropped slot repeats the last input
+  confirmed for it, neutral before the first.
 - Frames are confirmed in order and each once. A slot nobody plays is confirmed absent: no flags and the
   neutral input. The first input a slot sends for a frame is the one that stands; inputs from a client
   without a slot, of another size than the config's, for a frame already confirmed or for one more than

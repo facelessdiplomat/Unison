@@ -1,5 +1,6 @@
 add_library(
     unison_net STATIC
+    src/clock.cpp
     src/input_collector.cpp
     src/loopback_hub.cpp
     src/message_reader.cpp

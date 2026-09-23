@@ -59,11 +59,12 @@ unison::net::SessionConfig twoPlayers()
 
 struct Relay
 {
-    explicit Relay(const unison::net::SessionConfig& config) : endpoint{hub.join()}, core{endpoint, config}
+    explicit Relay(const unison::net::SessionConfig& config) : endpoint{hub.join()}, core{endpoint, clock, config}
     {
     }
 
     unison::net::LoopbackHub hub;
+    unison::net::ManualClock clock;
     unison::net::LoopbackEndpoint& endpoint;
     unison::net::RelayCore core;
 };
@@ -332,6 +333,72 @@ TEST_CASE("inputs of another size than the config's are ignored")
     const std::array<std::byte, 3> threeBytes{std::byte{1}, std::byte{2}, std::byte{3}};
     sendMessage(match.first, match.relay.endpoint.id(), unison::net::Input{1, 3, 1, threeBytes});
     match.relay.endpoint.poll(match.relay.core);
+
+    match.sendInputs(match.second, 1, inputOf(20));
+
+    REQUIRE(confirmationsIn(Match::repliesOf(match.first)).empty());
+}
+
+TEST_CASE("a frame is not confirmed before its deadline while a player's input is missing")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(10));
+
+    match.relay.clock.advance(99'999);
+    match.relay.core.update();
+
+    REQUIRE(confirmationsIn(Match::repliesOf(match.first)).empty());
+}
+
+TEST_CASE("a frame is confirmed at its deadline with the missing player's input dropped")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(10));
+
+    match.relay.clock.advance(100'000);
+    match.relay.core.update();
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    const std::array<std::byte, 9> slots{std::byte{1},
+                                         std::byte{10},
+                                         std::byte{10},
+                                         std::byte{2},
+                                         std::byte{0},
+                                         std::byte{0},
+                                         std::byte{0},
+                                         std::byte{0},
+                                         std::byte{0}};
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(std::ranges::equal(confirmations[0].slots, slots));
+}
+
+TEST_CASE("a player dropped from a frame repeats the last input confirmed for it")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(10));
+    match.sendInputs(match.second, 1, inputOf(20));
+    match.sendInputs(match.first, 2, inputOf(11));
+    static_cast<void>(Match::repliesOf(match.first));
+
+    match.relay.clock.advance(100'000);
+    match.relay.core.update();
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    const std::array<std::byte, 3> repeated{std::byte{2}, std::byte{20}, std::byte{20}};
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(confirmations[0].frame == 2U);
+    REQUIRE(std::ranges::equal(confirmations[0].slots.subspan(3, 3), repeated));
+}
+
+TEST_CASE("an input that arrives after its frame was confirmed without it is ignored")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(10));
+    match.relay.clock.advance(100'000);
+    match.relay.core.update();
+    static_cast<void>(Match::repliesOf(match.first));
 
     match.sendInputs(match.second, 1, inputOf(20));
 

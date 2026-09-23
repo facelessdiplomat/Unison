@@ -16,8 +16,11 @@ constexpr std::uint32_t kPendingFrames = 128;
 
 }
 
-RelayCore::RelayCore(ITransport& transport, const SessionConfig& config)
-    : transport{transport}, config{config}, configHash{hashOf(config)},
+RelayCore::RelayCore(ITransport& transport,
+                     const IClock& clock,
+                     const SessionConfig& config,
+                     const RelaySettings& settings)
+    : transport{transport}, clock{clock}, config{config}, settings{settings}, configHash{hashOf(config)},
       inputs{config.slotCount, config.inputSize, kPendingFrames},
       confirmedSlots(std::size_t{config.slotCount} * (1U + config.inputSize))
 {
@@ -33,6 +36,11 @@ void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message
     }
 
     std::visit([this, from](const auto& received) { handle(from, received); }, *decoded);
+}
+
+void RelayCore::update()
+{
+    confirmReadyFrames();
 }
 
 void RelayCore::handle(PeerId from, const Hello& hello)
@@ -83,7 +91,8 @@ void RelayCore::handle(PeerId from, const Input& input)
     {
         inputs.collect(input.firstFrame + offset,
                        slot,
-                       input.inputs.subspan(std::size_t{offset} * input.inputSize, input.inputSize));
+                       input.inputs.subspan(std::size_t{offset} * input.inputSize, input.inputSize),
+                       clock.nowMicroseconds());
     }
 
     confirmReadyFrames();
@@ -93,7 +102,8 @@ void RelayCore::confirmReadyFrames()
 {
     const std::uint8_t inPlay = slotsInPlay();
 
-    while (inputs.isNextFrameReady(inPlay))
+    while (inputs.isNextFrameReady(inPlay) ||
+           inputs.isNextFrameOverdue(clock.nowMicroseconds(), settings.inputDeadlineMicroseconds))
     {
         const std::uint32_t frame = inputs.nextFrame();
 

@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.6.3**, the input deadline. Last finished: 2.6.2, input collection and confirmation at the relay.
+- Next up: **2.6.4**, redundant inputs at the relay. Last finished: 2.6.3, the input deadline.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 37 | 22 |
+| 2 Rollback session (local) | 8 | 37 | 23 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **169** | **93** |
+| **Total** | **31** | **169** | **94** |
 
 ## Charter amendments made while planning
 
@@ -244,7 +244,7 @@ needs from earlier tasks is ticked.
 ### 2.6 Relay core
 - [x] 2.6.1 `RelayCore`: one room per relay with the config it is created with (rooms that come and go are 3.2.2), slots, `Hello` → `Welcome` with slot and config, spectator role, config hash mismatch → `Kick`. Test: two players get slots 0 and 1; a third with a different config hash is kicked.
 - [x] 2.6.2 Input collection and confirmation when all slots are present; `Confirmed` broadcast. Test: a confirmed frame contains every slot's input.
-- [ ] 2.6.3 Input deadline with a simulated clock: a missing slot input after `inputDeadline` is replaced by repeat-last and flagged `Dropped`; late input is ignored. Test: a stalled slot does not block the others.
+- [x] 2.6.3 Input deadline with a simulated clock: a missing slot input after `inputDeadline` is replaced by repeat-last and flagged `Dropped`; late input is ignored. Test: a stalled slot does not block the others.
 - [ ] 2.6.4 Redundant inputs (`K = 4`) deduplicated at the relay. Test: dropping one `Input` packet loses nothing.
 - [ ] 2.6.5 Checksum comparison per frame across slots and `Desync` with the minority. Test: one deviating client is reported.
 - [ ] 2.6.6 Periodic reliable resend of confirmed batches for recovery. Test: a client that lost unreliable packets still receives every confirmed frame.
