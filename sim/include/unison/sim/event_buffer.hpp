@@ -4,6 +4,7 @@
 #include <unison/core/contract.hpp>
 #include <unison/core/raw_value.hpp>
 
+#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -28,7 +29,7 @@ struct EventKey
     std::uint32_t typeId = 0;
     std::uint32_t ordinal = 0;
 
-    bool operator==(const EventKey& other) const = default;
+    auto operator<=>(const EventKey& other) const = default;
 };
 
 /// What the engine needs to know about one event type. A game declares it with UNISON_EVENT; there

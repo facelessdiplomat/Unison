@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.4.3**, the event dispatcher. Last finished: 2.4.2, releasing verified-only events.
+- Next up: **2.4.4**, netting out pending event changes. Last finished: 2.4.3, the event dispatcher.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 15 |
+| 2 Rollback session (local) | 8 | 37 | 16 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **86** |
+| **Total** | **31** | **169** | **87** |
 
 ## Charter amendments made while planning
 
@@ -230,7 +230,8 @@ needs from earlier tasks is ticked.
 ### 2.4 Event raise/cancel diffing (`unison_session`, `unison_view`)
 - [x] 2.4.1 The session records event keys per frame above `V`; after resimulation it computes `cancelled` and `raised` sets. Test: an event predicted at `F` and absent after resimulation is cancelled; a new one is raised.
 - [x] 2.4.2 Verified-only events released when `V` passes their frame. Test: not visible before, visible exactly once after.
-- [ ] 2.4.3 `EventDispatcher` with typed `on<T>` / `onCancelled<T>` handlers and per-key deduplication. Test: a handler runs once per key even if drained twice.
+- [x] 2.4.3 `EventDispatcher` with typed `on<T>` / `onCancelled<T>` handlers and per-key deduplication. Test: a handler runs once per key even if drained twice.
+- [ ] 2.4.4 (+) Pending event changes net out: two rollbacks between two drains can raise a key and then cancel it, or cancel it and then raise it again, and the two lists alone cannot tell the view which came first. A key raised and then cancelled before the view takes the changes is never shown; one cancelled and then raised again stays shown. Found in 2.4.3. Test: the raised and cancelled keys of a batch never overlap, and each order ends as it should.
 
 ### 2.5 Transport, loopback, network simulator (`unison_net`)
 - [ ] 2.5.1 `ITransport`, `PeerId`, `Channel`, `LoopbackHub` with endpoints. Test: messages delivered between two endpoints in order.
@@ -250,7 +251,7 @@ needs from earlier tasks is ticked.
 - [ ] 2.7.1 `NetworkedSession`: sends local inputs, applies `Confirmed`, sends checksums, exposes connection state. Test: two clients over zero-latency loopback stay in sync for 1000 frames.
 - [ ] 2.7.2 `TimeSync` controller: target lead `RTT/2 + jitterMargin`, correction by an extra or skipped tick. Test: the lead converges under simulated 100 ms latency and stays within tolerance.
 - [ ] 2.7.3 Stall and resume under a 500 ms outage. Test: the session stalls, then catches up without desync.
-- [ ] 2.7.4 `SessionRunner::update(hostDelta)` with an accumulator and an injectable clock, returning ticks run and the interpolation alpha. Test: 16.7 ms steps produce one tick each; 50 ms produces three.
+- [ ] 2.7.4 `SessionRunner::update(hostDelta)` with an accumulator and an injectable clock, returning ticks run and the interpolation alpha. It also lets the event dispatcher forget the keys of frames below `V`, which can no longer be cancelled, so the set of shown keys stops growing. Test: 16.7 ms steps produce one tick each; 50 ms produces three.
 
 ### 2.8 Runner tool (`unison_runner`)
 - [ ] 2.8.1 cxxopts dependency and CLI: `--players --frames --seed --latency --jitter --loss --tick-rate --checksum-interval --record`. Test: argument parsing.

@@ -134,3 +134,15 @@ TEST_CASE("appending an event from the buffer itself breaks a contract")
     REQUIRE(probe.failureCount() == 1U);
     REQUIRE(buffer.size() == 1U);
 }
+
+TEST_CASE("event keys order by frame, then by type, then by ordinal")
+{
+    const unison::sim::EventKey earlier{1, 9, 9};
+    const unison::sim::EventKey lowerType{2, 1, 9};
+    const unison::sim::EventKey lowerOrdinal{2, 5, 0};
+    const unison::sim::EventKey later{2, 5, 1};
+
+    REQUIRE(earlier < lowerType);
+    REQUIRE(lowerType < lowerOrdinal);
+    REQUIRE(lowerOrdinal < later);
+}

@@ -100,11 +100,14 @@ add_executable(
     sim/signals_test.cpp
     sim/system_pipeline_test.cpp
     support/test_components.cpp
+    view/event_dispatcher_test.cpp
 )
 
 target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
-target_link_libraries(unison_tests_fast PRIVATE unison_net unison_session unison_sim Catch2::Catch2WithMain)
+target_link_libraries(
+    unison_tests_fast PRIVATE unison_net unison_session unison_sim unison_view Catch2::Catch2WithMain
+)
 
 target_compile_options(unison_tests_fast PRIVATE /EHsc)
 
