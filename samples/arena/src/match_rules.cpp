@@ -3,9 +3,9 @@
 #include <arena/assets.hpp>
 #include <arena/components.hpp>
 
-#include <entt/entity/registry.hpp>
+#include <unison/core/fixed_vector.hpp>
 
-#include <vector>
+#include <entt/entity/registry.hpp>
 
 namespace arena
 {
@@ -15,11 +15,11 @@ namespace
 
 void countKills(unison::sim::Frame& frame, bool counting)
 {
-    std::vector<entt::entity> counted;
+    unison::FixedVector<entt::entity, kPlayerCount> counted;
 
     for (const auto [entity, killed] : frame.registry.view<const Killed>().each())
     {
-        counted.push_back(entity);
+        counted.pushBack(entity);
 
         if (counting && frame.registry.valid(killed.by) && frame.registry.all_of<Score>(killed.by))
         {

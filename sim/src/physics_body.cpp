@@ -7,7 +7,6 @@
 
 #include <array>
 #include <cstdint>
-#include <vector>
 
 namespace unison::sim
 {
@@ -68,18 +67,7 @@ void removeBody(Frame& frame, entt::entity entity)
 
 void reconcileBodies(Frame& frame)
 {
-    const std::array<BodyId, kMaxBodies> named = bodiesTheRegistryNames(frame.registry);
-
-    std::vector<BodyId> held;
-    frame.physics.bodies().collect(held);
-
-    for (const BodyId id : held)
-    {
-        if (named[bodyIndexOf(id)] != id)
-        {
-            frame.physics.bodies().destroy(id);
-        }
-    }
+    frame.physics.bodies().keepOnly(bodiesTheRegistryNames(frame.registry));
 
     for (const auto [entity, body, definition, placement] :
          frame.registry.view<const PhysicsBody, const BodyDefinition, const Transform>().each())

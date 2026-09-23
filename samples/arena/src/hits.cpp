@@ -11,20 +11,11 @@
 
 #include <entt/entity/registry.hpp>
 
-#include <vector>
-
 namespace arena
 {
 
 namespace
 {
-
-struct Reached
-{
-    entt::entity shot = entt::null;
-    entt::entity target = entt::null;
-    unison::Float3 at{};
-};
 
 unison::Float3 along(const unison::Float3& from, const unison::Float3& to, float fraction)
 {
@@ -75,6 +66,20 @@ PlayerReached reachedPlayer(const unison::sim::Frame& frame,
     return nearest;
 }
 
+void strike(unison::sim::Frame& frame,
+            entt::entity shotEntity,
+            const Projectile& shot,
+            entt::entity target,
+            const unison::Float3& at)
+{
+    Health& health = frame.registry.get<Health>(target);
+
+    health.points -= shot.damage;
+    health.lastHitBy = shot.firedBy;
+
+    frame.events.raise(frame.frameNumber, Hit{shotEntity, target, shot.firedBy, at});
+}
+
 }
 
 Hits::Hits(const unison::sim::AssetRegistry& assets) : assets{assets}
@@ -85,9 +90,6 @@ void Hits::update(unison::sim::Frame& frame, const unison::sim::FrameInputs&)
 {
     const ProjectileStats& stats = assets.get<ProjectileStats>(kProjectileStats);
 
-    std::vector<Reached> reached;
-    std::vector<unison::sim::PhysicsHit> world;
-
     for (const auto [entity, shot, stance] : frame.registry.view<const Projectile, unison::sim::Transform>().each())
     {
         const unison::Float3 from = stance.position;
@@ -97,37 +99,20 @@ void Hits::update(unison::sim::Frame& frame, const unison::sim::FrameInputs&)
 
         if (player.player != entt::null)
         {
-            reached.push_back(Reached{entity, player.player, along(from, to, player.fraction)});
+            strike(frame, entity, shot, player.player, along(from, to, player.fraction));
+            unison::sim::destroyEntity(frame, entity);
 
             continue;
         }
 
-        frame.physics.queries().raycast(from, to, world);
-
-        if (!world.empty())
+        if (frame.physics.queries().raycastNearest(from, to).has_value())
         {
-            reached.push_back(Reached{entity, entt::null, along(from, to, world.front().fraction)});
+            unison::sim::destroyEntity(frame, entity);
 
             continue;
         }
 
         stance.position = to;
-    }
-
-    for (const Reached& hit : reached)
-    {
-        if (hit.target != entt::null)
-        {
-            const Projectile& shot = frame.registry.get<Projectile>(hit.shot);
-            Health& health = frame.registry.get<Health>(hit.target);
-
-            health.points -= shot.damage;
-            health.lastHitBy = shot.firedBy;
-
-            frame.events.raise(frame.frameNumber, Hit{hit.shot, hit.target, shot.firedBy, hit.at});
-        }
-
-        unison::sim::destroyEntity(frame, hit.shot);
     }
 }
 

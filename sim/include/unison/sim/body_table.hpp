@@ -9,7 +9,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 
 #include <cstdint>
-#include <vector>
+#include <span>
 
 namespace unison::sim
 {
@@ -49,13 +49,15 @@ public:
 
     [[nodiscard]] BodyMotion motionOf(BodyId id) const;
 
-    /// Names every body the world holds, in the order Jolt keeps them.
-    void collect(std::vector<BodyId>& bodies) const;
+    /// Takes out every body the frame does not name: `named` holds, at each body index, the id the frame
+    /// names there or `BodyId::Invalid`. Nothing is allocated on the way.
+    void keepOnly(std::span<const BodyId, kMaxBodies> named);
 
     [[nodiscard]] std::uint32_t count() const;
 
 private:
     JPH::PhysicsSystem& system;
+    JPH::BodyIDVector heldIds;
 };
 
 }

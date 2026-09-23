@@ -5,13 +5,11 @@
 
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
-#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/ShapeCast.h>
 
 #include <algorithm>
-#include <cstdint>
 
 namespace unison::sim
 {
@@ -29,39 +27,74 @@ JPH::BodyID bodyOf(const JPH::CollideShapeResult& hit)
     return hit.mBodyID2;
 }
 
-JPH::SubShapeID subShapeOf(const JPH::RayCastResult& hit)
+bool isNearer(const PhysicsHit& first, const PhysicsHit& second)
 {
-    return hit.mSubShapeID2;
-}
-
-JPH::SubShapeID subShapeOf(const JPH::CollideShapeResult& hit)
-{
-    return hit.mSubShapeID2;
-}
-
-template <typename Hit>
-bool byBodyThenSubShape(const Hit& first, const Hit& second)
-{
-    const std::uint32_t firstBody = bodyOf(first).GetIndexAndSequenceNumber();
-    const std::uint32_t secondBody = bodyOf(second).GetIndexAndSequenceNumber();
-
-    if (firstBody != secondBody)
+    if (first.fraction != second.fraction)
     {
-        return firstBody < secondBody;
+        return first.fraction < second.fraction;
     }
 
-    return subShapeOf(first).GetValue() < subShapeOf(second).GetValue();
+    return first.body < second.body;
 }
 
-template <typename Hit>
-bool nearestFirst(const Hit& first, const Hit& second)
+template <typename Collector>
+class HitList final : public Collector
 {
-    if (first.mFraction != second.mFraction)
+public:
+    explicit HitList(std::vector<PhysicsHit>& hits) : hits{hits}
     {
-        return first.mFraction < second.mFraction;
     }
 
-    return byBodyThenSubShape(first, second);
+    void AddHit(const typename Collector::ResultType& hit) override
+    {
+        hits.push_back(PhysicsHit{toBodyId(bodyOf(hit)), hit.mFraction});
+    }
+
+private:
+    std::vector<PhysicsHit>& hits;
+};
+
+class NearestRayHit final : public JPH::CastRayCollector
+{
+public:
+    void AddHit(const JPH::RayCastResult& hit) override
+    {
+        const PhysicsHit candidate{toBodyId(hit.mBodyID), hit.mFraction};
+
+        if (!nearest.has_value() || isNearer(candidate, *nearest))
+        {
+            nearest = candidate;
+        }
+    }
+
+    [[nodiscard]] std::optional<PhysicsHit> found() const
+    {
+        return nearest;
+    }
+
+private:
+    std::optional<PhysicsHit> nearest;
+};
+
+class OverlappedBodies final : public JPH::CollideShapeCollector
+{
+public:
+    explicit OverlappedBodies(std::vector<BodyId>& bodies) : bodies{bodies}
+    {
+    }
+
+    void AddHit(const JPH::CollideShapeResult& hit) override
+    {
+        bodies.push_back(toBodyId(hit.mBodyID2));
+    }
+
+private:
+    std::vector<BodyId>& bodies;
+};
+
+JPH::RRayCast rayBetween(const Float3& from, const Float3& to)
+{
+    return JPH::RRayCast{toJoltVector(from), toJoltVector(to) - toJoltVector(from)};
 }
 
 }
@@ -72,21 +105,22 @@ PhysicsQueries::PhysicsQueries(const JPH::PhysicsSystem& system) : system{system
 
 void PhysicsQueries::raycast(const Float3& from, const Float3& to, std::vector<PhysicsHit>& hits) const
 {
-    const JPH::RRayCast ray{toJoltVector(from), toJoltVector(to) - toJoltVector(from)};
-
-    JPH::AllHitCollisionCollector<JPH::CastRayCollector> collector;
-
-    system.GetNarrowPhaseQuery().CastRay(ray, JPH::RayCastSettings{}, collector);
-
-    std::sort(collector.mHits.begin(), collector.mHits.end(), nearestFirst<JPH::RayCastResult>);
-
     hits.clear();
-    hits.reserve(collector.mHits.size());
 
-    for (const JPH::RayCastResult& hit : collector.mHits)
-    {
-        hits.push_back(PhysicsHit{toBodyId(hit.mBodyID), hit.mFraction});
-    }
+    HitList<JPH::CastRayCollector> collector{hits};
+
+    system.GetNarrowPhaseQuery().CastRay(rayBetween(from, to), JPH::RayCastSettings{}, collector);
+
+    std::sort(hits.begin(), hits.end(), isNearer);
+}
+
+std::optional<PhysicsHit> PhysicsQueries::raycastNearest(const Float3& from, const Float3& to) const
+{
+    NearestRayHit collector;
+
+    system.GetNarrowPhaseQuery().CastRay(rayBetween(from, to), JPH::RayCastSettings{}, collector);
+
+    return collector.found();
 }
 
 void PhysicsQueries::overlapSphere(const Float3& centre, float radius, std::vector<BodyId>& bodies) const
@@ -94,20 +128,14 @@ void PhysicsQueries::overlapSphere(const Float3& centre, float radius, std::vect
     const JPH::Ref<JPH::Shape> shape = sphereShape(radius);
     const JPH::RVec3 at = toJoltVector(centre);
 
-    JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
+    bodies.clear();
+
+    OverlappedBodies collector{bodies};
 
     system.GetNarrowPhaseQuery().CollideShape(
         shape, JPH::Vec3::sOne(), JPH::RMat44::sTranslation(at), JPH::CollideShapeSettings{}, at, collector);
 
-    std::sort(collector.mHits.begin(), collector.mHits.end(), byBodyThenSubShape<JPH::CollideShapeResult>);
-
-    bodies.clear();
-    bodies.reserve(collector.mHits.size());
-
-    for (const JPH::CollideShapeResult& hit : collector.mHits)
-    {
-        bodies.push_back(toBodyId(hit.mBodyID2));
-    }
+    std::sort(bodies.begin(), bodies.end());
 }
 
 void PhysicsQueries::sweepCapsule(
@@ -118,19 +146,13 @@ void PhysicsQueries::sweepCapsule(
     const JPH::RShapeCast sweep = JPH::RShapeCast::sFromWorldTransform(
         shape, JPH::Vec3::sOne(), JPH::RMat44::sTranslation(at), toJoltVector(to) - at);
 
-    JPH::AllHitCollisionCollector<JPH::CastShapeCollector> collector;
+    hits.clear();
+
+    HitList<JPH::CastShapeCollector> collector{hits};
 
     system.GetNarrowPhaseQuery().CastShape(sweep, JPH::ShapeCastSettings{}, at, collector);
 
-    std::sort(collector.mHits.begin(), collector.mHits.end(), nearestFirst<JPH::ShapeCastResult>);
-
-    hits.clear();
-    hits.reserve(collector.mHits.size());
-
-    for (const JPH::ShapeCastResult& hit : collector.mHits)
-    {
-        hits.push_back(PhysicsHit{toBodyId(hit.mBodyID2), hit.mFraction});
-    }
+    std::sort(hits.begin(), hits.end(), isNearer);
 }
 
 }

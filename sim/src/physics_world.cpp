@@ -17,10 +17,10 @@ namespace
 constexpr JPH::uint kBodyMutexCountForOneThread = 1;
 constexpr int kCollisionStepsPerTick = 1;
 
-class VectorStateRecorder final : public JPH::StateRecorder
+class StateWriter final : public JPH::StateRecorder
 {
 public:
-    explicit VectorStateRecorder(std::vector<std::byte>& bytes) : recorded{bytes}
+    explicit StateWriter(std::vector<std::byte>& bytes) : written{bytes}
     {
     }
 
@@ -28,37 +28,69 @@ public:
     {
         const auto* first = static_cast<const std::byte*>(data);
 
-        recorded.insert(recorded.end(), first, first + count);
+        written.insert(written.end(), first, first + count);
     }
 
     void ReadBytes(void* data, std::size_t count) override
     {
-        if (readPosition + count > recorded.size())
-        {
-            std::memset(data, 0, count);
-            readPast = true;
-
-            return;
-        }
-
-        std::memcpy(data, recorded.data() + readPosition, count);
-        readPosition += count;
+        std::memset(data, 0, count);
+        hasFailed = true;
     }
 
     [[nodiscard]] bool IsEOF() const override
     {
-        return readPast;
+        return hasFailed;
     }
 
     [[nodiscard]] bool IsFailed() const override
     {
-        return readPast;
+        return hasFailed;
     }
 
 private:
-    std::vector<std::byte>& recorded;
-    std::size_t readPosition = 0;
-    bool readPast = false;
+    std::vector<std::byte>& written;
+    bool hasFailed = false;
+};
+
+class StateReader final : public JPH::StateRecorder
+{
+public:
+    explicit StateReader(std::span<const std::byte> bytes) : unread{bytes}
+    {
+    }
+
+    void WriteBytes(const void*, std::size_t) override
+    {
+        hasFailed = true;
+    }
+
+    void ReadBytes(void* data, std::size_t count) override
+    {
+        if (count > unread.size())
+        {
+            std::memset(data, 0, count);
+            hasFailed = true;
+
+            return;
+        }
+
+        std::memcpy(data, unread.data(), count);
+        unread = unread.subspan(count);
+    }
+
+    [[nodiscard]] bool IsEOF() const override
+    {
+        return hasFailed;
+    }
+
+    [[nodiscard]] bool IsFailed() const override
+    {
+        return hasFailed;
+    }
+
+private:
+    std::span<const std::byte> unread;
+    bool hasFailed = false;
 };
 
 }
@@ -127,7 +159,7 @@ void PhysicsWorld::saveState(std::vector<std::byte>& bytes) const
 {
     bytes.clear();
 
-    VectorStateRecorder recorder{bytes};
+    StateWriter recorder{bytes};
 
     physicsSystem.SaveState(recorder, JPH::EStateRecorderState::All);
     characterTable.saveState(recorder);
@@ -137,8 +169,7 @@ void PhysicsWorld::saveState(std::vector<std::byte>& bytes) const
 
 void PhysicsWorld::restoreState(std::span<const std::byte> bytes)
 {
-    std::vector<std::byte> recorded{bytes.begin(), bytes.end()};
-    VectorStateRecorder recorder{recorded};
+    StateReader recorder{bytes};
 
     contactCollector.clear();
 

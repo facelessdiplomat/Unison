@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **6.1.4**, the steady-state allocation test. Last finished: 1.5.13, splitting `PhysicsWorld`.
-- Taken ahead of **2.7.1** on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
-  classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, the steady-state allocation test,
-  which also retires what 2.2.2 left behind in restores. 2.7.1 follows them.
+- Next up: **2.7.1**, the networked session. Last finished: 6.1.4, the steady-state allocation test.
+- Taken ahead of 2.7.1 on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
+  classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, which also retired what 2.2.2 left
+  behind in restores.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -35,8 +35,8 @@ needs from earlier tasks is ticked.
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
-| 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **172** | **101** |
+| 6 Hardening | 3 | 12 | 1 |
+| **Total** | **31** | **173** | **102** |
 
 ## Charter amendments made while planning
 
@@ -376,7 +376,8 @@ needs from earlier tasks is ticked.
 - [ ] 6.1.1 Profile tick, snapshot, restore and 10-frame resimulation at 8 players and 200 bodies; recorded in `tests/benchmarks/baseline.md`.
 - [ ] 6.1.2 Snapshot cost reduction (dirty-pool skipping, `EStateRecorderState` subsets) if the budget requires it; Q1 closed for good.
 - [ ] 6.1.3 Jolt multithreaded stepping determinism test (Q4); adopted only if bit-identical over the golden replay.
-- [ ] 6.1.4 Steady-state allocation test: zero heap allocations per tick after warm-up (probe allocator). Known since 2.2.2: every restore still gathers bodies and characters into fresh vectors and copies the physics state buffer before Jolt reads it.
+- [x] 6.1.4 Steady-state allocation test: zero heap allocations per tick after warm-up (probe allocator). Known since 2.2.2: every restore still gathers bodies and characters into fresh vectors and copies the physics state buffer before Jolt reads it. Restated with the owner once the probe had measured it: the zero holds for the C++ heap, while what Jolt allocates inside itself stays Jolt's (`DESIGN.md` §8.2). Test: a match played through its rollbacks a second time, deaths and respawns included, and a session that keeps rolling back take nothing from the C++ heap once warmed up; reconciling a frame and casting rays take nothing from Jolt's heap either.
+- [ ] 6.1.5 (+) Jolt's own temporaries, the arrays `SaveState` and `RestoreState` sort the contact cache into and the one a step rebuilds the broad phase into, served from a caching allocator that `JoltRuntime` installs, if the profile of 6.1.1 shows the allocator matters; otherwise dropped with the numbers. Found in 6.1.4. Test: a session that keeps rolling back takes nothing from Jolt's heap either once warmed up.
 
 ### 6.2 Robustness
 - [ ] 6.2.1 Fuzz `BinaryReader` and protocol parsing with random and truncated bytes. Test: no crashes, clean rejections.

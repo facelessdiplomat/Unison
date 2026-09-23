@@ -340,8 +340,9 @@ the same session.
   building the body again.
 - **Query results are sorted** before use. Jolt returns broad/narrow-phase results and
   `GetActiveBodies` in the order its traversal happens to reach them; `raycast`, `overlapSphere` and
-  `sweepCapsule` sort by `(fraction, BodyID, sub-shape id)` before a system sees them. Queries in v1
-  meet every layer and carry no filters.
+  `sweepCapsule` sort by `(fraction, BodyID)` before a system sees them, and `raycastNearest` keeps the
+  first hit in that order, so hits a traversal could list either way are equal values. Queries in v1
+  meet every layer and carry no filters, and they fill vectors their callers keep.
 - **Contact callbacks are buffered**, then sorted by `(BodyID a, BodyID b, sub-shape ids)` and
   delivered to systems in that order, the lower body id first so a pair reads the same whichever way
   Jolt reported it. The list holds what the last step found, is emptied when a step begins and when a
@@ -442,6 +443,16 @@ plus Jolt `SaveState` output plus globals. The ring owns its snapshots and takes
 the frame `capacity` ticks older; copying into a registry, whether a snapshot's or the live frame's on a
 restore, empties its pools without giving their room back, so once a match has been through its largest
 state no buffer grows again.
+
+Nor does a tick take anything from the C++ heap from then on: a restore reads Jolt's state straight from
+the snapshot and reconciles bodies and characters without lists of its own, a query fills a vector its
+caller keeps, the session's bookkeeping reuses its room, and the sample's systems collect into fixed room
+or into nothing. Every snapshot of the ring and every frame of the event history grows to the largest state
+on its own, so a session is warmed up only once each of them has met it. Jolt's own heap is Jolt's:
+`SaveState` and `RestoreState` sort the contact cache into temporary arrays on every call, a step rebuilds
+the broad phase into a fresh array while bodies move, and building a body, a character or the shape of a
+sphere or capsule query allocates. Those allocations are measured and left to Jolt; serving them from a
+caching allocator is 6.1.5, should a profile ever ask for it.
 
 Inputs sit beside the ring in an `InputBuffer`: a window of frames that starts at `V` and only moves forward,
 each frame holding the `FrameInputs` its tick reads and, per slot, whether that input is still missing, was

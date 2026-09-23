@@ -4,13 +4,13 @@
 #include <arena/components.hpp>
 #include <arena/events.hpp>
 
+#include <unison/core/fixed_vector.hpp>
 #include <unison/sim/character_lifecycle.hpp>
 #include <unison/sim/transform.hpp>
 
 #include <entt/entity/registry.hpp>
 
 #include <cstddef>
-#include <vector>
 
 namespace arena
 {
@@ -63,14 +63,14 @@ void Respawn::update(unison::sim::Frame& frame, const unison::sim::FrameInputs&)
 {
     const PlayerStats& stats = assets.get<PlayerStats>(kPlayerStats);
 
-    std::vector<entt::entity> died;
-    std::vector<entt::entity> returning;
+    unison::FixedVector<entt::entity, kPlayerCount> died;
+    unison::FixedVector<entt::entity, kPlayerCount> returning;
 
     for (const auto [entity, slot, health] : frame.registry.view<const PlayerSlot, const Health>().each())
     {
         if (health.points <= 0 && !frame.registry.all_of<RespawnTimer>(entity))
         {
-            died.push_back(entity);
+            died.pushBack(entity);
         }
     }
 
@@ -83,7 +83,7 @@ void Respawn::update(unison::sim::Frame& frame, const unison::sim::FrameInputs&)
 
         if (timer.framesLeft == 0U)
         {
-            returning.push_back(entity);
+            returning.pushBack(entity);
         }
     }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unison/core/body_id.hpp>
 #include <unison/sim/character.hpp>
 #include <unison/sim/transform.hpp>
 
@@ -7,6 +8,7 @@
 
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 
+#include <span>
 #include <vector>
 
 namespace unison::sim
@@ -40,8 +42,9 @@ public:
 
     [[nodiscard]] GroundState groundOf(BodyId id) const;
 
-    /// Names every character in the table, in id order.
-    void collect(std::vector<BodyId>& characters) const;
+    /// Takes out every character the frame does not name: `named` holds, at each body index, the id the
+    /// frame names there or `BodyId::Invalid`. Nothing is allocated on the way.
+    void keepOnly(std::span<const BodyId, kMaxBodies> named);
 
     void saveState(JPH::StateRecorder& recorder) const;
 

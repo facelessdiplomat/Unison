@@ -153,15 +153,9 @@ GroundState CharacterTable::groundOf(BodyId id) const
     return character == nullptr ? GroundState::InAir : toGroundState(character->GetGroundState());
 }
 
-void CharacterTable::collect(std::vector<BodyId>& characters) const
+void CharacterTable::keepOnly(std::span<const BodyId, kMaxBodies> named)
 {
-    characters.clear();
-    characters.reserve(entries.size());
-
-    for (const Entry& entry : entries)
-    {
-        characters.push_back(entry.id);
-    }
+    std::erase_if(entries, [named](const Entry& entry) { return named[bodyIndexOf(entry.id)] != entry.id; });
 }
 
 void CharacterTable::saveState(JPH::StateRecorder& recorder) const

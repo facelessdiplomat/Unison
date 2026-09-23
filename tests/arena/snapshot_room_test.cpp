@@ -2,6 +2,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <support/arena_rollbacks.hpp>
 #include <support/arena_script.hpp>
 #include <unison/session/snapshot_ring.hpp>
 #include <unison/sim/frame_snapshot.hpp>
@@ -46,38 +47,20 @@ std::size_t roomOf(const arena::ArenaSimulation& match, const unison::session::S
     return room;
 }
 
-void playOn(arena::ArenaSimulation& match, unison::session::SnapshotRing& ring)
-{
-    match.advance(unison::test::scriptedInputs(match.frame().frameNumber));
-    ring.store(match.frame());
-}
-
-void rollBack(arena::ArenaSimulation& match, unison::session::SnapshotRing& ring)
-{
-    const std::uint32_t reached = match.frame().frameNumber;
-
-    unison::sim::restoreSnapshot(ring.snapshotAt(reached - kRollbackDepth), match.frame());
-
-    while (match.frame().frameNumber < reached)
-    {
-        playOn(match, ring);
-    }
-}
-
 void playPass(arena::ArenaSimulation& match, unison::session::SnapshotRing& ring, std::size_t& room)
 {
     while (match.frame().frameNumber < kRingCapacity)
     {
-        playOn(match, ring);
+        unison::test::playOn(match, ring);
     }
 
     while (match.frame().frameNumber < kFramesPerPass)
     {
-        playOn(match, ring);
+        unison::test::playOn(match, ring);
 
         if (match.frame().frameNumber % kRollbackInterval == 0)
         {
-            rollBack(match, ring);
+            unison::test::rollBack(match, ring, kRollbackDepth);
         }
 
         const std::size_t roomNow = roomOf(match, ring);

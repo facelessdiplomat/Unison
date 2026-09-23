@@ -6,15 +6,11 @@
 
 #include <entt/entity/registry.hpp>
 
-#include <vector>
-
 namespace arena
 {
 
 void Lifetimes::update(unison::sim::Frame& frame, const unison::sim::FrameInputs&)
 {
-    std::vector<entt::entity> expired;
-
     for (const auto [entity, lifetime] : frame.registry.view<Lifetime>().each())
     {
         if (lifetime.framesLeft > 0U)
@@ -24,13 +20,8 @@ void Lifetimes::update(unison::sim::Frame& frame, const unison::sim::FrameInputs
 
         if (lifetime.framesLeft == 0U)
         {
-            expired.push_back(entity);
+            unison::sim::destroyEntity(frame, entity);
         }
-    }
-
-    for (const entt::entity entity : expired)
-    {
-        unison::sim::destroyEntity(frame, entity);
     }
 }
 

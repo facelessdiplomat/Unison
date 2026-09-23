@@ -2,10 +2,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <support/allocation_probe.hpp>
 #include <unison/sim/body_definition.hpp>
 #include <unison/sim/body_id_allocator.hpp>
 #include <unison/sim/transform.hpp>
 
+#include <optional>
 #include <vector>
 
 namespace
@@ -132,4 +134,56 @@ TEST_CASE("a capsule sweeping forward meets the nearest body first")
     REQUIRE(hits.size() == 2U);
     REQUIRE(hits[0].body == nearest);
     REQUIRE(hits[1].body == farthest);
+}
+
+TEST_CASE("the nearest hit of a ray is the first body in its way")
+{
+    unison::sim::PhysicsWorld world;
+    unison::sim::BodyIdAllocator ids;
+
+    put(world, ids, 3.0F);
+    const unison::BodyId nearest = put(world, ids, 1.0F);
+    put(world, ids, 2.0F);
+
+    std::vector<unison::sim::PhysicsHit> hits;
+    world.queries().raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
+    const std::optional<unison::sim::PhysicsHit> hit =
+        world.queries().raycastNearest(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F});
+
+    REQUIRE(hit.has_value());
+    REQUIRE(hit->body == nearest);
+    REQUIRE(hit->fraction == hits.front().fraction);
+}
+
+TEST_CASE("a ray that meets nothing has no nearest hit")
+{
+    unison::sim::PhysicsWorld world;
+    unison::sim::BodyIdAllocator ids;
+
+    put(world, ids, 1.0F);
+
+    REQUIRE_FALSE(world.queries()
+                      .raycastNearest(unison::Float3{0.0F, 10.0F, 0.0F}, unison::Float3{5.0F, 10.0F, 0.0F})
+                      .has_value());
+}
+
+TEST_CASE("a ray allocates nothing once the vector it fills has held as many hits")
+{
+    unison::sim::PhysicsWorld world;
+    unison::sim::BodyIdAllocator ids;
+
+    put(world, ids, 1.0F);
+    put(world, ids, 2.0F);
+
+    std::vector<unison::sim::PhysicsHit> hits;
+    world.queries().raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
+
+    const unison::test::AllocationProbe probe;
+    world.queries().raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
+    const std::optional<unison::sim::PhysicsHit> hit =
+        world.queries().raycastNearest(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F});
+
+    REQUIRE(probe.allocations() == 0U);
+    REQUIRE(hits.size() == 2U);
+    REQUIRE(hit.has_value());
 }

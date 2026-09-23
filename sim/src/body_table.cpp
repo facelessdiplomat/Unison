@@ -53,6 +53,7 @@ JPH::EActivation activationOf(BodyMotion motion)
 
 BodyTable::BodyTable(JPH::PhysicsSystem& system) : system{system}
 {
+    heldIds.reserve(kMaxBodies);
 }
 
 void BodyTable::create(BodyId id, const BodyDefinition& definition, const Transform& placement)
@@ -181,18 +182,18 @@ BodyMotion BodyTable::motionOf(BodyId id) const
     return toBodyMotion(system.GetBodyInterface().GetMotionType(toJoltBodyId(id)));
 }
 
-void BodyTable::collect(std::vector<BodyId>& bodies) const
+void BodyTable::keepOnly(std::span<const BodyId, kMaxBodies> named)
 {
-    JPH::BodyIDVector held;
+    system.GetBodies(heldIds);
 
-    system.GetBodies(held);
-
-    bodies.clear();
-    bodies.reserve(held.size());
-
-    for (const JPH::BodyID& id : held)
+    for (const JPH::BodyID& joltId : heldIds)
     {
-        bodies.push_back(toBodyId(id));
+        const BodyId id = toBodyId(joltId);
+
+        if (named[bodyIndexOf(id)] != id)
+        {
+            destroy(id);
+        }
     }
 }
 

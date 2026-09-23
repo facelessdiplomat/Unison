@@ -2,8 +2,10 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <support/allocation_probe.hpp>
 #include <unison/sim/advance_frame.hpp>
 #include <unison/sim/body_definition.hpp>
+#include <unison/sim/character_lifecycle.hpp>
 #include <unison/sim/frame_checksum.hpp>
 #include <unison/sim/physics_body.hpp>
 #include <unison/sim/physics_step.hpp>
@@ -331,4 +333,23 @@ TEST_CASE("a body rebuilt on restore is rebuilt with the surface it had")
 
     REQUIRE(frame.physics.bodies().holds(id));
     REQUIRE(frame.physics.bodies().frictionOf(id) == 0.4F);
+}
+
+TEST_CASE("reconciling a frame again while it still holds its bodies and characters allocates nothing")
+{
+    unison::sim::AssetRegistry assets;
+    defineArena(assets);
+    unison::sim::Frame frame;
+    buildArena(frame, assets);
+    const entt::entity walker = frame.registry.create();
+    frame.registry.emplace<unison::sim::Transform>(walker, unison::Float3{3.0F, 1.0F, 0.0F}, unison::Quaternion{});
+    unison::sim::addCharacter(frame, walker, unison::sim::CharacterController{});
+    unison::sim::reconcileBodies(frame);
+    unison::sim::reconcileCharacters(frame);
+
+    const unison::test::AllocationProbe probe;
+    unison::sim::reconcileBodies(frame);
+    unison::sim::reconcileCharacters(frame);
+
+    REQUIRE(probe.allocations() == 0U);
 }
