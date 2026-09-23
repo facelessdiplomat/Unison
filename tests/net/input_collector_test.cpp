@@ -115,15 +115,3 @@ TEST_CASE("a frame nobody has sent an input for is never overdue")
 
     REQUIRE_FALSE(collector.isNextFrameOverdue(1'000'000, 100));
 }
-
-TEST_CASE("the newest frame is the latest one any slot has sent an input for")
-{
-    unison::net::InputCollector collector{kSlots, kInputSize, kWindow};
-    const std::uint32_t beforeAnyInput = collector.newestFrame();
-
-    collector.collect(3, 1, inputOf(5), 0);
-    collector.collect(2, 0, inputOf(6), 0);
-
-    REQUIRE(beforeAnyInput == 0U);
-    REQUIRE(collector.newestFrame() == 3U);
-}

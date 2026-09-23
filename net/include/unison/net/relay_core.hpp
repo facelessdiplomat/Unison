@@ -4,6 +4,7 @@
 #include <unison/net/clock.hpp>
 #include <unison/net/confirmed_log.hpp>
 #include <unison/net/input_collector.hpp>
+#include <unison/net/match_clock.hpp>
 #include <unison/net/outbox.hpp>
 #include <unison/net/protocol.hpp>
 #include <unison/net/roster.hpp>
@@ -33,8 +34,9 @@ inline constexpr std::uint32_t kRedundantConfirmations = 4;
 /// The relay of one match. It lets clients in, seats players in the slots of the config it was given and
 /// turns away a client that speaks another protocol, would play another config or finds every slot taken.
 /// It confirms a frame once every player has sent an input for it, or at the deadline without the missing
-/// ones, sends the confirmation with the frames confirmed just before it to everyone, and tells everyone which
-/// players' checksums part ways with the rest. It never simulates, and it answers through its transport.
+/// ones, sends the confirmation with the frames confirmed just before it to everyone, answers a ping with the
+/// frame its clock has due, and tells everyone which players' checksums part ways with the rest. It never
+/// simulates, and it answers through its transport.
 class RelayCore final : public IMessageReceiver
 {
 public:
@@ -81,6 +83,7 @@ private:
     Roster roster;
     Outbox outbox;
     InputCollector inputs;
+    MatchClock matchClock;
     ChecksumReferee referee;
     ConfirmedLog confirmedLog;
     std::vector<std::byte> confirmedSlots;

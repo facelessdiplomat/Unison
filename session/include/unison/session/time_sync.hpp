@@ -3,6 +3,7 @@
 #include <unison/net/protocol.hpp>
 
 #include <cstdint>
+#include <optional>
 
 namespace unison::session
 {
@@ -15,23 +16,24 @@ struct TimeSyncSettings
     std::uint64_t jitterMarginMicroseconds = 33'333;
 };
 
-/// Judges from the relay's pongs whether a client runs where it should: half a round trip ahead of the newest
-/// frame any player's input has reached the relay for, which is where the fastest client stands. A client
-/// further behind than the jitter margin, the slower one or one back from a hitch the relay's deadline
-/// covered for, runs one tick more per host frame until it has caught up, and one further ahead runs one
-/// fewer. Nobody slows down for a player who is out, whose frames the relay confirms late at its deadline.
+/// Judges from the relay's pongs whether a client runs where it should: half a round trip ahead of the frame
+/// the relay's clock has due, so that its inputs reach the relay as their frames fall due. A client further
+/// behind than the jitter margin, the slower one or one back from a hitch the relay's deadline covered for,
+/// runs one tick more per host frame until it has caught up, and one further ahead runs one fewer. The relay's
+/// clock runs whatever the players do, so nobody slows down for a player who is out.
 class TimeSync
 {
 public:
     /// A match that never ticks breaks a contract, and so do settings that would judge on no pong at all.
     explicit TimeSync(std::uint16_t tickRate, const TimeSyncSettings& settings = TimeSyncSettings{});
 
-    /// Takes in a pong that came back at `now` while the client stood at its predicted frame. Pongs that come
-    /// back while a correction is still being run are left out, since they judge a client about to move.
+    /// Takes in a pong that came back at `now` while the client stood at its predicted frame. A pong from before
+    /// the relay's clock started is left out, and so are those that come back while a correction is still being
+    /// run or whose pings went out before it had run its course: they judge a client about to move.
     void observe(const net::Pong& pong, std::uint64_t now, std::uint32_t predictedFrame);
 
-    /// The ticks to add to the next host frame: one fewer, one more, or none.
-    [[nodiscard]] std::int32_t takeCorrection();
+    /// The ticks to add to the host frame played at `now`: one fewer, one more, or none.
+    [[nodiscard]] std::int32_t takeCorrection(std::uint64_t now);
 
     /// How long the last pong took to come back, in microseconds; nothing before the first one.
     [[nodiscard]] std::uint64_t roundTripMicroseconds() const;
@@ -42,6 +44,7 @@ private:
     std::int64_t aheadSum = 0;
     std::uint32_t pongsSeen = 0;
     std::int32_t pendingTicks = 0;
+    std::optional<std::uint64_t> lastCorrectedAt;
     std::uint64_t lastRoundTrip = 0;
 };
 

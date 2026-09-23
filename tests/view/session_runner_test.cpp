@@ -186,18 +186,16 @@ TEST_CASE("the dispatcher forgets the events of the frames the session has verif
     REQUIRE(moved == 21U);
 }
 
-TEST_CASE("a session behind the other players runs an extra tick in a host frame until it catches up")
+TEST_CASE("a session behind the relay's clock runs an extra tick in a host frame until it catches up")
 {
     Rig rig;
-    static_cast<void>(rig.step(kHostFrame));
     rig.sendOtherInputs(1, 60);
+    rig.relayEnd.poll(rig.relay);
 
     std::uint32_t mostTicksInAFrame = 0;
 
     for (std::uint32_t hostFrame = 0; hostFrame < 60; ++hostFrame)
     {
-        rig.sendOtherInputs(1, 60);
-
         const std::uint32_t ran = rig.step(kHostFrame).ticks;
 
         mostTicksInAFrame = ran > mostTicksInAFrame ? ran : mostTicksInAFrame;

@@ -46,8 +46,6 @@ void InputCollector::collect(std::uint32_t frame,
     received[indexOf(frame, slot)] = 1U;
     std::ranges::copy(input, inputs.begin() + static_cast<std::ptrdiff_t>(indexOf(frame, slot) * inputSize));
 
-    newest = std::max(newest, frame);
-
     std::uint64_t& firstArrival = firstArrivals[frame % window];
     firstArrival = std::min(firstArrival, now);
 }
@@ -55,11 +53,6 @@ void InputCollector::collect(std::uint32_t frame,
 std::uint32_t InputCollector::nextFrame() const
 {
     return next;
-}
-
-std::uint32_t InputCollector::newestFrame() const
-{
-    return newest;
 }
 
 bool InputCollector::isNextFrameReady(std::uint8_t slotsInPlay) const

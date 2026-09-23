@@ -68,7 +68,7 @@ void NetworkedSession::tick()
 
 std::int32_t NetworkedSession::takeTickCorrection()
 {
-    return pace.takeCorrection();
+    return pace.takeCorrection(updatedAt);
 }
 
 void NetworkedSession::receive(net::PeerId from, net::Channel, std::span<const std::byte> message)

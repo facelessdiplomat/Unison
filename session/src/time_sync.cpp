@@ -36,13 +36,16 @@ void TimeSync::observe(const net::Pong& pong, std::uint64_t now, std::uint32_t p
 
     lastRoundTrip = now - pong.pingSentAt;
 
-    if (pendingTicks != 0)
+    const bool isClockStarted = pong.dueFrame != 0;
+    const bool isPingedBeforeSettling = lastCorrectedAt.has_value() && pong.pingSentAt <= *lastCorrectedAt;
+
+    if (!isClockStarted || pendingTicks != 0 || isPingedBeforeSettling)
     {
         return;
     }
 
     const std::int64_t framesAhead =
-        static_cast<std::int64_t>(predictedFrame) - static_cast<std::int64_t>(pong.newestInputFrame);
+        static_cast<std::int64_t>(predictedFrame) - static_cast<std::int64_t>(pong.dueFrame);
     const auto tick = static_cast<std::int64_t>(tickMicroseconds);
 
     aheadSum += framesAhead * tick - static_cast<std::int64_t>(lastRoundTrip);
@@ -64,23 +67,22 @@ void TimeSync::observe(const net::Pong& pong, std::uint64_t now, std::uint32_t p
     }
 }
 
-std::int32_t TimeSync::takeCorrection()
+std::int32_t TimeSync::takeCorrection(std::uint64_t now)
 {
-    if (pendingTicks < 0)
+    if (pendingTicks == 0)
     {
-        ++pendingTicks;
-
-        return -1;
+        return 0;
     }
 
-    if (pendingTicks > 0)
-    {
-        --pendingTicks;
+    const std::int32_t step = pendingTicks < 0 ? -1 : 1;
+    pendingTicks -= step;
 
-        return 1;
+    if (pendingTicks == 0)
+    {
+        lastCorrectedAt = now;
     }
 
-    return 0;
+    return step;
 }
 
 std::uint64_t TimeSync::roundTripMicroseconds() const

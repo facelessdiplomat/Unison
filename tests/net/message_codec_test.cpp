@@ -198,7 +198,7 @@ TEST_CASE("a pong survives the wire")
 
     REQUIRE(received.pingSentAt == 123456U);
     REQUIRE(received.confirmedFrame == 64U);
-    REQUIRE(received.newestInputFrame == 70U);
+    REQUIRE(received.dueFrame == 70U);
 }
 
 TEST_CASE("a leave survives the wire")

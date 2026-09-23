@@ -121,11 +121,9 @@ struct Rig
         now += kTickMicroseconds;
     }
 
-    void pongAt(std::uint64_t sentAt, std::uint32_t newestInputFrame)
+    void pongAt(std::uint64_t sentAt, std::uint32_t dueFrame)
     {
-        relayOutbox.send(clientEnd.id(),
-                         unison::net::Channel::Unreliable,
-                         unison::net::Pong{sentAt, newestInputFrame, newestInputFrame});
+        relayOutbox.send(clientEnd.id(), unison::net::Channel::Unreliable, unison::net::Pong{sentAt, 0, dueFrame});
     }
 
     Mailbox& relayMail()
@@ -405,7 +403,7 @@ TEST_CASE("a playing client pings the relay with the time every hundred millisec
     REQUIRE(pings[2].sentAt == 200'000U);
 }
 
-TEST_CASE("a client the relay's pongs show running ahead is told to run a tick fewer")
+TEST_CASE("a client the relay's pongs show running ahead of the relay's clock is told to run a tick fewer")
 {
     Rig rig;
     rig.client.join();
@@ -418,7 +416,7 @@ TEST_CASE("a client the relay's pongs show running ahead is told to run a tick f
 
     for (std::uint32_t pong = 0; pong < unison::session::TimeSyncSettings{}.pongsPerJudgement; ++pong)
     {
-        rig.pongAt(rig.now, 0);
+        rig.pongAt(rig.now, 1);
     }
 
     rig.client.update(rig.now);
@@ -433,7 +431,7 @@ TEST_CASE("a pong tells the client how long the round trip to the relay took")
     rig.client.join();
     rig.welcome(kLocalSlot);
     rig.playWithMove(1);
-    rig.pongAt(rig.now - 40'000, 0);
+    rig.pongAt(rig.now - 40'000, 1);
 
     rig.client.update(rig.now);
 

@@ -82,6 +82,22 @@ TEST_CASE("four players losing a fifth of their messages over a round trip of 24
     REQUIRE(outcome.hostFrames < options.frames * 6U / 5U);
 }
 
+TEST_CASE("four players whose messages stray by up to 60 ms either way keep to the host's clock")
+{
+    unison::runner::RunnerOptions options;
+    options.players = 4;
+    options.frames = 1200;
+    options.latencyMilliseconds = 120;
+    options.jitterMilliseconds = 60;
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.isComplete);
+    REQUIRE(outcome.hostFrames >= options.frames);
+    REQUIRE(outcome.hostFrames < options.frames + options.tickRate);
+}
+
 TEST_CASE("a run waits for every client's checksum of every frame it verified and finds them alike")
 {
     unison::runner::RunnerOptions options;

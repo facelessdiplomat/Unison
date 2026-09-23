@@ -22,7 +22,7 @@ RelayCore::RelayCore(ITransport& transport,
                      const SessionConfig& config,
                      const RelaySettings& settings)
     : clock{clock}, config{config}, settings{settings}, configHash{hashOf(config)}, roster{config.slotCount},
-      outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames},
+      outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames}, matchClock{config.tickRate},
       confirmedLog{confirmedFrameSize(config.slotCount, config.inputSize)},
       confirmedSlots(confirmedFrameSize(config.slotCount, config.inputSize)),
       framesPerDatagram{confirmedFramesPerDatagram(config.slotCount, config.inputSize)}
@@ -100,6 +100,11 @@ void RelayCore::handle(PeerId from, const Input& input)
                        clock.nowMicroseconds());
     }
 
+    if (input.frameCount > 0)
+    {
+        matchClock.anchor(input.firstFrame + input.frameCount - 1U, clock.nowMicroseconds());
+    }
+
     confirmReadyFrames();
 }
 
@@ -128,7 +133,9 @@ void RelayCore::handle(PeerId from, const Ping& ping)
         return;
     }
 
-    outbox.send(from, Channel::Unreliable, Pong{ping.sentAt, confirmedLog.lastFrame(), inputs.newestFrame()});
+    outbox.send(from,
+                Channel::Unreliable,
+                Pong{ping.sentAt, confirmedLog.lastFrame(), matchClock.dueFrameAt(clock.nowMicroseconds())});
 }
 
 void RelayCore::confirmReadyFrames()

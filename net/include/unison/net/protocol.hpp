@@ -11,7 +11,7 @@ namespace unison::net
 {
 
 /// The version of the relay protocol this build speaks; a client speaking another is turned away.
-inline constexpr std::uint16_t kProtocolVersion = 3;
+inline constexpr std::uint16_t kProtocolVersion = 4;
 
 /// The most bytes one message may take, small enough to cross the internet in one piece.
 inline constexpr std::size_t kMaxDatagramSize = 1200;
@@ -131,13 +131,13 @@ struct Ping
     std::uint64_t sentAt = 0;
 };
 
-/// The answer to a ping: the stamp it carried, the frame the relay has confirmed so far, and the newest frame
-/// any player has sent an input for, which is how far the fastest of them has got.
+/// The answer to a ping, as the relay stood when it answered: the stamp the ping carried, the frame confirmed
+/// so far, and the frame the relay's clock had due, nought before the first input of the match arrived.
 struct Pong
 {
     std::uint64_t pingSentAt = 0;
     std::uint32_t confirmedFrame = 0;
-    std::uint32_t newestInputFrame = 0;
+    std::uint32_t dueFrame = 0;
 };
 
 /// A peer says it is leaving.

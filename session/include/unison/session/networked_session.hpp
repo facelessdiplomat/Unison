@@ -64,7 +64,8 @@ public:
     /// verified since the last tick.
     void tick();
 
-    /// The ticks the host adds to its next frame to keep pace with the relay: one fewer, one more, or none.
+    /// The ticks the host adds to the frame it plays after the last update to keep to the relay's clock: one
+    /// fewer, one more, or none.
     [[nodiscard]] std::int32_t takeTickCorrection();
 
     void receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message) override;

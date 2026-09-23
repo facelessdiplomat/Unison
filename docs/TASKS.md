@@ -18,8 +18,9 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.8.6**, the snapshot ring against the two-frame layout. Last finished: 2.8.5, the runner's
-  CTest network profiles.
+- Next up: **2.8.6**, the snapshot ring against the two-frame layout. Last finished: 2.7.7, clients paced
+  by the relay's clock, taken ahead of 2.8.6 on the owner's request of 2026-09-23 once 2.8.5 showed them
+  running faster than the host's clock under jitter.
 - 2.8.7 to 2.8.10 run before 2.8.5: measuring its profiles showed a 240 ms round trip outrunning a window of
   10 frames at 60 Hz and every lost confirmation stalling a client until the next reliable batch; the owner
   chose on 2026-09-23 to widen the window and to repeat confirmations. The arena also has to tick at the
@@ -36,12 +37,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 45 | 44 |
+| 2 Rollback session (local) | 8 | 46 | 45 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **179** | **117** |
+| **Total** | **31** | **180** | **118** |
 
 ## Charter amendments made while planning
 
@@ -106,6 +107,10 @@ needs from earlier tasks is ticked.
   is out, trails everyone else by the relay's deadline, and pacing on it would slow every client down for one
   player's outage. The target of §8.3 is a band around the fastest client. The pong gained a field and the
   protocol moved to version 2. `DESIGN.md` §8.3 and §9.2 updated. Found in 2.7.3.
+- Superseded on 2026-09-23 by the owner's choice in 2.7.7: the frontier is the largest of several noisy
+  positions, so under jitter it stood ahead of everyone and the clients ran faster than the host's clock. The
+  relay now keeps a `MatchClock` started by the first input to arrive, the pong carries the frame it has due
+  instead of the frontier, and the protocol moved to version 4. `DESIGN.md` §8.3 and §9.2 updated.
 
 ---
 
@@ -273,6 +278,7 @@ needs from earlier tasks is ticked.
 - [x] 2.7.4 `SessionRunner::update(hostDelta)` with an accumulator and an injectable clock, returning ticks run and the interpolation alpha. It also lets the event dispatcher forget the keys of frames below `V`, which can no longer be cancelled, so the set of shown keys stops growing. Test: 16.7 ms steps produce one tick each; 50 ms produces three.
 - [x] 2.7.5 (+) The relay tells in every pong the newest frame any player has sent an input for, and `TimeSync` keeps pace with that frontier, where the fastest client stands, instead of with the confirmed frame, which follows the slowest one and, while a player is out, trails everyone else by the relay's deadline: pacing on it would have slowed every other client to a third of its speed through an outage, against the promise of 2.6.3 that a stalled slot blocks nobody. The pong gains a field, so the protocol moves to version 2. Found in 2.7.3. Test: a pong carries the input frontier, and frames the relay confirms late for a player who is out slow nobody down.
 - [x] 2.7.6 (+) The client's input window reaches past its prediction window, so a client that stalled through an outage keeps every confirmation arriving meanwhile and plays through them to catch up, rather than turning away frames beyond its window that the relay resends only once. Found in 2.7.3. Test: a session keeps a confirmation far beyond the frames it has played and verifies the frame once it has played up to it.
+- [x] 2.7.7 (+) The relay keeps a `MatchClock`, started by the first input to arrive, and every pong carries the frame it has due instead of the input frontier; `TimeSync` keeps half a round trip ahead of it, correcting both ways, and leaves out pongs whose pings went out before a correction had run its course. The frontier is the largest of several noisy positions, so under jitter it stood ahead of everyone and the clients ran faster than the host's clock: 2.7 % at 30 ms of jitter for four players, 5.9 % at 60 ms. The pong changes, so the protocol moves to version 4. Found in 2.8.5; the owner chose the relay's clock on 2026-09-23 over pacing on each client's own inputs, which the relay stops receiving while a client plays settled frames. Test: the clock falls due from the first input at exactly the tick rate, a pong carries its due frame, a client ahead or behind it corrects by the frames it is off, and four players at 60 ms of jitter verify 1200 frames in no fewer host frames and less than a second more.
 
 ### 2.8 Runner tool (`unison_runner`)
 - [x] 2.8.1 cxxopts dependency and CLI: `--players --frames --seed --latency --jitter --loss --tick-rate --checksum-interval --record`. Test: argument parsing.

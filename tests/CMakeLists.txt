@@ -64,6 +64,7 @@ add_executable(
     net/enet_smoke_test.cpp
     net/input_collector_test.cpp
     net/loopback_hub_test.cpp
+    net/match_clock_test.cpp
     net/message_codec_test.cpp
     net/network_simulator_test.cpp
     net/outbox_test.cpp

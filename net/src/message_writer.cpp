@@ -84,7 +84,7 @@ bool writeFields(BinaryWriter& writer, const Ping& ping)
 bool writeFields(BinaryWriter& writer, const Pong& pong)
 {
     return writer.writeValue(pong.pingSentAt) && writer.writeValue(pong.confirmedFrame) &&
-           writer.writeValue(pong.newestInputFrame);
+           writer.writeValue(pong.dueFrame);
 }
 
 bool writeFields(BinaryWriter& writer, const Leave& leave)

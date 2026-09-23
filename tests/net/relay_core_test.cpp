@@ -725,17 +725,29 @@ TEST_CASE("a ping from a peer that is not in the match goes unanswered")
     REQUIRE(Match::repliesOf(stranger).empty());
 }
 
-TEST_CASE("a pong carries the newest frame any player has sent an input for")
+TEST_CASE("a pong carries the frame the relay's clock has due, counted from the first input to arrive")
 {
     Match match;
     const std::array<std::byte, 10> fiveFrames{};
     match.sendInputs(match.first, 1, fiveFrames);
     static_cast<void>(Match::repliesOf(match.first));
+    match.relay.clock.advance(100'000);
 
     sendMessage(match.first, match.relay.endpoint.id(), unison::net::Ping{7});
     match.relay.endpoint.poll(match.relay.core);
 
     const unison::net::Pong pong = onlyReplyAs<unison::net::Pong>(Match::repliesOf(match.first));
     REQUIRE(pong.confirmedFrame == 0U);
-    REQUIRE(pong.newestInputFrame == 5U);
+    REQUIRE(pong.dueFrame == 5U + 6U);
+}
+
+TEST_CASE("a pong before the first input of the match names no frame due")
+{
+    Match match;
+
+    sendMessage(match.first, match.relay.endpoint.id(), unison::net::Ping{7});
+    match.relay.endpoint.poll(match.relay.core);
+
+    const unison::net::Pong pong = onlyReplyAs<unison::net::Pong>(Match::repliesOf(match.first));
+    REQUIRE(pong.dueFrame == 0U);
 }
