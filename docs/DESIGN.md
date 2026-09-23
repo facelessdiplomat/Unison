@@ -658,7 +658,12 @@ often are, is dropped; so is anything from a peer other than the relay. A `Kick`
   replay recording; non-zero exit code on desync or window overflow; prints rollback statistics. It plays the
   arena with every client and the relay in one process, each client's link crossing one seeded simulated
   network and each player scripted from the seed, one host frame at a time; a run that has not verified every
-  frame after twice as many host frames and ten seconds more fails.
+  frame after twice as many host frames and ten seconds more fails. A wiretap in front of the relay writes every
+  checksum the clients report into a ledger, and the run lasts until every client has reported the last frame
+  it checks; the first frame the clients report different checksums for is the desync, printed with every
+  slot's checksum of it. The exit code is 0 for a run that verified every frame alike within its window,
+  2 for a desync, 3 for a rollback deeper than the prediction window, and 1 for a run that missed frames or a
+  command line it could not read; a desync outranks an overflow, and both outrank missed frames.
 - `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard input,
   connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output.
 - `unison_replay`: record / play / verify / diff.

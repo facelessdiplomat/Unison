@@ -115,6 +115,9 @@ add_executable(
     sim/system_pipeline_test.cpp
     support/allocation_probe.cpp
     support/test_components.cpp
+    tools/checksum_ledger_test.cpp
+    tools/checksum_wiretap_test.cpp
+    tools/run_outcome_test.cpp
     tools/runner_options_test.cpp
     view/event_dispatcher_test.cpp
     view/session_runner_test.cpp
@@ -123,7 +126,7 @@ add_executable(
 target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
 target_link_libraries(
-    unison_tests_fast PRIVATE unison_net unison_runner_options unison_session unison_sim unison_view Catch2::Catch2WithMain
+    unison_tests_fast PRIVATE unison_net unison_runner_core unison_session unison_sim unison_view Catch2::Catch2WithMain
 )
 
 target_compile_options(unison_tests_fast PRIVATE /EHsc)

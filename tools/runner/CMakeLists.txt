@@ -1,16 +1,18 @@
-add_library(unison_runner_options STATIC src/runner_options.cpp)
+add_library(
+    unison_runner_core STATIC src/checksum_ledger.cpp src/checksum_wiretap.cpp src/run_outcome.cpp src/runner_options.cpp
+)
 
-target_include_directories(unison_runner_options PUBLIC include)
+target_include_directories(unison_runner_core PUBLIC include)
 
-target_link_libraries(unison_runner_options PUBLIC unison_net PRIVATE cxxopts::cxxopts)
+target_link_libraries(unison_runner_core PUBLIC unison_net PRIVATE cxxopts::cxxopts)
 
-unison_apply_language_subset(unison_runner_options)
+unison_apply_language_subset(unison_runner_core)
 
-unison_apply_warnings(unison_runner_options)
+unison_apply_warnings(unison_runner_core)
 
 add_library(unison_runner_match OBJECT src/runner_client.cpp src/runner_match.cpp src/scripted_player.cpp)
 
-target_link_libraries(unison_runner_match PUBLIC unison_runner_options unison_view arena_sim)
+target_link_libraries(unison_runner_match PUBLIC unison_runner_core unison_view arena_sim)
 
 unison_apply_language_subset(unison_runner_match)
 

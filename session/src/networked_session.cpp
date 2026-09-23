@@ -93,6 +93,11 @@ ConnectionState NetworkedSession::state() const
     return connection;
 }
 
+std::uint8_t NetworkedSession::localSlot() const
+{
+    return givenSlot;
+}
+
 const Session* NetworkedSession::session() const
 {
     return played.has_value() ? &*played : nullptr;
@@ -123,8 +128,8 @@ void NetworkedSession::handle(const net::Welcome& welcome)
         return;
     }
 
-    localSlot = welcome.slot;
-    played.emplace(frame, pipeline, config, localSlot, inputDelay);
+    givenSlot = welcome.slot;
+    played.emplace(frame, pipeline, config, givenSlot, inputDelay);
     connection = ConnectionState::Playing;
 }
 
@@ -186,7 +191,7 @@ void NetworkedSession::sendInputs()
 
     for (std::uint32_t offset = 0; offset < count; ++offset)
     {
-        std::ranges::copy(played->inputs().inputsAt(oldest + offset).bytesAt(localSlot).first(inputSize),
+        std::ranges::copy(played->inputs().inputsAt(oldest + offset).bytesAt(givenSlot).first(inputSize),
                           batch.subspan(offset * inputSize).begin());
     }
 

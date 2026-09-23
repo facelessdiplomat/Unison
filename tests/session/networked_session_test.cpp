@@ -186,6 +186,7 @@ TEST_CASE("a client plays nothing until the relay lets it in")
 
     REQUIRE(rig.client.state() == ConnectionState::Joining);
     REQUIRE(rig.client.session() == nullptr);
+    REQUIRE(rig.client.localSlot() == unison::net::kNoSlot);
     REQUIRE(rig.relayMail().all<unison::net::Input>().empty());
     REQUIRE(rig.frame.frameNumber == 0U);
 }
@@ -199,6 +200,7 @@ TEST_CASE("a client the relay welcomes into a slot plays in it")
     rig.playWithMove(3);
 
     REQUIRE(rig.client.state() == ConnectionState::Playing);
+    REQUIRE(rig.client.localSlot() == kLocalSlot);
     REQUIRE(rig.client.session()->predictedFrame() == 1U);
     REQUIRE(rig.client.session()->inputs().inputsAt(1).get<SampleInput>(kLocalSlot).moveX == 3);
 }

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <vector>
 
 namespace unison::runner
 {
@@ -32,16 +33,47 @@ net::NetworkConditions conditionsFor(const RunnerOptions& options)
     return net::NetworkConditions{options.latencyMilliseconds, options.jitterMilliseconds, options.lossRate};
 }
 
+std::deque<RunnerClient> clientsFor(net::LoopbackHub& hub,
+                                    net::NetworkSimulator& network,
+                                    net::PeerId relay,
+                                    const net::SessionConfig& config,
+                                    const net::IClock& clock)
+{
+    std::deque<RunnerClient> clients;
+
+    for (std::uint32_t player = 0; player < config.slotCount; ++player)
+    {
+        clients.emplace_back(hub, network, relay, config, clock, player);
+    }
+
+    return clients;
+}
+
+std::vector<net::PeerId> peersOf(const std::deque<RunnerClient>& clients)
+{
+    std::vector<net::PeerId> peers;
+
+    for (const RunnerClient& client : clients)
+    {
+        peers.push_back(client.peer());
+    }
+
+    return peers;
+}
+
+std::uint32_t lastFrameChecked(const RunnerOptions& options)
+{
+    return options.frames / options.checksumInterval * options.checksumInterval;
+}
+
 }
 
 RunnerMatch::RunnerMatch(const RunnerOptions& options)
     : options{options}, config{configFor(options)}, network{conditionsFor(options), options.seed}, relayEnd{hub.join()},
-      relayLink{relayEnd, network}, relay{relayLink, clock, config}
+      relayLink{relayEnd, network}, relay{relayLink, clock, config},
+      clients{clientsFor(hub, network, relayEnd.id(), config, clock)}, ledger{clients.size()},
+      wiretap{relay, ledger, peersOf(clients)}
 {
-    for (std::uint32_t player = 0; player < options.players; ++player)
-    {
-        clients.emplace_back(hub, network, relayEnd.id(), config, clock, player);
-    }
 }
 
 RunOutcome RunnerMatch::play()
@@ -53,14 +85,13 @@ RunOutcome RunnerMatch::play()
 
     const std::uint64_t hostFrame = kMicrosecondsPerSecond / options.tickRate;
     const std::uint32_t mostHostFrames = options.frames * 2U + kGraceSeconds * options.tickRate;
+    std::uint32_t hostFrames = 0;
 
-    RunOutcome outcome;
-
-    while (outcome.hostFrames < mostHostFrames && fewestVerifiedFrames() < options.frames)
+    while (hostFrames < mostHostFrames && !hasEveryClientFinished())
     {
         letTimePass(hostFrame);
 
-        relayLink.poll(relay);
+        relayLink.poll(wiretap);
         relay.update();
 
         for (RunnerClient& client : clients)
@@ -68,13 +99,10 @@ RunOutcome RunnerMatch::play()
             client.playHostFrame(hostFrame);
         }
 
-        ++outcome.hostFrames;
+        ++hostFrames;
     }
 
-    outcome.fewestVerifiedFrames = fewestVerifiedFrames();
-    outcome.isComplete = outcome.fewestVerifiedFrames >= options.frames;
-
-    return outcome;
+    return outcomeAfter(hostFrames);
 }
 
 void RunnerMatch::letTimePass(std::uint64_t microseconds)
@@ -86,6 +114,13 @@ void RunnerMatch::letTimePass(std::uint64_t microseconds)
 
     network.advance(static_cast<std::uint32_t>(dueMilliseconds - networkMilliseconds));
     networkMilliseconds = dueMilliseconds;
+}
+
+bool RunnerMatch::hasEveryClientFinished() const
+{
+    const std::uint32_t lastChecked = lastFrameChecked(options);
+
+    return fewestVerifiedFrames() >= options.frames && (lastChecked == 0 || ledger.isReportedByAll(lastChecked));
 }
 
 std::uint32_t RunnerMatch::fewestVerifiedFrames() const
@@ -100,6 +135,28 @@ std::uint32_t RunnerMatch::fewestVerifiedFrames() const
     }
 
     return fewest;
+}
+
+RunOutcome RunnerMatch::outcomeAfter(std::uint32_t hostFrames) const
+{
+    RunOutcome outcome;
+    outcome.isComplete = hasEveryClientFinished();
+    outcome.hostFrames = hostFrames;
+    outcome.fewestVerifiedFrames = fewestVerifiedFrames();
+    outcome.predictionWindow = config.maxPrediction;
+    outcome.framesCompared = ledger.framesReportedByAll();
+    outcome.disagreement = ledger.firstDisagreement();
+
+    for (const RunnerClient& client : clients)
+    {
+        const session::Session* played = client.session().session();
+
+        outcome.slots.push_back(client.session().localSlot());
+        outcome.deepestRollback =
+            std::max(outcome.deepestRollback, played == nullptr ? 0U : played->rollbackStats().deepestRollback);
+    }
+
+    return outcome;
 }
 
 }

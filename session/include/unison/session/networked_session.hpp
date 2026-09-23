@@ -71,6 +71,9 @@ public:
 
     [[nodiscard]] ConnectionState state() const;
 
+    /// The slot the relay gave this client, `kNoSlot` before it has given one.
+    [[nodiscard]] std::uint8_t localSlot() const;
+
     /// The session the client plays, or nothing before the relay has let the client in.
     [[nodiscard]] const Session* session() const;
 
@@ -111,7 +114,7 @@ private:
     net::Outbox outbox;
     TimeSync pace;
     ConnectionState connection = ConnectionState::Idle;
-    std::uint8_t localSlot = net::kNoSlot;
+    std::uint8_t givenSlot = net::kNoSlot;
     std::optional<Session> played;
     std::optional<net::Desync> reportedDesync;
     std::uint64_t updatedAt = 0;

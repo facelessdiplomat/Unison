@@ -1,3 +1,4 @@
+#include <unison/runner/run_outcome.hpp>
 #include <unison/runner/runner_match.hpp>
 #include <unison/runner/runner_options.hpp>
 
@@ -6,6 +7,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <span>
+#include <string>
 
 int main(int argc, char** argv)
 {
@@ -38,22 +40,10 @@ int main(int argc, char** argv)
 
     unison::runner::RunnerMatch match{*options};
     const unison::runner::RunOutcome outcome = match.play();
+    const int exitCode = unison::runner::exitCodeOf(outcome);
+    const std::string report = unison::runner::reportOf(outcome, *options);
 
-    if (!outcome.isComplete)
-    {
-        std::fprintf(stderr,
-                     "unison_runner: the slowest client verified %u of %u frames in %u host frames\n",
-                     outcome.fewestVerifiedFrames,
-                     options->frames,
-                     outcome.hostFrames);
+    std::fputs(report.c_str(), exitCode == 0 ? stdout : stderr);
 
-        return 1;
-    }
-
-    std::printf("unison_runner: %u players verified %u frames in %u host frames\n",
-                options->players,
-                options->frames,
-                outcome.hostFrames);
-
-    return 0;
+    return exitCode;
 }
