@@ -710,7 +710,10 @@ the session's event changes are.
 - `SessionRunner::update(hostDeltaMicroseconds)` — takes in what the relay sent, runs as many ticks as the host's
   time holds (one more or one fewer when the session asks to keep pace, §8.3), hands the events those ticks
   raised and took back to the dispatcher, and returns the number of ticks, the rollbacks they took and the
-  interpolation alpha for rendering. Host time is counted in whole microseconds, so no rounding drifts.
+  interpolation alpha for rendering. Host time is counted in whole microseconds, so no rounding drifts. A host
+  that measures its own frames, as Unreal does, passes the delta; one that does not calls `update()`, and the
+  runner lets pass what its clock has counted since the last update. A runner made without a clock runs on a
+  `SteadyClock` of its own, the real time, and tests and the runner tool hand it a `ManualClock`.
 - The live frame belongs to the game, which the host holds and reads (`ArenaSimulation::frame()` for the
   sample), read-only.
 - `EventDispatcher` — `on<EventType>(callback)` plus `onCancelled<EventType>`; the runner has it forget the

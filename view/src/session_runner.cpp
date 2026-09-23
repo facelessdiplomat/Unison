@@ -16,7 +16,15 @@ SessionRunner::SessionRunner(session::NetworkedSession& session,
                              EventDispatcher& dispatcher,
                              const net::IClock& clock,
                              std::uint16_t tickRate)
-    : networked{session}, dispatcher{dispatcher}, clock{clock}, tickRate{tickRate}
+    : networked{session}, dispatcher{dispatcher}, clock{clock}, tickRate{tickRate},
+      lastUpdatedAt{clock.nowMicroseconds()}
+{
+    UNISON_VERIFY(tickRate > 0);
+}
+
+SessionRunner::SessionRunner(session::NetworkedSession& session, EventDispatcher& dispatcher, std::uint16_t tickRate)
+    : networked{session}, dispatcher{dispatcher}, ownClock{std::in_place}, clock{*ownClock}, tickRate{tickRate},
+      lastUpdatedAt{clock.nowMicroseconds()}
 {
     UNISON_VERIFY(tickRate > 0);
 }
@@ -52,6 +60,16 @@ RunnerStep SessionRunner::update(std::uint64_t hostDeltaMicroseconds)
     return RunnerStep{ticks,
                       rollbacksSoFar() - rollbacksBefore,
                       static_cast<float>(elapsedTickMicroseconds) / static_cast<float>(kMicrosecondsPerSecond)};
+}
+
+RunnerStep SessionRunner::update()
+{
+    const std::uint64_t now = clock.nowMicroseconds();
+    const std::uint64_t hostDelta = now - lastUpdatedAt;
+
+    lastUpdatedAt = now;
+
+    return update(hostDelta);
 }
 
 void SessionRunner::handOverEvents()

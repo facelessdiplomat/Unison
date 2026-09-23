@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.3.3**, the session runner on the real clock. Last finished: 3.3.2, the networked session's
-  connection states. 3.2.3 is deferred until WSL is installed.
+- Next up: **3.4.1**, the console client's skeleton. Last finished: 3.3.3, the session runner on the real
+  clock. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -40,11 +40,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 16 | 9 |
+| 3 Real networking | 4 | 16 | 10 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **181** | **128** |
+| **Total** | **31** | **181** | **129** |
 
 ## Charter amendments made while planning
 
@@ -317,7 +317,7 @@ needs from earlier tasks is ticked.
 ### 3.3 Networked session over UDP
 - [x] 3.3.1 Integration test: relay core plus two `NetworkedSession`s over `EnetTransport` on localhost, 1000 frames, equal checksums. The relay side is `RelayRooms`, as in `unison_relay`, and the clients play the arena on its scripted inputs; the clock is a manual one, so the thousand frames take seconds in Debug rather than seventeen.
 - [x] 3.3.2 Connection state machine (`Connecting`, `Joining`, `Playing`, `Stalled`, `Disconnected`) with events for the host. Test: transitions on connect, stall, disconnect. A transport now reports a peer whose connection comes up as well as one that has gone, the runner's wiretap and the tests' tap hand both on, and the session keeps every state it moves into until the host clears them.
-- [ ] 3.3.3 Real-clock pacing in `SessionRunner` with `steady_clock` behind the injectable clock interface. Test: the fake clock drives ticks exactly; the real clock is the default.
+- [x] 3.3.3 Real-clock pacing in `SessionRunner` with `steady_clock` behind the injectable clock interface. Test: the fake clock drives ticks exactly; the real clock is the default. `update()` lets pass what the runner's clock has counted since the last update, and a runner made without a clock owns a `SteadyClock` (3.2.1).
 
 ### 3.4 Console client (`unison_console`, `arena_view_console`)
 - [ ] 3.4.1 Skeleton: `--host --port --name --spectate`, connects, runs the session, prints one status line per second. Done when: two consoles on one machine play through a local relay.

@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace unison::view
@@ -27,17 +28,24 @@ struct RunnerStep
 class SessionRunner
 {
 public:
-    /// A tick rate of nought breaks a contract.
+    /// Runs on the clock it is given; a tick rate of nought breaks a contract.
     SessionRunner(session::NetworkedSession& session,
                   EventDispatcher& dispatcher,
                   const net::IClock& clock,
                   std::uint16_t tickRate);
 
+    /// Runs on a steady clock of its own, the real time; a tick rate of nought breaks a contract.
+    SessionRunner(session::NetworkedSession& session, EventDispatcher& dispatcher, std::uint16_t tickRate);
+
     /// Replaces the input the local player plays from the next tick on.
     void setLocalInput(std::span<const std::byte> input);
 
-    /// Lets the given microseconds of the host's time pass.
+    /// Lets the given microseconds of the host's time pass, for a host that measures its own frames.
     [[nodiscard]] RunnerStep update(std::uint64_t hostDeltaMicroseconds);
+
+    /// Lets pass the time the runner's clock has counted since the last update, or since the runner was made;
+    /// a host uses this or the other, not both.
+    [[nodiscard]] RunnerStep update();
 
 private:
     void handOverEvents();
@@ -46,9 +54,11 @@ private:
 
     session::NetworkedSession& networked;
     EventDispatcher& dispatcher;
+    std::optional<net::SteadyClock> ownClock;
     const net::IClock& clock;
     std::uint16_t tickRate;
     std::uint64_t elapsedTickMicroseconds = 0;
+    std::uint64_t lastUpdatedAt;
 };
 
 }

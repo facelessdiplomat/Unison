@@ -15,8 +15,10 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <thread>
 
 namespace
 {
@@ -211,4 +213,29 @@ TEST_CASE("a runner of a match that never ticks breaks a contract")
     const unison::view::SessionRunner runner{rig.client, rig.dispatcher, rig.clock, 0};
 
     REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("a runner told nothing lets pass the time its clock has counted since the last update")
+{
+    Rig rig;
+    rig.clock.advance(kHostFrame);
+    const std::uint32_t first = rig.runner.update().ticks;
+    rig.clock.advance(50'000);
+
+    const std::uint32_t second = rig.runner.update().ticks;
+
+    REQUIRE(first == 1U);
+    REQUIRE(second == 3U);
+}
+
+TEST_CASE("a runner made without a clock follows the real one")
+{
+    Rig rig;
+    unison::view::SessionRunner onItsOwnClock{rig.client, rig.dispatcher, rig.config.tickRate};
+
+    std::this_thread::sleep_for(std::chrono::milliseconds{40});
+    const std::uint32_t ticks = onItsOwnClock.update().ticks;
+
+    REQUIRE(ticks >= 2U);
+    REQUIRE(ticks <= 12U);
 }
