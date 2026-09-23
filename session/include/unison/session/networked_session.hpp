@@ -74,6 +74,9 @@ public:
     /// The session the client plays, or nothing before the relay has let the client in.
     [[nodiscard]] const Session* session() const;
 
+    /// Clears the event changes of the session once the host has taken them.
+    void clearEventChanges();
+
     [[nodiscard]] const TimeSync& timeSync() const;
 
     /// The last desync the relay reported, if it reported one.

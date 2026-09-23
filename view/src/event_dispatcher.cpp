@@ -27,6 +27,11 @@ void EventDispatcher::dispatch(const session::EventChanges& changes)
     }
 }
 
+void EventDispatcher::forgetBelow(std::uint32_t frame)
+{
+    shown.erase(shown.begin(), shown.lower_bound(sim::EventKey{frame, 0, 0}));
+}
+
 EventDispatcher::Handlers& EventDispatcher::handlersFor(std::uint32_t typeId)
 {
     for (Handlers& registered : handlers)

@@ -116,6 +116,7 @@ add_executable(
     support/allocation_probe.cpp
     support/test_components.cpp
     view/event_dispatcher_test.cpp
+    view/session_runner_test.cpp
 )
 
 target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")

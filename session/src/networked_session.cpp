@@ -98,6 +98,14 @@ const Session* NetworkedSession::session() const
     return played.has_value() ? &*played : nullptr;
 }
 
+void NetworkedSession::clearEventChanges()
+{
+    if (played.has_value())
+    {
+        played->clearEventChanges();
+    }
+}
+
 const TimeSync& NetworkedSession::timeSync() const
 {
     return pace;

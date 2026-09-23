@@ -1,4 +1,4 @@
-add_library(unison_view STATIC src/event_dispatcher.cpp)
+add_library(unison_view STATIC src/event_dispatcher.cpp src/session_runner.cpp)
 
 target_include_directories(unison_view PUBLIC include)
 

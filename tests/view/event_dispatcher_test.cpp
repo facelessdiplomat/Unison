@@ -113,3 +113,33 @@ TEST_CASE("events of a type nobody handles are passed over")
 
     REQUIRE(shown == 0U);
 }
+
+TEST_CASE("an event of a frame the dispatcher was told to forget is shown again when handed over again")
+{
+    unison::view::EventDispatcher dispatcher;
+    std::uint32_t shown = 0;
+    dispatcher.on<unison::test::SlotMoved>([&shown](const unison::sim::EventKey&, const unison::test::SlotMoved&)
+                                           { ++shown; });
+    const unison::session::EventChanges raised = raisingMoveOf(2);
+    dispatcher.dispatch(raised);
+
+    dispatcher.forgetBelow(kFrame + 1);
+    dispatcher.dispatch(raised);
+
+    REQUIRE(shown == 2U);
+}
+
+TEST_CASE("forgetting the frames below one keeps the events of that frame and after")
+{
+    unison::view::EventDispatcher dispatcher;
+    std::uint32_t shown = 0;
+    dispatcher.on<unison::test::SlotMoved>([&shown](const unison::sim::EventKey&, const unison::test::SlotMoved&)
+                                           { ++shown; });
+    const unison::session::EventChanges raised = raisingMoveOf(2);
+    dispatcher.dispatch(raised);
+
+    dispatcher.forgetBelow(kFrame);
+    dispatcher.dispatch(raised);
+
+    REQUIRE(shown == 1U);
+}

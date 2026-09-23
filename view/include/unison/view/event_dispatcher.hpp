@@ -38,6 +38,10 @@ public:
     /// Delivers the cancellations and then the raised events of a batch of changes.
     void dispatch(const session::EventChanges& changes);
 
+    /// Forgets the events of the frames below the given one, which can no longer be taken back, so the events
+    /// it remembers stop growing; an event of those frames handed over again would be shown again.
+    void forgetBelow(std::uint32_t frame);
+
 private:
     struct Handlers
     {

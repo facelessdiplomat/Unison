@@ -638,14 +638,19 @@ often are, is dropped; so is anything from a peer other than the relay. A `Kick`
 
 ### 10.1 Bridge API (host side, `unison_view`)
 
-- `SessionRunner::update(hostDeltaSeconds)` — runs zero or more ticks and returns the number of ticks,
-  rollbacks and the interpolation alpha for rendering.
-- `SessionRunner::frame()` — read-only view of the live frame (`const Frame&`).
-- `EventDispatcher` — `on<EventType>(callback)` plus `onCancelled<EventType>`.
+- `SessionRunner::update(hostDeltaMicroseconds)` — takes in what the relay sent, runs as many ticks as the host's
+  time holds (one more or one fewer when the session asks to keep pace, §8.3), hands the events those ticks
+  raised and took back to the dispatcher, and returns the number of ticks, the rollbacks they took and the
+  interpolation alpha for rendering. Host time is counted in whole microseconds, so no rounding drifts.
+- The live frame belongs to the game, which the host holds and reads (`ArenaSimulation::frame()` for the
+  sample), read-only.
+- `EventDispatcher` — `on<EventType>(callback)` plus `onCancelled<EventType>`; the runner has it forget the
+  frames below `V` after every host frame, since nothing can take their events back any more.
 - `EntityViewMap` — maps `entt::entity` to a host handle; fed by `EntityCreated` / `EntityDestroyed` events.
 - `TransformInterpolator` — keeps the previous tick's transforms (host side, not simulation state) and returns
   the interpolated pose for the current render frame.
-- Local input submission: `SessionRunner::setLocalInput(const Input&)` once per host frame; the runner samples it at each tick.
+- Local input submission: `SessionRunner::setLocalInput(bytes)` once per host frame, the game's input as its bytes
+  so no simulation template reaches the host (§7.3); the runner samples it at each tick.
 
 ### 10.2 Terminal hosts
 
