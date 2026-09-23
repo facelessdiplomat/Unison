@@ -118,6 +118,16 @@ void RelayCore::handle(PeerId from, const Checksum& checksum)
     }
 }
 
+void RelayCore::handle(PeerId from, const Ping& ping)
+{
+    if (!isMember(from))
+    {
+        return;
+    }
+
+    sendTo(from, Channel::Unreliable, Pong{ping.sentAt, confirmedLog.lastFrame()});
+}
+
 void RelayCore::confirmReadyFrames()
 {
     const std::uint8_t inPlay = slotsInPlay();
@@ -177,6 +187,11 @@ void RelayCore::sendToAll(Channel channel, const Message& message)
     {
         sendTo(member.peer, channel, message);
     }
+}
+
+bool RelayCore::isMember(PeerId peer) const
+{
+    return std::ranges::find(members, peer, &Member::peer) != members.end();
 }
 
 std::uint8_t RelayCore::slotOf(PeerId peer) const

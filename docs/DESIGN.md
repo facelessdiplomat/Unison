@@ -583,7 +583,10 @@ runner (in-process) and inside `unison_relay` (ENet), so tests exercise the real
 A `RelayCore` hosts one match with the config it was created with: a `Hello` in the wrong protocol version
 or with another config hash is answered with `Kick`, a player takes the lowest free slot or is kicked when
 none is left, and a spectator is welcomed without a slot (`kNoSlot`). Rooms that come and go with their
-players are the standalone relay's concern (3.2.2). Bytes that decode to no message go unanswered.
+players are the standalone relay's concern (3.2.2). Bytes that decode to no message go unanswered, and so
+does a `Ping` from a peer that is not in the match; a member's ping is answered at once on the unreliable
+channel with its own stamp and the newest frame the relay has confirmed, and the sender works out the
+round trip from its own clock.
 
 ---
 

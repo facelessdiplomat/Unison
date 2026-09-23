@@ -56,6 +56,8 @@ private:
 
     void handle(PeerId from, const Checksum& checksum);
 
+    void handle(PeerId from, const Ping& ping);
+
     template <typename T>
     void handle(PeerId, const T&)
     {
@@ -74,6 +76,8 @@ private:
     void sendToAll(Channel channel, const Message& message);
 
     [[nodiscard]] std::uint8_t freeSlot() const;
+
+    [[nodiscard]] bool isMember(PeerId peer) const;
 
     [[nodiscard]] std::uint8_t slotOf(PeerId peer) const;
 

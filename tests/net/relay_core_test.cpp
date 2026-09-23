@@ -546,3 +546,57 @@ TEST_CASE("a relay that would never send its confirmed frames again breaks a con
 
     REQUIRE(probe.failureCount() == 1U);
 }
+
+TEST_CASE("a ping is answered with its own stamp and the frame the relay has confirmed so far")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(10));
+    match.sendInputs(match.second, 1, inputOf(20));
+    static_cast<void>(Match::repliesOf(match.first));
+
+    sendMessage(match.first, match.relay.endpoint.id(), unison::net::Ping{123'456});
+    match.relay.endpoint.poll(match.relay.core);
+
+    const unison::net::Pong pong = onlyReplyAs<unison::net::Pong>(Match::repliesOf(match.first));
+    REQUIRE(pong.pingSentAt == 123'456U);
+    REQUIRE(pong.confirmedFrame == 1U);
+}
+
+TEST_CASE("a ping and its pong measure the round trip to the relay")
+{
+    constexpr std::uint32_t kOneWayMilliseconds = 30;
+    unison::net::LoopbackHub hub;
+    unison::net::LoopbackEndpoint& relayEndpoint = hub.join();
+    unison::net::LoopbackEndpoint& clientEndpoint = hub.join();
+    unison::net::NetworkSimulator network{unison::net::NetworkConditions{kOneWayMilliseconds, 0, 0.0F}, 20260923};
+    unison::net::SimulatedLink relayLink{relayEndpoint, network};
+    unison::net::SimulatedLink clientLink{clientEndpoint, network};
+    unison::net::ManualClock clock;
+    unison::net::RelayCore relay{relayLink, clock, threeSlotsOfTwoBytes()};
+    sendMessage(clientLink, relayEndpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    network.advance(kOneWayMilliseconds);
+    relayEndpoint.poll(relay);
+    network.advance(kOneWayMilliseconds);
+    static_cast<void>(Match::repliesOf(clientEndpoint));
+    const std::uint64_t sentAt = 1'000'000;
+
+    sendMessage(clientLink, relayEndpoint.id(), unison::net::Ping{sentAt});
+    network.advance(kOneWayMilliseconds);
+    relayEndpoint.poll(relay);
+    network.advance(kOneWayMilliseconds);
+    const std::uint64_t receivedAt = sentAt + 2U * kOneWayMilliseconds * 1'000U;
+
+    const unison::net::Pong pong = onlyReplyAs<unison::net::Pong>(Match::repliesOf(clientEndpoint));
+    REQUIRE(receivedAt - pong.pingSentAt == 60'000U);
+}
+
+TEST_CASE("a ping from a peer that is not in the match goes unanswered")
+{
+    Relay relay{twoPlayers()};
+    unison::net::LoopbackEndpoint& stranger = relay.hub.join();
+
+    sendMessage(stranger, relay.endpoint.id(), unison::net::Ping{1});
+    relay.endpoint.poll(relay.core);
+
+    REQUIRE(Match::repliesOf(stranger).empty());
+}
