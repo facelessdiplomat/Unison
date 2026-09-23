@@ -504,6 +504,10 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
   four pongs at a time and corrects by running one extra tick per host frame until the client has caught
   up, or one fewer should it ever run ahead, never by changing `dt`; pongs that come back while a correction
   runs are left out.
+- A client cut off from the relay stalls once its prediction window is full, while the relay confirms its
+  frames at the deadline without it and everyone else plays on at full pace. Back on the network, it takes
+  in every confirmation it missed, the reliable resends among them, plays through them as settled frames
+  and catches up by extra ticks; its checksums agree with everyone else's all along.
 - Optional local input delay (default 0) trades responsiveness for fewer rollbacks; `maxPrediction` and
   input delay together allow lockstep-like tuning without new code paths. With a delay of `d` a tick samples
   the local input for frame `P + 1 + d`, and the first `d` frames of a session play the neutral input for the

@@ -18,9 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.7.3**, stalling and resuming under an outage. Last finished: 2.7.6, a client input window wide
-  enough to catch up.
-- 2.7.5 and 2.7.6 run before 2.7.3: riding out an outage needs both, and working it out found them.
+- Next up: **2.7.4**, the session runner. Last finished: 2.7.3, stalling and resuming under an outage.
 - Taken ahead of 2.7.1 on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
   classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, which also retired what 2.2.2 left
   behind in restores.
@@ -33,12 +31,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 41 | 33 |
+| 2 Rollback session (local) | 8 | 41 | 34 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **175** | **106** |
+| **Total** | **31** | **175** | **107** |
 
 ## Charter amendments made while planning
 
@@ -266,7 +264,7 @@ needs from earlier tasks is ticked.
 ### 2.7 Networked session (client side)
 - [x] 2.7.1 `NetworkedSession`: sends local inputs, applies `Confirmed`, sends checksums, exposes connection state. Test: two clients over zero-latency loopback stay in sync for 1000 frames.
 - [x] 2.7.2 `TimeSync` controller: target lead `RTT/2 + jitterMargin`, correction by an extra or skipped tick. Test: the lead converges under simulated 100 ms latency and stays within tolerance. The relay follows the slowest client, so the target is a band of `jitterMargin` around `RTT/2` rather than a lead beyond it (`DESIGN.md` §8.3); the networked session pings every 100 ms, feeds the pongs to its `TimeSync` and hands the host the correction, and its `tick()` no longer polls, `update(now)` does. 2.7.5 moved the band from the confirmed frame to the relay's input frontier.
-- [ ] 2.7.3 Stall and resume under a 500 ms outage. Test: the session stalls, then catches up without desync.
+- [x] 2.7.3 Stall and resume under a 500 ms outage. Test: the session stalls, then catches up without desync. The other client plays on at full pace throughout; it needed 2.7.5 and 2.7.6 first.
 - [ ] 2.7.4 `SessionRunner::update(hostDelta)` with an accumulator and an injectable clock, returning ticks run and the interpolation alpha. It also lets the event dispatcher forget the keys of frames below `V`, which can no longer be cancelled, so the set of shown keys stops growing. Test: 16.7 ms steps produce one tick each; 50 ms produces three.
 - [x] 2.7.5 (+) The relay tells in every pong the newest frame any player has sent an input for, and `TimeSync` keeps pace with that frontier, where the fastest client stands, instead of with the confirmed frame, which follows the slowest one and, while a player is out, trails everyone else by the relay's deadline: pacing on it would have slowed every other client to a third of its speed through an outage, against the promise of 2.6.3 that a stalled slot blocks nobody. The pong gains a field, so the protocol moves to version 2. Found in 2.7.3. Test: a pong carries the input frontier, and frames the relay confirms late for a player who is out slow nobody down.
 - [x] 2.7.6 (+) The client's input window reaches past its prediction window, so a client that stalled through an outage keeps every confirmation arriving meanwhile and plays through them to catch up, rather than turning away frames beyond its window that the relay resends only once. Found in 2.7.3. Test: a session keeps a confirmation far beyond the frames it has played and verifies the frame once it has played up to it.
