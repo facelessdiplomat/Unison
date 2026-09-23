@@ -7,6 +7,7 @@
 #include <unison/net/relay_core.hpp>
 
 #include <chrono>
+#include <csignal>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -23,6 +24,13 @@ constexpr std::uint64_t kMicrosecondsPerMillisecond = 1'000;
 constexpr std::uint64_t kMicrosecondsPerSecond = 1'000'000;
 constexpr std::chrono::milliseconds kIdleBetweenPolls{1};
 
+volatile std::sig_atomic_t isStopAsked = 0;
+
+void askToStop(int)
+{
+    isStopAsked = 1;
+}
+
 void printToStandardOutput(unison::LogLevel, std::string_view message)
 {
     std::fprintf(stdout, "%.*s\n", static_cast<int>(message.size()), message.data());
@@ -34,7 +42,7 @@ void relayUntil(std::uint64_t stopAt,
                 unison::relay::RelayRooms& rooms,
                 const unison::net::IClock& clock)
 {
-    while (clock.nowMicroseconds() < stopAt)
+    while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt)
     {
         transport.poll(rooms);
         rooms.update();
@@ -47,6 +55,8 @@ void relayUntil(std::uint64_t stopAt,
 int main(int argc, char** argv)
 {
     unison::installLogSink(printToStandardOutput);
+    static_cast<void>(std::signal(SIGINT, askToStop));
+    static_cast<void>(std::signal(SIGTERM, askToStop));
 
     const tl::expected<unison::relay::RelayOptions, unison::Error> options =
         unison::relay::parseRelayOptions(std::span<const char* const>{argv, static_cast<std::size_t>(argc)});

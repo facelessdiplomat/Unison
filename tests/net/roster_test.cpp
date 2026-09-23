@@ -112,3 +112,41 @@ TEST_CASE("a roster for more slots than a mask of slots has bits breaks a contra
 
     REQUIRE(probe.failureCount() == 1U);
 }
+
+TEST_CASE("a member who leaves is no member and frees the slot it held")
+{
+    unison::net::Roster roster{2};
+    roster.admit(unison::net::PeerId{1}, 0);
+    roster.admit(unison::net::PeerId{2}, 1);
+
+    roster.remove(unison::net::PeerId{1});
+
+    REQUIRE_FALSE(roster.isMember(unison::net::PeerId{1}));
+    REQUIRE(roster.freeSlot() == 0U);
+    REQUIRE(roster.slotsInPlay() == 0b10U);
+}
+
+TEST_CASE("a roster everyone has left is empty")
+{
+    unison::net::Roster roster{2};
+    roster.admit(unison::net::PeerId{1}, 0);
+    roster.admit(unison::net::PeerId{2}, unison::net::kNoSlot);
+    const bool wasEmpty = roster.isEmpty();
+
+    roster.remove(unison::net::PeerId{1});
+    roster.remove(unison::net::PeerId{2});
+
+    REQUIRE_FALSE(wasEmpty);
+    REQUIRE(roster.isEmpty());
+}
+
+TEST_CASE("taking out a peer who never came in changes nothing")
+{
+    unison::net::Roster roster{2};
+    roster.admit(unison::net::PeerId{1}, 0);
+
+    roster.remove(unison::net::PeerId{9});
+
+    REQUIRE(roster.isMember(unison::net::PeerId{1}));
+    REQUIRE(roster.members().size() == 1U);
+}

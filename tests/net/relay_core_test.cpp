@@ -496,6 +496,32 @@ TEST_CASE("a player dropped from a frame repeats the last input confirmed for it
     REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 2).subspan(3, 3), repeated));
 }
 
+TEST_CASE("a player who has left no longer holds up the frames of the players who stay")
+{
+    Match match;
+    match.relay.core.peerLeft(match.second.id());
+
+    match.sendInputs(match.first, 1, inputOf(10));
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    const std::array<std::byte, 3> absent{std::byte{0}, std::byte{0}, std::byte{0}};
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 1).subspan(3, 3), absent));
+}
+
+TEST_CASE("a relay core is empty once everyone in it has left")
+{
+    Match match;
+    const bool wasEmpty = match.relay.core.isEmpty();
+
+    match.relay.core.peerLeft(match.first.id());
+    match.relay.core.peerLeft(match.second.id());
+
+    REQUIRE_FALSE(wasEmpty);
+    REQUIRE(match.relay.core.isEmpty());
+}
+
 TEST_CASE("an input that arrives after its frame was confirmed without it is ignored")
 {
     Match match;

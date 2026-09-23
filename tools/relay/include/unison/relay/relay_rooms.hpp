@@ -16,14 +16,16 @@ namespace unison::relay
 {
 
 /// The rooms of a standalone relay, one for every match its clients would play. The first hello of a match
-/// opens the room, whose relay core seats the client and answers it from then on; a peer that has said no
-/// hello is not answered.
+/// opens the room, whose relay core seats the client and answers it from then on, and the room closes once
+/// the last of its peers has gone; a peer that has said no hello is not answered.
 class RelayRooms final : public net::IMessageReceiver
 {
 public:
     RelayRooms(net::ITransport& transport, const net::IClock& clock, const net::RelaySettings& settings);
 
     void receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message) override;
+
+    void peerLeft(net::PeerId peer) override;
 
     /// Lets every room confirm the frames whose deadline has passed.
     void update();

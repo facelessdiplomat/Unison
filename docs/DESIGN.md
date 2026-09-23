@@ -195,7 +195,7 @@ state freely; they never mutate it except through `Session` inputs.
     `tl::expected<T, Error>`. Simulation code never returns errors: an invalid state is a contract violation.
 - **Encoding**: little-endian byte order (v1 targets x64 only), `uint32_t` frame numbers, `uint8_t` slot ids,
   `uint32_t` entity ids at the host boundary.
-- **Logging**: `LogSink` is a process-wide callback and is one of the two pieces of global mutable state the
+- **Logging**: `LogSink` is a process-wide callback and is one of the three pieces of global mutable state the
   engine allows. It exists because `UNISON_VERIFY` is a macro and cannot take an injected dependency, and
   because a host installs one sink for the whole process. The exception is bounded: the sink is write-only
   from the simulation's side, nothing in a deterministic library reads it back, and no simulation result
@@ -205,7 +205,10 @@ state freely; they never mutate it except through `Session` inputs.
   first and unregisters after the last. It is the second piece of global mutable state the engine allows.
   The exception is bounded: the registration is installed before any body exists, no deterministic library
   reads it back, the counter changes only on the simulation thread, and no simulation result depends on it.
-  Everything else keeps the constructor injection of `CLAUDE.md` 4.
+- **A relay's stop request**: a signal handler can reach the program only through a flag of static storage,
+  so `unison_relay`'s `main.cpp` keeps one `volatile std::sig_atomic_t` that `SIGINT` and `SIGTERM` set and
+  its loop reads. It is the third piece of global mutable state, and it never leaves that one source file of
+  an executable. Everything else keeps the constructor injection of `CLAUDE.md` 4.
 - **Threading**: the simulation runs on one thread chosen by the host (the game thread in Unreal). Unison never
   creates threads inside deterministic libraries.
 
@@ -669,7 +672,10 @@ lobbies are out of scope in v1, and rooms that come and go with their players ar
 `unison_relay` is that standalone relay: it listens with an `EnetTransport` on `--bind` and `--port`
 (0.0.0.0:7777 unless told otherwise) for `--max-peers` peers, and hands every message to `RelayRooms`, which
 opens a `RelayCore` for the first `Hello` of every config and passes each seated peer's messages to its room
-from then on; a peer that has said no hello is not answered. The loop polls the transport, lets every room
+from then on; a peer that has said no hello is not answered. A peer that has gone leaves its room: the relay
+core frees its slot and confirms the frames it no longer sends inputs for with the slot absent rather than
+waiting out the deadline, and the room closes once its last peer has gone. Ctrl+C or `SIGTERM` stops the
+loop, and the transport says goodbye to every peer as it goes. The loop polls the transport, lets every room
 confirm the frames whose deadline has passed and sleeps a millisecond, on a `SteadyClock` that counts from
 start-up; `--input-deadline`, `--resend-interval` and `--peer-timeout` set the room's `RelaySettings` and the
 transport, and `--run-for` stops it after that many seconds. It logs through `LogSink` to standard output. Bytes that decode to no message go unanswered, and so

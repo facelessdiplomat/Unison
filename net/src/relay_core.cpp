@@ -43,9 +43,20 @@ void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message
     std::visit([this, from](const auto& received) { handle(from, received); }, *decoded);
 }
 
+void RelayCore::peerLeft(PeerId peer)
+{
+    roster.remove(peer);
+    confirmReadyFrames();
+}
+
 void RelayCore::update()
 {
     confirmReadyFrames();
+}
+
+bool RelayCore::isEmpty() const
+{
+    return roster.isEmpty();
 }
 
 void RelayCore::handle(PeerId from, const Hello& hello)

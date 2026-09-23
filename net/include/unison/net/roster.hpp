@@ -30,10 +30,15 @@ public:
     /// breaks a contract.
     void admit(PeerId peer, std::uint8_t slot);
 
+    /// Takes a member out, freeing the slot it held; a peer that is no member changes nothing.
+    void remove(PeerId peer);
+
     /// The lowest slot nobody holds, or `kNoSlot` when every one of them is taken.
     [[nodiscard]] std::uint8_t freeSlot() const;
 
     [[nodiscard]] bool isMember(PeerId peer) const;
+
+    [[nodiscard]] bool isEmpty() const;
 
     /// The slot a member plays: `kNoSlot` for a spectator and for a peer that is not in the match.
     [[nodiscard]] std::uint8_t slotOf(PeerId peer) const;

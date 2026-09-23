@@ -47,8 +47,15 @@ public:
 
     void receive(PeerId from, Channel channel, std::span<const std::byte> message) override;
 
+    /// Takes a peer that has gone out of the match: its slot is free, and the frames it no longer sends
+    /// inputs for are confirmed with the slot absent rather than waited for.
+    void peerLeft(PeerId peer) override;
+
     /// Confirms every frame whose deadline has passed; call it between messages as time goes by.
     void update();
+
+    /// Whether everyone who came into the match has left it.
+    [[nodiscard]] bool isEmpty() const;
 
 private:
     void handle(PeerId from, const Hello& hello);

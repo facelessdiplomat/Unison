@@ -19,6 +19,11 @@ void Roster::admit(PeerId peer, std::uint8_t slot)
     admitted.push_back(Member{peer, slot});
 }
 
+void Roster::remove(PeerId peer)
+{
+    std::erase_if(admitted, [peer](const Member& member) { return member.peer == peer; });
+}
+
 std::uint8_t Roster::freeSlot() const
 {
     for (std::uint8_t slot = 0; slot < slotCount; ++slot)
@@ -35,6 +40,11 @@ std::uint8_t Roster::freeSlot() const
 bool Roster::isMember(PeerId peer) const
 {
     return std::ranges::find(admitted, peer, &Member::peer) != admitted.end();
+}
+
+bool Roster::isEmpty() const
+{
+    return admitted.empty();
 }
 
 std::uint8_t Roster::slotOf(PeerId peer) const

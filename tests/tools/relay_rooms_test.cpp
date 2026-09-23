@@ -152,3 +152,44 @@ TEST_CASE("a peer that has said no hello is not answered and opens no room")
     REQUIRE(relay.rooms.roomCount() == 0U);
     REQUIRE(mail.letters.empty());
 }
+
+TEST_CASE("a room closes once its last peer has left")
+{
+    Relay relay;
+    const Relay::Client& first = relay.join(matchOf(2));
+    const Relay::Client& second = relay.join(matchOf(2));
+    relay.rooms.peerLeft(first.endpoint.id());
+    const std::size_t afterOneLeft = relay.rooms.roomCount();
+
+    relay.rooms.peerLeft(second.endpoint.id());
+
+    REQUIRE(afterOneLeft == 1U);
+    REQUIRE(relay.rooms.roomCount() == 0U);
+}
+
+TEST_CASE("the room count follows joins and leaves across matches")
+{
+    Relay relay;
+    const Relay::Client& ofTwo = relay.join(matchOf(2));
+    static_cast<void>(relay.join(matchOf(3)));
+    const std::size_t withBoth = relay.rooms.roomCount();
+    relay.rooms.peerLeft(ofTwo.endpoint.id());
+    const std::size_t afterTheFirstClosed = relay.rooms.roomCount();
+
+    const Relay::Client& ofTwoAgain = relay.join(matchOf(2));
+
+    REQUIRE(withBoth == 2U);
+    REQUIRE(afterTheFirstClosed == 1U);
+    REQUIRE(relay.rooms.roomCount() == 2U);
+    REQUIRE(ofTwoAgain.mail.first<unison::net::Welcome>()->slot == 0U);
+}
+
+TEST_CASE("a peer that leaves without having said hello changes nothing")
+{
+    Relay relay;
+    static_cast<void>(relay.join(matchOf(2)));
+
+    relay.rooms.peerLeft(unison::net::PeerId{99});
+
+    REQUIRE(relay.rooms.roomCount() == 1U);
+}

@@ -39,6 +39,33 @@ void RelayRooms::receive(net::PeerId from, net::Channel channel, std::span<const
     room.receive(from, channel, message);
 }
 
+void RelayRooms::peerLeft(net::PeerId peer)
+{
+    const auto seat = seats.find(peer);
+
+    if (seat == seats.end())
+    {
+        return;
+    }
+
+    const std::uint64_t configHash = seat->second;
+    seats.erase(seat);
+
+    net::RelayCore* room = roomWith(configHash);
+
+    if (room == nullptr)
+    {
+        return;
+    }
+
+    room->peerLeft(peer);
+
+    if (room->isEmpty())
+    {
+        std::erase_if(rooms, [configHash](const Room& open) { return open.configHash == configHash; });
+    }
+}
+
 void RelayRooms::update()
 {
     for (const Room& room : rooms)
