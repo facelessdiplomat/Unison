@@ -18,8 +18,9 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.8.6**, the snapshot ring against the two-frame layout. Last finished: 2.7.7, clients paced
-  by the relay's clock, taken ahead of 2.8.6 on the owner's request of 2026-09-23 once 2.8.5 showed them
+- Next up: **3.1.1**, the ENet transport's server. Last finished: 2.8.6, Q1 answered; Phase 2 is finished,
+  every micro-task and exit criterion ticked.
+- 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
 - 2.8.7 to 2.8.10 run before 2.8.5: measuring its profiles showed a 240 ms round trip outrunning a window of
   10 frames at 60 Hz and every lost confirmation stalling a client until the next reliable batch; the owner
@@ -37,12 +38,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 46 | 45 |
+| 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **180** | **118** |
+| **Total** | **31** | **180** | **119** |
 
 ## Charter amendments made while planning
 
@@ -227,7 +228,7 @@ needs from earlier tasks is ticked.
 
 **Exit criteria**
 - [x] Definition of Done item 1 passes: `unison_runner --players 4 --frames 36000 --latency 120 --jitter 30 --loss 5` exits 0. Passed 2026-09-23 in Release: 36000 frames in 35188 host frames, 17 s, every checksum alike, deepest rollback 20 of 20.
-- [ ] Q1 (snapshot ring vs two-frame layout) answered in `DESIGN.md` with benchmark numbers.
+- [x] Q1 (snapshot ring vs two-frame layout) answered in `DESIGN.md` with benchmark numbers.
 - [x] CTest runs runner profiles for 2/4/8 players at 30 and 60 Hz with 0/5/20 % loss.
 
 ### 2.1 Inputs and prediction (`unison_session`)
@@ -290,7 +291,7 @@ needs from earlier tasks is ticked.
 - [x] 2.8.9 (+) The arena ticks at the rate its session plays instead of always at 60 Hz, which the 30 Hz profiles need. Found in 2.8.5. Test: an arena made for 30 Hz steps its frame by a thirtieth of a second.
 - [x] 2.8.10 (+) The arena holds eight players, with four more spawn points halfway along its walls, which the eight-player profiles need. Found in 2.8.5. Test: eight players start at eight different spawn points.
 - [x] 2.8.5 CTest profiles: 2/4/8 players × 30/60 Hz × loss 0/5/20 % with latency 120 ms and jitter 30 ms. Five seconds of play each, labelled `profile`; `tools/ci.ps1` runs CTest on half the logical processors so the eight-player profiles cost Debug about fifteen seconds rather than two minutes. Test: all eighteen exit 0 in Debug and Release.
-- [ ] 2.8.6 Benchmark snapshot ring vs two-frame layout using Phase 1 numbers; Q1 answered in `DESIGN.md`.
+- [x] 2.8.6 Benchmark snapshot ring vs two-frame layout using Phase 1 numbers; Q1 answered in `DESIGN.md`. The cost of a second of play for one client, from the baseline after 6.1.4 and the rollbacks of the Definition of Done's run: the ring is 13 % cheaper while every guess is right and 32 % dearer under 26 rollbacks a second 16 frames deep, at most 1.4 ms a second either way, so the ring stays. Check: `DESIGN.md` §8.2 and Q1.
 
 ---
 

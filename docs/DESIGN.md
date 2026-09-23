@@ -487,10 +487,24 @@ Each tick:
    on confirmed inputs, whether it was confirmed before it was played or matched its guess afterwards.
 
 This is the GGPO-style layout: each frame is simulated once when prediction is right, and
-snapshot cost (bulk copies + `SaveState`) is paid once per frame. The Quantum-style
-two-frame layout (separate verified and predicted frames) would simulate every frame
-twice; it remains an alternative if snapshot cost proves worse than a physics step
-(Phase 2 benchmark decides).
+snapshot cost (bulk copies + `SaveState`) is paid once per frame played, replayed frames included. The
+Quantum-style two-frame layout (separate verified and predicted frames) simulates every frame twice, once
+predicted and once verified, takes no snapshots, and on a rollback copies the verified frame over the
+predicted one and replays everything from `V`. Q1 weighed the two on the Phase 1 numbers (a tick 4.99 µs,
+a snapshot 3.71 µs, a restore 4.10 µs, a copy of a frame, which here is a snapshot and a restore since EnTT
+and Jolt have no flat memory to copy, 7.81 µs) for one client at 60 Hz:
+
+| Per second of play | Snapshot ring | Two frames |
+|--------------------|---------------|------------|
+| Every guess right | 0.52 ms | 0.60 ms |
+| The Definition of Done's network: 25.9 rollbacks a second, 16.2 frames deep | 4.28 ms | 2.90 ms |
+
+The two frames win once rollbacks come more often than about 1.4 a second at that depth, since the ring
+pays a snapshot for every replayed frame; on the Definition of Done's network they save 1.4 ms a second,
+0.14 % of one core, against a frame budget of 16.7 ms. The ring stays: that saving is not worth a second simulation path
+for verified frames, a different event model and the rewrite of a session proven through Phase 2, and the
+ring rolls back only from the first frame guessed wrong. Should a game's state make a snapshot cost far more
+than a tick, the table is worth redoing with its numbers.
 
 ### 8.3 Time synchronisation
 
@@ -838,7 +852,7 @@ for 16+ players; frame-local heap allocator; asset loading from files.
 
 | # | Question | Decide by |
 |---|----------|-----------|
-| Q1 | Snapshot ring (single live frame) vs Quantum-style verified + predicted frames | Phase 2 benchmark |
+| Q1 | Snapshot ring (single live frame) vs Quantum-style verified + predicted frames | Answered 2026-09-23 from the Phase 1 numbers and the Definition of Done's run (§8.2): the ring stays. It is 13 % cheaper while every guess is right, the two frames 32 % cheaper under 26 rollbacks a second 16 frames deep, and the difference is at most 1.4 ms a second of play, 0.14 % of a core, not worth a second simulation path and a rewrite of the session. |
 | Q2 | SSE2 vs AVX2 baseline for deterministic libraries | Answered 2026-09-22 from measured numbers: SSE2 stays. Building everything for AVX2, our libraries and Jolt together, settles on the same golden checksums for the physics pile and for the scripted arena, so the determinism contract does not rest on the instruction set. It buys 6 % on a tick and nothing on snapshots or restores, while a binary that needs AVX2 cannot run on a machine without it, so shipping it would mean shipping two. Re-run the comparison with `-DUNISON_INSTRUCTION_SET=AVX2`. |
 | Q3 | FTXUI vs plain console output for `unison_console` | Phase 3 |
 | Q4 | Jolt multithreaded stepping inside the simulation | Phase 6 |
