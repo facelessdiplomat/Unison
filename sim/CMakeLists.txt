@@ -4,6 +4,7 @@ add_library(
     src/asset_hash.cpp
     src/asset_registry.cpp
     src/body_id_allocator.cpp
+    src/body_table.cpp
     src/character_lifecycle.cpp
     src/character_table.cpp
     src/component_registry.cpp
@@ -14,7 +15,9 @@ add_library(
     src/frame_snapshot.cpp
     src/jolt_contacts.cpp
     src/jolt_runtime.cpp
+    src/jolt_shapes.cpp
     src/physics_body.cpp
+    src/physics_queries.cpp
     src/physics_step.cpp
     src/physics_world.cpp
     src/pipeline_hash.cpp

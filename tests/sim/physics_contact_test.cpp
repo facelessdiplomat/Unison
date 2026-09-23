@@ -21,7 +21,7 @@ unison::BodyId putFloor(unison::sim::PhysicsWorld& world, unison::sim::BodyIdAll
     floor.halfExtents = unison::Float3{50.0F, 0.5F, 50.0F};
 
     const unison::BodyId id = ids.allocate();
-    world.createBody(id, floor, unison::sim::Transform{});
+    world.bodies().create(id, floor, unison::sim::Transform{});
 
     return id;
 }
@@ -34,7 +34,7 @@ unison::BodyId putCrate(unison::sim::PhysicsWorld& world, unison::sim::BodyIdAll
     crate.layer = unison::sim::PhysicsLayer::Moving;
 
     const unison::BodyId id = ids.allocate();
-    world.createBody(id, crate, unison::sim::Transform{unison::Float3{x, y, 0.0F}, unison::Quaternion{}});
+    world.bodies().create(id, crate, unison::sim::Transform{unison::Float3{x, y, 0.0F}, unison::Quaternion{}});
 
     return id;
 }

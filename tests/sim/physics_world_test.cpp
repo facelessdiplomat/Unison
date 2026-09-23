@@ -18,7 +18,7 @@ TEST_CASE("a new physics world holds no bodies")
 {
     const unison::sim::PhysicsWorld world;
 
-    REQUIRE(world.bodyCount() == 0U);
+    REQUIRE(world.bodies().count() == 0U);
 }
 
 TEST_CASE("an empty physics world steps a hundred times")
@@ -30,7 +30,7 @@ TEST_CASE("an empty physics world steps a hundred times")
         world.step(kTickSeconds);
     }
 
-    REQUIRE(world.bodyCount() == 0U);
+    REQUIRE(world.bodies().count() == 0U);
 }
 
 TEST_CASE("a physics world pulls bodies down the y axis in metres")
@@ -63,7 +63,7 @@ TEST_CASE("a physics world keeps stepping after another one is destroyed")
 
     world.step(kTickSeconds);
 
-    REQUIRE(world.bodyCount() == 0U);
+    REQUIRE(world.bodies().count() == 0U);
 }
 
 TEST_CASE("a world refuses a state buffer that ends before it should")

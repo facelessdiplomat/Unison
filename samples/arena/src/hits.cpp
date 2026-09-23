@@ -102,7 +102,7 @@ void Hits::update(unison::sim::Frame& frame, const unison::sim::FrameInputs&)
             continue;
         }
 
-        frame.physics.raycast(from, to, world);
+        frame.physics.queries().raycast(from, to, world);
 
         if (!world.empty())
         {

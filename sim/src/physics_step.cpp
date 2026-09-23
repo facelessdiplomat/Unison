@@ -24,7 +24,7 @@ void readBodiesBack(Frame& frame)
 {
     for (const auto [entity, body, transform] : frame.registry.view<const PhysicsBody, Transform>().each())
     {
-        transform = frame.physics.transformOf(body.id);
+        transform = frame.physics.bodies().transformOf(body.id);
     }
 }
 

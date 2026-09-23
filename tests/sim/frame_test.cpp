@@ -59,5 +59,5 @@ TEST_CASE("a frame builds its physics world the way its settings ask")
     const unison::sim::Frame frame{settings};
 
     REQUIRE(frame.physics.gravity().y == -1.62F);
-    REQUIRE(frame.physics.bodyCount() == 0U);
+    REQUIRE(frame.physics.bodies().count() == 0U);
 }

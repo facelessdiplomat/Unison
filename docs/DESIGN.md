@@ -310,6 +310,10 @@ the same session.
 
 `PhysicsWorld` wraps a Jolt `PhysicsSystem` with rules that keep it rollback-safe:
 
+- **One world, three parts.** The bodies, the characters and the queries of a world each have a class of
+  their own, `BodyTable`, `CharacterTable` and `PhysicsQueries`, reached through `bodies()`,
+  `characters()` and `queries()` as Jolt reaches its own through its `PhysicsSystem`; the world steps
+  them and saves and restores their state.
 - **Process-wide setup is scoped.** Every `PhysicsWorld` holds a `JoltRuntime`, which installs Jolt's
   allocator, factory and type list for the first world and removes them after the last one is gone,
   so several worlds may exist at once (§5.3). A world also owns its own fixed scratch block and

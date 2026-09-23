@@ -212,7 +212,7 @@ TEST_CASE("a body created after a snapshot is gone once the snapshot is restored
     unison::sim::takeSnapshot(frame, snapshot);
 
     const std::vector<std::byte> atSnapshot = physicsOf(frame);
-    const std::uint32_t countAtSnapshot = frame.physics.bodyCount();
+    const std::uint32_t countAtSnapshot = frame.physics.bodies().count();
 
     const entt::entity late = spawn(frame, assets, kCrate, unison::Float3{3.0F, 9.0F, 0.0F});
     const unison::BodyId lateId = frame.registry.get<unison::sim::PhysicsBody>(late).id;
@@ -220,8 +220,8 @@ TEST_CASE("a body created after a snapshot is gone once the snapshot is restored
     run(frame, pipeline, 10);
     unison::sim::restoreSnapshot(snapshot, frame);
 
-    REQUIRE_FALSE(frame.physics.holdsBody(lateId));
-    REQUIRE(frame.physics.bodyCount() == countAtSnapshot);
+    REQUIRE_FALSE(frame.physics.bodies().holds(lateId));
+    REQUIRE(frame.physics.bodies().count() == countAtSnapshot);
     REQUIRE(physicsOf(frame) == atSnapshot);
 }
 
@@ -249,12 +249,12 @@ TEST_CASE("a body destroyed after a snapshot comes back with the state it had")
 
     unison::sim::removeBody(frame, doomed);
 
-    REQUIRE_FALSE(frame.physics.holdsBody(doomedId));
+    REQUIRE_FALSE(frame.physics.bodies().holds(doomedId));
 
     run(frame, pipeline, 10);
     unison::sim::restoreSnapshot(snapshot, frame);
 
-    REQUIRE(frame.physics.holdsBody(doomedId));
+    REQUIRE(frame.physics.bodies().holds(doomedId));
     REQUIRE(physicsOf(frame) == atSnapshot);
 }
 
@@ -276,13 +276,13 @@ TEST_CASE("the surface a body was given back is the one the snapshot knew")
     frame.registry.get<unison::sim::BodyDefinition>(crate).restitution = 0.7F;
     unison::sim::applyBodyProperties(frame, crate);
 
-    REQUIRE(frame.physics.frictionOf(id) == 0.9F);
-    REQUIRE(frame.physics.restitutionOf(id) == 0.7F);
+    REQUIRE(frame.physics.bodies().frictionOf(id) == 0.9F);
+    REQUIRE(frame.physics.bodies().restitutionOf(id) == 0.7F);
 
     unison::sim::restoreSnapshot(snapshot, frame);
 
-    REQUIRE(frame.physics.frictionOf(id) == 0.2F);
-    REQUIRE(frame.physics.restitutionOf(id) == 0.0F);
+    REQUIRE(frame.physics.bodies().frictionOf(id) == 0.2F);
+    REQUIRE(frame.physics.bodies().restitutionOf(id) == 0.0F);
 }
 
 TEST_CASE("the way a body was allowed to move is given back with it")
@@ -302,11 +302,11 @@ TEST_CASE("the way a body was allowed to move is given back with it")
     frame.registry.get<unison::sim::BodyDefinition>(crate).motion = unison::sim::BodyMotion::Kinematic;
     unison::sim::applyBodyProperties(frame, crate);
 
-    REQUIRE(frame.physics.motionOf(id) == unison::sim::BodyMotion::Kinematic);
+    REQUIRE(frame.physics.bodies().motionOf(id) == unison::sim::BodyMotion::Kinematic);
 
     unison::sim::restoreSnapshot(snapshot, frame);
 
-    REQUIRE(frame.physics.motionOf(id) == unison::sim::BodyMotion::Dynamic);
+    REQUIRE(frame.physics.bodies().motionOf(id) == unison::sim::BodyMotion::Dynamic);
 }
 
 TEST_CASE("a body rebuilt on restore is rebuilt with the surface it had")
@@ -329,6 +329,6 @@ TEST_CASE("a body rebuilt on restore is rebuilt with the surface it had")
     unison::sim::removeBody(frame, crate);
     unison::sim::restoreSnapshot(snapshot, frame);
 
-    REQUIRE(frame.physics.holdsBody(id));
-    REQUIRE(frame.physics.frictionOf(id) == 0.4F);
+    REQUIRE(frame.physics.bodies().holds(id));
+    REQUIRE(frame.physics.bodies().frictionOf(id) == 0.4F);
 }

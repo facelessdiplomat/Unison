@@ -63,8 +63,8 @@ TEST_CASE("an entity given a body holds it in the world under the id it was hand
 
     REQUIRE(body.id == unison::makeBodyId(0U, 0U));
     REQUIRE(body.definition == kCrate);
-    REQUIRE(frame.physics.holdsBody(body.id));
-    REQUIRE(frame.physics.bodyCount() == 1U);
+    REQUIRE(frame.physics.bodies().holds(body.id));
+    REQUIRE(frame.physics.bodies().count() == 1U);
 }
 
 TEST_CASE("a body is put where the transform of its entity says")
@@ -80,7 +80,7 @@ TEST_CASE("a body is put where the transform of its entity says")
     unison::sim::addBody(frame, assets, entity, kCrate);
 
     const unison::sim::Transform placed =
-        frame.physics.transformOf(frame.registry.get<unison::sim::PhysicsBody>(entity).id);
+        frame.physics.bodies().transformOf(frame.registry.get<unison::sim::PhysicsBody>(entity).id);
 
     REQUIRE(placed.position.x == 1.0F);
     REQUIRE(placed.position.y == 2.0F);
@@ -103,8 +103,8 @@ TEST_CASE("a removed body leaves the world and gives its id back")
 
     unison::sim::removeBody(frame, entity);
 
-    REQUIRE_FALSE(frame.physics.holdsBody(id));
-    REQUIRE(frame.physics.bodyCount() == 0U);
+    REQUIRE_FALSE(frame.physics.bodies().holds(id));
+    REQUIRE(frame.physics.bodies().count() == 0U);
     REQUIRE_FALSE(frame.registry.all_of<unison::sim::PhysicsBody>(entity));
     REQUIRE(frame.globals.bodyIds.allocate() == unison::makeBodyId(unison::bodyIndexOf(id), 1U));
 }
@@ -129,7 +129,7 @@ TEST_CASE("a body is built from each shape a definition can name")
     unison::sim::addBody(frame, assets, place(frame, unison::Float3{2.0F, 2.0F, 0.0F}), unison::makeAssetId("sphere"));
     unison::sim::addBody(frame, assets, place(frame, unison::Float3{4.0F, 2.0F, 0.0F}), unison::makeAssetId("capsule"));
 
-    REQUIRE(frame.physics.bodyCount() == 3U);
+    REQUIRE(frame.physics.bodies().count() == 3U);
 }
 
 TEST_CASE("the motion a definition asks for decides whether a body moves")
@@ -155,8 +155,8 @@ TEST_CASE("the motion a definition asks for decides whether a body moves")
         frame.physics.step(kTickSeconds);
     }
 
-    REQUIRE(frame.physics.transformOf(crateId).position.y < 4.0F);
-    REQUIRE(frame.physics.transformOf(floorId).position.y == 0.0F);
+    REQUIRE(frame.physics.bodies().transformOf(crateId).position.y < 4.0F);
+    REQUIRE(frame.physics.bodies().transformOf(floorId).position.y == 0.0F);
 }
 
 TEST_CASE("a body weighs what its definition says")
@@ -171,10 +171,10 @@ TEST_CASE("a body weighs what its definition says")
     crate.mass = 5.0F;
 
     const unison::BodyId id = ids.allocate();
-    world.createBody(id, crate, unison::sim::Transform{});
+    world.bodies().create(id, crate, unison::sim::Transform{});
 
-    REQUIRE(world.massOf(id) > 4.99F);
-    REQUIRE(world.massOf(id) < 5.01F);
+    REQUIRE(world.bodies().massOf(id) > 4.99F);
+    REQUIRE(world.bodies().massOf(id) < 5.01F);
 }
 
 TEST_CASE("a body left without a mass is as heavy as its shape makes it")
@@ -188,7 +188,7 @@ TEST_CASE("a body left without a mass is as heavy as its shape makes it")
     crate.layer = unison::sim::PhysicsLayer::Moving;
 
     const unison::BodyId id = ids.allocate();
-    world.createBody(id, crate, unison::sim::Transform{});
+    world.bodies().create(id, crate, unison::sim::Transform{});
 
-    REQUIRE(world.massOf(id) > 900.0F);
+    REQUIRE(world.bodies().massOf(id) > 900.0F);
 }

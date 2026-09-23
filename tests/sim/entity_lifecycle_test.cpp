@@ -97,8 +97,8 @@ TEST_CASE("an entity destroyed through the frame takes its body with it")
 
     unison::sim::destroyEntity(frame, entity);
 
-    REQUIRE(frame.physics.bodyCount() == 0U);
-    REQUIRE_FALSE(frame.physics.holdsBody(id));
+    REQUIRE(frame.physics.bodies().count() == 0U);
+    REQUIRE_FALSE(frame.physics.bodies().holds(id));
     REQUIRE(frame.globals.bodyIds.allocate() == unison::makeBodyId(unison::bodyIndexOf(id), 1U));
 }
 

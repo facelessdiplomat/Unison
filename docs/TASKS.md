@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **1.5.13**, splitting `PhysicsWorld`. Last finished: 2.3.9, splitting `Session`.
+- Next up: **6.1.4**, the steady-state allocation test. Last finished: 1.5.13, splitting `PhysicsWorld`.
 - Taken ahead of **2.7.1** on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
   classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, the steady-state allocation test,
   which also retires what 2.2.2 left behind in restores. 2.7.1 follows them.
@@ -30,13 +30,13 @@ needs from earlier tasks is ticked.
 | Phase | Tasks | Micro-tasks | Done |
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
-| 1 Deterministic simulation core | 7 | 56 | 56 |
+| 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 39 | 29 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **171** | **100** |
+| **Total** | **31** | **172** | **101** |
 
 ## Charter amendments made while planning
 
@@ -183,6 +183,7 @@ needs from earlier tasks is ticked.
 - [x] 1.5.10 `CharacterController` over `CharacterVirtual`: component holds position, velocity and ground state; explicit save/restore because it lives outside `PhysicsSystem` state. Test: walks on the floor, stops at a wall, snapshot/restore round trip is exact.
 - [x] 1.5.11 Physics determinism test: 50 dynamic boxes for 600 frames, double run equal checksums, plus a golden checksum shared by Debug and Release.
 - [x] 1.5.12 (+) `destroyEntity` takes the body of the entity with it: an entity destroyed with a `PhysicsBody` leaves its Jolt body and its id behind until the next reconciliation. Reason: found in 1.5.6, where reconciliation made the leak visible. Test: destroying an entity with a body leaves the world empty and hands the id back.
+- [x] 1.5.13 (+) `PhysicsWorld` split: the bodies move to `BodyTable`, the sorted queries to `PhysicsQueries`, the shapes both of them build to `jolt_shapes`, and the world keeps the step, the contacts and the state buffer, reaching its parts through `bodies()`, `characters()` and `queries()` as Jolt's `PhysicsSystem` does. Reason: the world stood at 487 lines against the 300 of `CLAUDE.md` 3, and 6.1.4 is about to change how it restores. Test: every physics test passes, reaching bodies and queries through the new parts.
 
 ### 1.6 Arena sample simulation (`arena_sim`)
 - [x] 1.6.1 Components (`Transform`, `PlayerSlot`, `CharacterState`, `Health`, `Weapon`, `Projectile`, `Lifetime`, `PhysicsBody`, `RespawnTimer`) registered; `ArenaInput{moveX, moveY, yaw, buttons}`. Test: all trivially copyable; `sizeof(ArenaInput) <= 8`.

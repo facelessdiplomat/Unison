@@ -23,7 +23,7 @@ unison::BodyId put(unison::sim::PhysicsWorld& world, unison::sim::BodyIdAllocato
 {
     const unison::BodyId id = ids.allocate();
 
-    world.createBody(id, box(), unison::sim::Transform{unison::Float3{x, 0.0F, 0.0F}, unison::Quaternion{}});
+    world.bodies().create(id, box(), unison::sim::Transform{unison::Float3{x, 0.0F, 0.0F}, unison::Quaternion{}});
 
     return id;
 }
@@ -52,7 +52,7 @@ TEST_CASE("a ray meets the bodies in its way nearest first")
     const unison::BodyId farthest = put(world, ids, 3.0F);
 
     std::vector<unison::sim::PhysicsHit> hits;
-    world.raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
+    world.queries().raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
 
     REQUIRE(hits.size() == 3U);
     REQUIRE(hits[0].body == nearest);
@@ -79,11 +79,11 @@ TEST_CASE("the order bodies were built in does not change what a ray finds")
     put(farthestFirst, otherIds, 1.0F);
 
     std::vector<unison::sim::PhysicsHit> hits;
-    nearestFirst.raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
+    nearestFirst.queries().raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
 
     const std::vector<float> expected = fractionsOf(hits);
 
-    farthestFirst.raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
+    farthestFirst.queries().raycast(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{5.0F, 0.0F, 0.0F}, hits);
 
     REQUIRE(fractionsOf(hits) == expected);
 }
@@ -96,7 +96,7 @@ TEST_CASE("a ray that meets nothing finds nothing")
     put(world, ids, 1.0F);
 
     std::vector<unison::sim::PhysicsHit> hits;
-    world.raycast(unison::Float3{0.0F, 10.0F, 0.0F}, unison::Float3{5.0F, 10.0F, 0.0F}, hits);
+    world.queries().raycast(unison::Float3{0.0F, 10.0F, 0.0F}, unison::Float3{5.0F, 10.0F, 0.0F}, hits);
 
     REQUIRE(hits.empty());
 }
@@ -111,7 +111,7 @@ TEST_CASE("a sphere names the bodies it overlaps in body order")
     put(world, ids, 40.0F);
 
     std::vector<unison::BodyId> overlapped;
-    world.overlapSphere(unison::Float3{0.6F, 0.0F, 0.0F}, 1.0F, overlapped);
+    world.queries().overlapSphere(unison::Float3{0.6F, 0.0F, 0.0F}, 1.0F, overlapped);
 
     REQUIRE(overlapped.size() == 2U);
     REQUIRE(overlapped[0] == first);
@@ -127,7 +127,7 @@ TEST_CASE("a capsule sweeping forward meets the nearest body first")
     const unison::BodyId farthest = put(world, ids, 4.0F);
 
     std::vector<unison::sim::PhysicsHit> hits;
-    world.sweepCapsule(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{6.0F, 0.0F, 0.0F}, 0.2F, 0.3F, hits);
+    world.queries().sweepCapsule(unison::Float3{0.0F, 0.0F, 0.0F}, unison::Float3{6.0F, 0.0F, 0.0F}, 0.2F, 0.3F, hits);
 
     REQUIRE(hits.size() == 2U);
     REQUIRE(hits[0].body == nearest);

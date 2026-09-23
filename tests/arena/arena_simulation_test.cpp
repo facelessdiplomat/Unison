@@ -38,7 +38,7 @@ TEST_CASE("a match is set up with its world, its players and its systems in orde
     REQUIRE(match.pipeline().at(3).name() == "PhysicsStep");
     REQUIRE(match.pipeline().at(7).name() == "MatchRules");
     REQUIRE(match.frame().registry.view<const arena::PlayerSlot>().size() == kPlayers);
-    REQUIRE(match.frame().physics.bodyCount() > kPlayers);
+    REQUIRE(match.frame().physics.bodies().count() > kPlayers);
     REQUIRE(match.assets().isFrozen());
 }
 
