@@ -60,6 +60,7 @@ add_executable(
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
     session/input_buffer_test.cpp
+    session/repeat_last_input_predictor_test.cpp
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp
     sim/asset_registry_test.cpp

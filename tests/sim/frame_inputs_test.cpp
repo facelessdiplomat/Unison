@@ -4,6 +4,7 @@
 
 #include <support/fatal_handler_probe.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -68,11 +69,10 @@ TEST_CASE("a slot hands back the flags it was given")
 {
     unison::sim::FrameInputs inputs;
 
-    inputs.set(kSlot, SampleInput{}, unison::sim::InputFlags::Present | unison::sim::InputFlags::Predicted);
+    inputs.set(kSlot, SampleInput{}, unison::sim::InputFlags::Dropped);
 
-    REQUIRE(unison::sim::hasFlag(inputs.flagsAt(kSlot), unison::sim::InputFlags::Present));
-    REQUIRE(unison::sim::hasFlag(inputs.flagsAt(kSlot), unison::sim::InputFlags::Predicted));
-    REQUIRE_FALSE(unison::sim::hasFlag(inputs.flagsAt(kSlot), unison::sim::InputFlags::Dropped));
+    REQUIRE(unison::sim::hasFlag(inputs.flagsAt(kSlot), unison::sim::InputFlags::Dropped));
+    REQUIRE_FALSE(unison::sim::hasFlag(inputs.flagsAt(kSlot), unison::sim::InputFlags::Present));
 }
 
 TEST_CASE("an untouched slot is absent and neutral")
@@ -104,6 +104,20 @@ TEST_CASE("a slot written from bytes reads back as the input they were taken fro
     REQUIRE(inputs.get<SampleInput>(kSlot).moveY == -2);
     REQUIRE(inputs.get<SampleInput>(kSlot).yaw == 300);
     REQUIRE(inputs.flagsAt(kSlot) == unison::sim::InputFlags::Present);
+}
+
+TEST_CASE("a slot hands back the bytes of its input followed by neutral ones")
+{
+    unison::sim::FrameInputs inputs;
+    const SampleInput input{1, -2, 300, 5};
+    const std::span<const std::byte> expected = std::as_bytes(std::span{&input, 1});
+
+    inputs.set(kSlot, input, unison::sim::InputFlags::Present);
+
+    const std::span<const std::byte, unison::sim::kMaxInputSize> bytes = inputs.bytesAt(kSlot);
+
+    REQUIRE(std::ranges::equal(bytes.first(expected.size()), expected));
+    REQUIRE(std::ranges::all_of(bytes.subspan(expected.size()), [](std::byte value) { return value == std::byte{0}; }));
 }
 
 TEST_CASE("bytes that do not fit a slot break a contract")

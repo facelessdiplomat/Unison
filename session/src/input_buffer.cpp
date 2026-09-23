@@ -39,6 +39,23 @@ InputState InputBuffer::stateAt(std::uint32_t frame, std::size_t slot) const
     return entries[indexOf(frame)].states.at(slot);
 }
 
+std::optional<std::uint32_t> InputBuffer::lastConfirmedBefore(std::uint32_t frame, std::size_t slot) const
+{
+    const std::size_t framesBelow = frame > firstFrame ? std::min<std::size_t>(frame - firstFrame, entries.size()) : 0;
+
+    for (std::size_t offset = framesBelow; offset > 0; --offset)
+    {
+        const auto candidate = static_cast<std::uint32_t>(firstFrame + offset - 1);
+
+        if (stateAt(candidate, slot) == InputState::Confirmed)
+        {
+            return candidate;
+        }
+    }
+
+    return std::nullopt;
+}
+
 void InputBuffer::evictBelow(std::uint32_t frame)
 {
     UNISON_VERIFY(frame >= firstFrame);

@@ -270,13 +270,19 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
 - The game defines a fixed-size POD `Input` (max 64 bytes) with quantised fields:
   movement as `int8`, look angles as `int16`, buttons as bit flags. Hosts convert analog
   values to these integers; no host float reaches the simulation.
-- `FrameInputs` = one `Input` per player slot plus a per-slot `flags` byte (present / predicted / dropped).
+- `FrameInputs` = one `Input` per player slot plus a per-slot `flags` byte (present / dropped), both exactly
+  as the relay settles them. Whether the session only guessed an input is not among the flags: it is the
+  session's knowledge, kept in its input buffer (§8.2), and systems never see it. A frame played on a guess
+  that proves right is never played again, so a system able to tell a guess from the real input could part
+  the clients for good, and no rollback would ever notice.
   It is a plain class, not a template over `Input`: the slots hold the input erased to bytes, and only the
   accessor is typed; code that carries inputs without knowing their type, the session and the wire, writes
   a slot from bytes. A template would spread through `ISystem`, `SystemPipeline` and `Session`, and §7.3
   forbids a host module from instantiating simulation templates, which the Unreal plugin would have to do to
   drive a session. The 64-byte cap on `Input` exists to make the erased slot possible.
-- Prediction policy: repeat the last known input of each remote player.
+- Prediction policy: repeat the last input confirmed for each remote slot before the frame, bytes and flags
+  alike; a slot with no confirmed input yet is guessed neutral, zero bytes and no flags. A right guess is then
+  identical to the confirmation, so a misprediction is any difference between the two.
 
 ### 6.5 Events and signals
 

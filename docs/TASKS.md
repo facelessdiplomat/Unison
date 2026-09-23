@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.1.2**, the repeat-last-input predictor. Last finished: 2.1.1, the input buffer.
+- Next up: **2.1.3**, local input sampling. Last finished: 2.1.2, the repeat-last-input predictor.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 1 |
+| 2 Rollback session (local) | 8 | 36 | 2 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **72** |
+| **Total** | **31** | **168** | **73** |
 
 ## Charter amendments made while planning
 
@@ -83,6 +83,11 @@ needs from earlier tasks is ticked.
 - There is no free `makeArenaPipeline()`: the systems of a game have to outlive the pipeline that points at
   them, so `ArenaSimulation` owns the systems, the assets and the frame together and puts the pipeline in
   order itself. A free function would have to be handed the systems anyway. Found in 1.6.11.
+- `InputFlags::Predicted` is gone: whether an input was guessed is the session's knowledge, kept in
+  `InputBuffer`, and systems never see it. A frame played on a guess that proves right is never played again,
+  so a system that could tell a guess from the real input would part the clients for good without a rollback
+  to notice; without the flag a right guess is byte for byte the confirmed input, and a misprediction is any
+  difference at all. The owner's decision. `DESIGN.md` §6.4 updated. Found in 2.1.2.
 - UE 5.8 confirmed as the plugin target (installed on the development machine); Q5 answered. Development
   toolchain is Visual Studio 18 with VS-bundled CMake/Ninja/clang-format, hence micro-task 0.1.8.
 
@@ -155,7 +160,7 @@ needs from earlier tasks is ticked.
 - [x] 1.3.5 `Frame::advance(inputs)`: `FpEnvGuard`, pipeline, event flush, `frameNumber` increment. Test: the guard is active during systems (checked through a probe system).
 
 ### 1.4 Inputs and assets
-- [x] 1.4.1 `InputTraits<Input>` (trivially copyable, free of padding, `sizeof <= 64`) and `FrameInputs`, a plain class holding up to 8 slots erased to bytes with per-slot flags `Present / Predicted / Dropped` and a typed accessor. Test: flags and payload round trip; an oversized input fails the trait; reading a slot as the wrong type breaks a contract.
+- [x] 1.4.1 `InputTraits<Input>` (trivially copyable, free of padding, `sizeof <= 64`) and `FrameInputs`, a plain class holding up to 8 slots erased to bytes with per-slot flags `Present / Predicted / Dropped` and a typed accessor. Test: flags and payload round trip; an oversized input fails the trait; reading a slot as the wrong type breaks a contract. `Predicted` was removed in 2.1.2; see the charter amendments.
 - [x] 1.4.2 `AssetRegistry`: typed tables keyed by `AssetId`, `freeze()`, `get<T>(id)` returning `const T&`, missing id is a hard error, and registering an id that is already taken is a hard error, so a 32-bit name-hash collision cannot pass silently. Test: lookups; mutation after freeze is rejected; a duplicate id is rejected.
 - [x] 1.4.3 Asset hash over frozen tables, independent of insertion order. Test: two registries with the same content inserted in different order hash equal.
 
@@ -205,7 +210,7 @@ needs from earlier tasks is ticked.
 
 ### 2.1 Inputs and prediction (`unison_session`)
 - [x] 2.1.1 `InputBuffer`: per-frame per-slot inputs with `Confirmed` / `Predicted` state, window bounded below by the verified frame. Test: set/get, eviction below verified, out-of-window rejected.
-- [ ] 2.1.2 `RepeatLastInputPredictor`. Test: a missing slot gets its last confirmed input flagged `Predicted`; a slot with no history gets the neutral input.
+- [x] 2.1.2 `RepeatLastInputPredictor`. Test: a missing slot gets its last confirmed input, bytes and flags alike, marked `Predicted` in the buffer and nowhere else; a slot with no history gets the neutral input.
 - [ ] 2.1.3 Local input sampling: `setLocalInput` stored per host frame, sampled once per tick for the local slot. Test: the same input is reused when the host does not update it.
 
 ### 2.2 Snapshot ring

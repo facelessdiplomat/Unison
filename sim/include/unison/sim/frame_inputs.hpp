@@ -22,20 +22,15 @@ inline constexpr std::size_t kMaxSlots = 8;
 /// instead of making every type that touches inputs a template.
 inline constexpr std::size_t kMaxInputSize = 64;
 
-/// What is known about one slot's input this frame: whether it arrived at all, whether it was
-/// guessed while waiting for the real one, and whether it was given up on.
+/// What the relay settled about one slot's input this frame: that it arrived, or that it was given up
+/// on. Whether the session only guessed it is kept out on purpose: a frame played on a right guess is
+/// never played again, so no system may tell a guess from the real input.
 enum class InputFlags : std::uint8_t
 {
     None = 0,
     Present = 1U << 0U,
-    Predicted = 1U << 1U,
-    Dropped = 1U << 2U
+    Dropped = 1U << 1U
 };
-
-[[nodiscard]] constexpr InputFlags operator|(InputFlags left, InputFlags right)
-{
-    return static_cast<InputFlags>(static_cast<std::uint8_t>(left) | static_cast<std::uint8_t>(right));
-}
 
 [[nodiscard]] constexpr InputFlags operator&(InputFlags left, InputFlags right)
 {
@@ -91,6 +86,9 @@ public:
     /// Writes a slot from the bytes of an input, for code that carries inputs without knowing the
     /// game's type, as the session and the wire do. More bytes than a slot holds break a contract.
     void setBytes(std::size_t slot, std::span<const std::byte> input, InputFlags flags);
+
+    /// The whole room a slot gives an input, as the bytes it holds.
+    [[nodiscard]] std::span<const std::byte, kMaxInputSize> bytesAt(std::size_t slot) const;
 
     [[nodiscard]] InputFlags flagsAt(std::size_t slot) const;
 

@@ -19,6 +19,13 @@ void FrameInputs::setBytes(std::size_t slot, std::span<const std::byte> input, I
     slotFlags.at(slot) = flags;
 }
 
+std::span<const std::byte, kMaxInputSize> FrameInputs::bytesAt(std::size_t slot) const
+{
+    UNISON_VERIFY(slot < kMaxSlots);
+
+    return slots.at(slot);
+}
+
 InputFlags FrameInputs::flagsAt(std::size_t slot) const
 {
     UNISON_VERIFY(slot < kMaxSlots);

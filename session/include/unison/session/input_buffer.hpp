@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -40,6 +41,10 @@ public:
     [[nodiscard]] const sim::FrameInputs& inputsAt(std::uint32_t frame) const;
 
     [[nodiscard]] InputState stateAt(std::uint32_t frame, std::size_t slot) const;
+
+    /// The newest frame the window holds below the given one whose input for the slot is confirmed,
+    /// if the window holds any.
+    [[nodiscard]] std::optional<std::uint32_t> lastConfirmedBefore(std::uint32_t frame, std::size_t slot) const;
 
     /// Forgets every frame below the given one, which becomes the first frame of the window.
     void evictBelow(std::uint32_t frame);

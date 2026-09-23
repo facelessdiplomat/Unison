@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace
@@ -96,7 +97,7 @@ TEST_CASE("an input buffer refuses a frame beyond the end of its window")
     const bool accepted = buffer.store(kCapacity,
                                        0,
                                        bytesOf(SampleInput{2, 0, 0, 0}),
-                                       unison::sim::InputFlags::Predicted,
+                                       unison::sim::InputFlags::Present,
                                        unison::session::InputState::Predicted);
 
     REQUIRE_FALSE(accepted);
@@ -160,6 +161,50 @@ TEST_CASE("a window moved on by more than its length holds nothing")
     {
         REQUIRE(buffer.stateAt(frame, 0) == unison::session::InputState::Missing);
     }
+}
+
+TEST_CASE("the last confirmed frame before a frame is the newest one the window holds for the slot")
+{
+    unison::session::InputBuffer buffer{kCapacity};
+    storeInput(buffer, 1, 0, SampleInput{}, unison::session::InputState::Confirmed);
+    storeInput(buffer, 2, 0, SampleInput{}, unison::session::InputState::Confirmed);
+    storeInput(buffer, 3, 0, SampleInput{}, unison::session::InputState::Predicted);
+
+    const std::optional<std::uint32_t> lastConfirmed = buffer.lastConfirmedBefore(kCapacity, 0);
+
+    REQUIRE(lastConfirmed == std::optional<std::uint32_t>{2});
+}
+
+TEST_CASE("an input confirmed after a frame is not the last one before it")
+{
+    unison::session::InputBuffer buffer{kCapacity};
+    storeInput(buffer, 1, 0, SampleInput{}, unison::session::InputState::Confirmed);
+    storeInput(buffer, 3, 0, SampleInput{}, unison::session::InputState::Confirmed);
+
+    const std::optional<std::uint32_t> lastConfirmed = buffer.lastConfirmedBefore(2, 0);
+
+    REQUIRE(lastConfirmed == std::optional<std::uint32_t>{1});
+}
+
+TEST_CASE("a slot the window holds no confirmed input for has no last confirmed frame")
+{
+    unison::session::InputBuffer buffer{kCapacity};
+    storeInput(buffer, 1, 0, SampleInput{}, unison::session::InputState::Predicted);
+    storeInput(buffer, 1, 1, SampleInput{}, unison::session::InputState::Confirmed);
+
+    const std::optional<std::uint32_t> lastConfirmed = buffer.lastConfirmedBefore(2, 0);
+
+    REQUIRE_FALSE(lastConfirmed.has_value());
+}
+
+TEST_CASE("the last confirmed frame before one beyond the window is looked for inside it")
+{
+    unison::session::InputBuffer buffer{kCapacity};
+    storeInput(buffer, 2, 0, SampleInput{}, unison::session::InputState::Confirmed);
+
+    const std::optional<std::uint32_t> lastConfirmed = buffer.lastConfirmedBefore(1000, 0);
+
+    REQUIRE(lastConfirmed == std::optional<std::uint32_t>{2});
 }
 
 TEST_CASE("reading a frame outside the window breaks a contract")
