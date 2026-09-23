@@ -40,8 +40,12 @@ SpawnPoints spawnPoints()
     points.positions = {unison::Float3{-8.0F, 1.0F, -8.0F},
                         unison::Float3{8.0F, 1.0F, -8.0F},
                         unison::Float3{8.0F, 1.0F, 8.0F},
-                        unison::Float3{-8.0F, 1.0F, 8.0F}};
-    points.yaws = {0.7853982F, 2.3561945F, 3.9269907F, 5.4977871F};
+                        unison::Float3{-8.0F, 1.0F, 8.0F},
+                        unison::Float3{0.0F, 1.0F, -8.0F},
+                        unison::Float3{8.0F, 1.0F, 0.0F},
+                        unison::Float3{0.0F, 1.0F, 8.0F},
+                        unison::Float3{-8.0F, 1.0F, 0.0F}};
+    points.yaws = {0.7853982F, 2.3561945F, 3.9269907F, 5.4977871F, 1.5707964F, 3.1415927F, 4.7123890F, 0.0F};
 
     return points;
 }

@@ -11,7 +11,7 @@ namespace arena
 {
 
 /// How many players one match of the arena holds.
-inline constexpr std::size_t kPlayerCount = 4;
+inline constexpr std::size_t kPlayerCount = 8;
 
 inline constexpr unison::AssetId kFloor = unison::makeAssetId("arena.floor");
 inline constexpr unison::AssetId kWall = unison::makeAssetId("arena.wall");

@@ -11,8 +11,11 @@
 
 #include <entt/entity/registry.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace
 {
@@ -64,6 +67,24 @@ TEST_CASE("a match that would never tick breaks a contract")
     const arena::ArenaSimulation match{kPlayers, 0};
 
     REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("each of eight players starts a match at a spawn point of their own")
+{
+    constexpr std::size_t kEightPlayers = 8;
+    const arena::ArenaSimulation match{kEightPlayers};
+    std::vector<std::pair<float, float>> spots;
+
+    for (const auto [entity, slot, stance] :
+         match.frame().registry.view<const arena::PlayerSlot, const unison::sim::Transform>().each())
+    {
+        spots.emplace_back(stance.position.x, stance.position.z);
+    }
+
+    std::ranges::sort(spots);
+
+    REQUIRE(spots.size() == kEightPlayers);
+    REQUIRE(std::ranges::adjacent_find(spots) == spots.end());
 }
 
 TEST_CASE("the players of a match stand where the match put them")

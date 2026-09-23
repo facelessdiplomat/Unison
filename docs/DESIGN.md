@@ -758,7 +758,7 @@ tools-only dependencies never leak into libraries linked by the UE plugin;
 
 ## 14. Sample Game: Arena
 
-- **World**: flat floor, static boxes and ramps (Jolt static bodies from asset tables defined in code; file loading is backlog), 4 spawn points.
+- **World**: flat floor, static boxes and ramps (Jolt static bodies from asset tables defined in code; file loading is backlog), 8 spawn points, in the corners and halfway along the walls, each facing the middle; a match holds up to eight players, as many as a relay has slots.
 - **Tick**: a match ticks at the rate its host asks for, 60 Hz unless told otherwise, and each tick steps the
   frame by that share of a second. Timers counted in frames (warm-up, respawn, cooldown, lifetime) count
   ticks, so at 30 Hz they last twice as long.
