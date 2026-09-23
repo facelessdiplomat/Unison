@@ -25,7 +25,13 @@ namespace unison::session
 class Session
 {
 public:
-    Session(sim::Frame& frame, const sim::SystemPipeline& pipeline, const SessionConfig& config, std::size_t localSlot);
+    /// An input delay makes every tick play the local input it samples that many frames later, trading
+    /// responsiveness for fewer rollbacks; until then the local player plays the neutral input.
+    Session(sim::Frame& frame,
+            const sim::SystemPipeline& pipeline,
+            const SessionConfig& config,
+            std::size_t localSlot,
+            std::uint32_t inputDelayFrames = 0);
 
     Session(const Session&) = delete;
     Session& operator=(const Session&) = delete;
@@ -84,6 +90,7 @@ private:
     const sim::SystemPipeline& systemPipeline;
     SessionConfig config;
     std::size_t localSlot;
+    std::uint32_t inputDelay;
     InputBuffer inputBuffer;
     SnapshotRing snapshotRing;
     LocalInput localInput;

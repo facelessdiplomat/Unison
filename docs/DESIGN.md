@@ -470,7 +470,10 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
 - The client targets `P = V_server + RTT/2 + jitterMargin` (in frames) and corrects drift by occasionally
   running one extra or one fewer tick per host frame, never by changing `dt`.
 - Optional local input delay (default 0) trades responsiveness for fewer rollbacks; `maxPrediction` and
-  input delay together allow lockstep-like tuning without new code paths.
+  input delay together allow lockstep-like tuning without new code paths. With a delay of `d` a tick samples
+  the local input for frame `P + 1 + d`, and the first `d` frames of a session play the neutral input for the
+  local player. A delay as long as the relay takes to answer means every frame is settled before it is
+  played. Each client chooses its own delay, so it is not part of `SessionConfig`.
 
 ### 8.4 Input confirmation at the relay
 

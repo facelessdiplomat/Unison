@@ -64,6 +64,7 @@ add_executable(
     session/repeat_last_input_predictor_test.cpp
     session/session_checksum_test.cpp
     session/session_config_test.cpp
+    session/session_input_delay_test.cpp
     session/session_rollback_test.cpp
     session/session_test.cpp
     session/snapshot_ring_test.cpp

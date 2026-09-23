@@ -13,7 +13,7 @@ namespace unison::session
 namespace
 {
 
-std::uint32_t windowFor(const SessionConfig& config)
+std::uint32_t predictionWindowFor(const SessionConfig& config)
 {
     return config.maxPrediction + 2;
 }
@@ -23,17 +23,24 @@ std::uint32_t windowFor(const SessionConfig& config)
 Session::Session(sim::Frame& frame,
                  const sim::SystemPipeline& pipeline,
                  const SessionConfig& config,
-                 std::size_t localSlot)
-    : liveFrame{frame}, systemPipeline{pipeline}, config{config}, localSlot{localSlot}, inputBuffer{windowFor(config)},
-      snapshotRing{windowFor(config)}, localInput{localSlot}, verified{frame.frameNumber}, predicted{frame.frameNumber}
+                 std::size_t localSlot,
+                 std::uint32_t inputDelayFrames)
+    : liveFrame{frame}, systemPipeline{pipeline}, config{config}, localSlot{localSlot}, inputDelay{inputDelayFrames},
+      inputBuffer{predictionWindowFor(config) + inputDelayFrames}, snapshotRing{predictionWindowFor(config)},
+      localInput{localSlot}, verified{frame.frameNumber}, predicted{frame.frameNumber}
 {
     UNISON_VERIFY(config.slotCount <= sim::kMaxSlots);
     UNISON_VERIFY(localSlot < config.slotCount);
     UNISON_VERIFY(config.checksumInterval > 0);
 
-    pendingChecksums.reserve(windowFor(config));
+    pendingChecksums.reserve(predictionWindowFor(config));
     inputBuffer.evictBelow(verified);
     snapshotRing.store(liveFrame);
+
+    for (std::uint32_t ahead = 1; ahead <= inputDelay; ++ahead)
+    {
+        sampleLocalInput(verified + ahead);
+    }
 }
 
 void Session::setLocalInput(std::span<const std::byte> input)
@@ -56,7 +63,7 @@ void Session::tick()
         return;
     }
 
-    sampleLocalInput(next);
+    sampleLocalInput(next + inputDelay);
     guessUnconfirmedInputs(next);
     play(next);
 
