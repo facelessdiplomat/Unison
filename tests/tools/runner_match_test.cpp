@@ -3,7 +3,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <unison/net/session_config.hpp>
+#include <unison/runner/client_outcome.hpp>
 #include <unison/runner/runner_options.hpp>
+#include <unison/session/rollback_stats.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -56,10 +58,11 @@ TEST_CASE("a run over a late network reports rollbacks no deeper than the window
     unison::runner::RunnerMatch match{options};
 
     const unison::runner::RunOutcome outcome = match.play();
+    const unison::session::RollbackStats all = unison::runner::rollbacksOfAll(outcome.clients);
 
     REQUIRE(outcome.predictionWindow == unison::net::SessionConfig{}.maxPrediction);
-    REQUIRE(outcome.deepestRollback > 0U);
-    REQUIRE(outcome.deepestRollback <= outcome.predictionWindow);
+    REQUIRE(all.deepestRollback > 0U);
+    REQUIRE(all.deepestRollback <= outcome.predictionWindow);
 }
 
 TEST_CASE("every client of a run plays a slot of its own")
@@ -70,8 +73,32 @@ TEST_CASE("every client of a run plays a slot of its own")
     unison::runner::RunnerMatch match{options};
 
     const unison::runner::RunOutcome outcome = match.play();
-    std::vector<std::uint8_t> slots = outcome.slots;
+    std::vector<std::uint8_t> slots;
+
+    for (const unison::runner::ClientOutcome& client : outcome.clients)
+    {
+        slots.push_back(client.slot);
+    }
+
     std::ranges::sort(slots);
 
     REQUIRE(slots == std::vector<std::uint8_t>{0, 1, 2});
+}
+
+TEST_CASE("every client of a run reports the frames it played and the rollbacks it took")
+{
+    unison::runner::RunnerOptions options;
+    options.frames = 120;
+    options.latencyMilliseconds = 30;
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.clients.size() == options.players);
+
+    for (const unison::runner::ClientOutcome& client : outcome.clients)
+    {
+        REQUIRE(client.rollbacks.framesPlayed >= options.frames);
+        REQUIRE(client.rollbacks.rollbacks > 0U);
+    }
 }

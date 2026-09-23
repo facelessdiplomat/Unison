@@ -20,6 +20,9 @@ struct RollbackStats
 
     /// Frames played again per second of play at the given tick rate; none before a frame has been played.
     [[nodiscard]] double resimulatedFramesPerSecond(std::uint16_t tickRate) const;
+
+    /// Frames a rollback played again on average; none before the first rollback.
+    [[nodiscard]] double meanRollbackDepth() const;
 };
 
 }

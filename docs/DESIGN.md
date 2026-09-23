@@ -663,7 +663,10 @@ often are, is dropped; so is anything from a peer other than the relay. A `Kick`
   it checks; the first frame the clients report different checksums for is the desync, printed with every
   slot's checksum of it. The exit code is 0 for a run that verified every frame alike within its window,
   2 for a desync, 3 for a rollback deeper than the prediction window, and 1 for a run that missed frames or a
-  command line it could not read; a desync outranks an overflow, and both outrank missed frames.
+  command line it could not read; a desync outranks an overflow, and both outrank missed frames. After the
+  verdict every run prints a table of rollbacks by slot, in slot order: how many, how many per second of play,
+  how deep on average and at most, and how many ticks the client stalled with its window full, closed by a row
+  for every client together.
 - `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard input,
   connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output.
 - `unison_replay`: record / play / verify / diff.

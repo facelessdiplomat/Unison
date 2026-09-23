@@ -1,10 +1,16 @@
 add_library(
-    unison_runner_core STATIC src/checksum_ledger.cpp src/checksum_wiretap.cpp src/run_outcome.cpp src/runner_options.cpp
+    unison_runner_core STATIC
+    src/checksum_ledger.cpp
+    src/checksum_wiretap.cpp
+    src/client_outcome.cpp
+    src/rollback_summary.cpp
+    src/run_outcome.cpp
+    src/runner_options.cpp
 )
 
 target_include_directories(unison_runner_core PUBLIC include)
 
-target_link_libraries(unison_runner_core PUBLIC unison_net PRIVATE cxxopts::cxxopts)
+target_link_libraries(unison_runner_core PUBLIC unison_net unison_session PRIVATE cxxopts::cxxopts)
 
 unison_apply_language_subset(unison_runner_core)
 

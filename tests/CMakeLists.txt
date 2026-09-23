@@ -117,6 +117,8 @@ add_executable(
     support/test_components.cpp
     tools/checksum_ledger_test.cpp
     tools/checksum_wiretap_test.cpp
+    tools/client_outcome_test.cpp
+    tools/rollback_summary_test.cpp
     tools/run_outcome_test.cpp
     tools/runner_options_test.cpp
     view/event_dispatcher_test.cpp

@@ -171,6 +171,22 @@ TEST_CASE("rollback statistics have no rates before a frame is played")
     REQUIRE(stats.resimulatedFramesPerSecond(60) == 0.0);
 }
 
+TEST_CASE("rollback statistics give the frames a rollback plays again on average")
+{
+    unison::session::RollbackStats stats;
+    stats.rollbacks = 2;
+    stats.resimulatedFrames = 5;
+
+    REQUIRE(stats.meanRollbackDepth() == 2.5);
+}
+
+TEST_CASE("rollback statistics have no mean depth before the first rollback")
+{
+    const unison::session::RollbackStats stats;
+
+    REQUIRE(stats.meanRollbackDepth() == 0.0);
+}
+
 TEST_CASE("rollback statistics count the ticks that had to wait for the relay")
 {
     unison::sim::Frame frame;

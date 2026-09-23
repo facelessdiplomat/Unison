@@ -151,9 +151,8 @@ RunOutcome RunnerMatch::outcomeAfter(std::uint32_t hostFrames) const
     {
         const session::Session* played = client.session().session();
 
-        outcome.slots.push_back(client.session().localSlot());
-        outcome.deepestRollback =
-            std::max(outcome.deepestRollback, played == nullptr ? 0U : played->rollbackStats().deepestRollback);
+        outcome.clients.push_back(ClientOutcome{
+            client.session().localSlot(), played == nullptr ? session::RollbackStats{} : played->rollbackStats()});
     }
 
     return outcome;

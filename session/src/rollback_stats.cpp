@@ -28,4 +28,14 @@ double RollbackStats::resimulatedFramesPerSecond(std::uint16_t tickRate) const
     return perSecondOfPlay(resimulatedFrames, framesPlayed, tickRate);
 }
 
+double RollbackStats::meanRollbackDepth() const
+{
+    if (rollbacks == 0)
+    {
+        return 0.0;
+    }
+
+    return static_cast<double>(resimulatedFrames) / static_cast<double>(rollbacks);
+}
+
 }
