@@ -18,8 +18,9 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.4.5**, the LAN test on two machines. Last finished: 3.4.8, a console that tells of a desync.
-  3.2.3 is deferred until WSL is installed.
+- Next up: **3.4.5**, the owner's LAN run on two machines by `docs/LAN_TEST.md`, which ends Phase 3. Last
+  finished: 3.4.8, a console that tells of a desync. 3.2.3 is deferred until WSL is installed. On the
+  owner's word of 2026-09-23, work stops here until Phase 3 is closed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -327,7 +328,7 @@ needs from earlier tasks is ticked.
 - [x] 3.4.4 Stats overlay: `V`, `P`, rollbacks per second, RTT, lead, stall indicator. Done when: visible in the console. The console draws its screen over the last one ten times a second: the status line, now with the lead of `TimeSync`, above the map of 3.4.3, "stalled" standing for the stall indicator; where its output is no console it prints the status line once a second as before. The program's name moved from the status line to the log line, so the line fits a window 120 columns wide. Test: the lead, the status line, the screen's layout and its escape sequences. Done on 2026-09-23: a console in a hidden window of its own, read back through its console buffer, showed the status line, the map and the players' lines, the cursor at the end of the last line.
 - [x] 3.4.7 (+) The relay and the console ask Windows for a timer of a millisecond. A thread that sleeps waits at least one tick of Windows' timer, 15.6 ms unless its process asks for less, so both loops, which sleep a millisecond a round, ran at 64 Hz: a message waited up to 16 ms at either end, and 3.4.4's screen showed round trips of 16 to 32 ms on localhost and leads of −8 to −16 ms. Done when: a relay and two consoles on localhost show round trips of a few milliseconds. `MillisecondTimer` in `unison_net` holds the timer for as long as it lives. Test: twenty sleeps of a millisecond take less than 100 ms while one lives; they took 306 ms without it and 31 ms with it. Done on 2026-09-23: a relay and two consoles on localhost showed round trips of 1 to 4 ms for six seconds, the verified frame one behind the predicted one.
 - [x] 3.4.8 (+) The console tells of a desync. The relay broadcasts one when the clients' checksums part ways, but the console showed nothing of it and played on, so the zero desyncs of Definition of Done item 2 could not be read off it. A reported desync now ends the console with exit code 2, outranking a disconnect's 1, and its status line ends with the frame and the slots out of step. Test: the status line of a desync of one slot and of several, also after a disconnect, and the exit code of every ending.
-- [ ] 3.4.5 `docs/LAN_TEST.md`: procedure for two machines; Definition of Done item 2 executed and the result recorded.
+- [ ] 3.4.5 `docs/LAN_TEST.md`: procedure for two machines; Definition of Done item 2 executed and the result recorded. The procedure was written on 2026-09-23; the run on two machines is the owner's, and its result goes into the record of `docs/LAN_TEST.md`.
 
 ---
 
