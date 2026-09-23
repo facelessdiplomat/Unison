@@ -2,6 +2,7 @@
 
 #include <unison/net/checksum_referee.hpp>
 #include <unison/net/clock.hpp>
+#include <unison/net/confirmed_log.hpp>
 #include <unison/net/input_collector.hpp>
 #include <unison/net/protocol.hpp>
 #include <unison/net/session_config.hpp>
@@ -16,11 +17,12 @@
 namespace unison::net
 {
 
-/// How a relay treats a player who falls behind: how long it waits for a missing input once the first input
-/// for a frame has arrived before it confirms the frame without it.
+/// How a relay treats players and a lossy network: how long it waits for a missing input once the first
+/// input for a frame has arrived, and every how many confirmed frames it sends them all again reliably.
 struct RelaySettings
 {
     std::uint64_t inputDeadlineMicroseconds = 100'000;
+    std::uint32_t reliableResendInterval = 10;
 };
 
 /// The relay of one match. It lets clients in, seats players in the slots of the config it was given and
@@ -65,6 +67,8 @@ private:
 
     void confirmReadyFrames();
 
+    void resendReliably(std::uint32_t lastFrame);
+
     void sendTo(PeerId peer, Channel channel, const Message& message);
 
     void sendToAll(Channel channel, const Message& message);
@@ -83,6 +87,7 @@ private:
     std::vector<Member> members;
     InputCollector inputs;
     ChecksumReferee referee;
+    ConfirmedLog confirmedLog;
     std::vector<std::byte> confirmedSlots;
     std::array<std::byte, kMaxDatagramSize> sendBuffer{};
 };

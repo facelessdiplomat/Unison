@@ -2,8 +2,11 @@
 
 #include <unison/net/loopback_hub.hpp>
 #include <unison/net/message_codec.hpp>
+#include <unison/net/network_simulator.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+
+#include <support/fatal_handler_probe.hpp>
 
 #include <algorithm>
 #include <array>
@@ -493,4 +496,53 @@ TEST_CASE("players whose checksums agree hear nothing about it")
     match.relay.endpoint.poll(match.relay.core);
 
     REQUIRE(desyncsIn(Match::repliesOf(match.first)).empty());
+}
+
+TEST_CASE("a client that loses every unreliable message still receives every confirmed frame")
+{
+    constexpr std::uint32_t kFrames = 20;
+    unison::net::LoopbackHub hub;
+    unison::net::LoopbackEndpoint& relayEndpoint = hub.join();
+    unison::net::NetworkSimulator network{unison::net::NetworkConditions{0, 0, 1.0F}, 20260923};
+    unison::net::SimulatedLink lossyRelay{relayEndpoint, network};
+    unison::net::ManualClock clock;
+    unison::net::RelayCore relay{lossyRelay, clock, threeSlotsOfTwoBytes()};
+    unison::net::LoopbackEndpoint& first = hub.join();
+    unison::net::LoopbackEndpoint& second = hub.join();
+    sendMessage(first, relayEndpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    sendMessage(second, relayEndpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    relayEndpoint.poll(relay);
+
+    for (std::uint32_t frame = 1; frame <= kFrames; ++frame)
+    {
+        const std::array<std::byte, 2> input = inputOf(static_cast<std::uint8_t>(frame));
+        sendMessage(first, relayEndpoint.id(), unison::net::Input{frame, 2, 1, input});
+        sendMessage(second, relayEndpoint.id(), unison::net::Input{frame, 2, 1, input});
+        relayEndpoint.poll(relay);
+        network.advance(0);
+    }
+
+    const Replies replies = Match::repliesOf(first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+
+    REQUIRE(confirmations.size() == kFrames);
+
+    for (std::uint32_t index = 0; index < kFrames; ++index)
+    {
+        REQUIRE(confirmations[index].frame == index + 1);
+    }
+}
+
+TEST_CASE("a relay that would never send its confirmed frames again breaks a contract")
+{
+    const unison::test::FatalHandlerProbe probe;
+    unison::net::LoopbackHub hub;
+    unison::net::LoopbackEndpoint& endpoint = hub.join();
+    const unison::net::ManualClock clock;
+    unison::net::RelaySettings never;
+    never.reliableResendInterval = 0;
+
+    const unison::net::RelayCore relay{endpoint, clock, twoPlayers(), never};
+
+    REQUIRE(probe.failureCount() == 1U);
 }

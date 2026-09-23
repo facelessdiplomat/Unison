@@ -2,6 +2,7 @@ add_library(
     unison_net STATIC
     src/checksum_referee.cpp
     src/clock.cpp
+    src/confirmed_log.cpp
     src/input_collector.cpp
     src/loopback_hub.cpp
     src/message_reader.cpp

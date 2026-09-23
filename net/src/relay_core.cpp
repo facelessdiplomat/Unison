@@ -23,8 +23,10 @@ RelayCore::RelayCore(ITransport& transport,
                      const RelaySettings& settings)
     : transport{transport}, clock{clock}, config{config}, settings{settings}, configHash{hashOf(config)},
       inputs{config.slotCount, config.inputSize, kPendingFrames},
+      confirmedLog{std::size_t{config.slotCount} * (1U + config.inputSize)},
       confirmedSlots(std::size_t{config.slotCount} * (1U + config.inputSize))
 {
+    UNISON_VERIFY(settings.reliableResendInterval > 0);
 }
 
 void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message)
@@ -126,7 +128,21 @@ void RelayCore::confirmReadyFrames()
         const std::uint32_t frame = inputs.nextFrame();
 
         inputs.confirmNextFrame(inPlay, confirmedSlots);
+        confirmedLog.append(confirmedSlots);
         sendToAll(Channel::Unreliable, Confirmed{frame, config.slotCount, config.inputSize, confirmedSlots});
+
+        if (frame % settings.reliableResendInterval == 0)
+        {
+            resendReliably(frame);
+        }
+    }
+}
+
+void RelayCore::resendReliably(std::uint32_t lastFrame)
+{
+    for (std::uint32_t frame = lastFrame - settings.reliableResendInterval + 1; frame <= lastFrame; ++frame)
+    {
+        sendToAll(Channel::Reliable, Confirmed{frame, config.slotCount, config.inputSize, confirmedLog.slotsOf(frame)});
     }
 }
 

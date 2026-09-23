@@ -492,6 +492,10 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
   `unison_relay`) and checks deadlines in `update()` as well as when inputs arrive. A frame nobody has sent
   an input for has no deadline: the relay waits for the first one. A dropped slot repeats the last input
   confirmed for it, neutral before the first.
+- A confirmation goes out on the unreliable channel at once and, every `reliableResendInterval` frames
+  (10 by default, about 167 ms at 60 Hz), the last batch goes out again on the reliable channel from the
+  relay's log of confirmed frames, so a client that lost confirmations recovers them without asking; it
+  simply ignores the ones it already has.
 - Frames are confirmed in order and each once. A slot nobody plays is confirmed absent: no flags and the
   neutral input. The first input a slot sends for a frame is the one that stands; inputs from a client
   without a slot, of another size than the config's, for a frame already confirmed or for one more than

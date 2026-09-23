@@ -60,6 +60,7 @@ add_executable(
     core/xxhash_vectors_test.cpp
     net/checksum_referee_test.cpp
     net/clock_test.cpp
+    net/confirmed_log_test.cpp
     net/enet_smoke_test.cpp
     net/input_collector_test.cpp
     net/loopback_hub_test.cpp
