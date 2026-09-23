@@ -1,4 +1,4 @@
-add_library(unison_net STATIC src/loopback_hub.cpp)
+add_library(unison_net STATIC src/loopback_hub.cpp src/network_simulator.cpp)
 
 target_include_directories(unison_net PUBLIC include)
 

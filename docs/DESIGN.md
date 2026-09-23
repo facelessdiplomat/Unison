@@ -535,8 +535,11 @@ class ITransport {
 A poll hands messages to a receiver interface rather than to a `std::function`, so polling every tick
 allocates nothing and the relay and the session each receive as one small interface.
 
-- `LoopbackHub`: in-process endpoints that deliver to one another; a seeded `NetworkSimulator` sits between
-  them with latency, jitter, loss and reordering, so that runner results are themselves reproducible.
+- `LoopbackHub`: in-process endpoints that deliver to one another at once. A `SimulatedLink` wraps any
+  transport so that what it sends first crosses a seeded `NetworkSimulator` with latency, jitter (the delay
+  strays up to that far either way), loss and the reordering jitter brings, so that runner results are
+  themselves reproducible. The reliable channel is never lost and never overtaken between the same two ends,
+  and simulated time only moves when the runner advances it.
 - `EnetTransport`: ENet client/server with two channels (reliable, unreliable-sequenced).
 
 ### 9.2 Relay protocol (v1)

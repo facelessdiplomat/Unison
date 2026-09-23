@@ -18,8 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.5.2**, the network simulator. Last finished: 2.5.1, the transport interface and the loopback
-  hub.
+- Next up: **2.5.3**, the protocol messages. Last finished: 2.5.2, the network simulator.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -29,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 37 | 18 |
+| 2 Rollback session (local) | 8 | 37 | 19 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **169** | **89** |
+| **Total** | **31** | **169** | **90** |
 
 ## Charter amendments made while planning
 
@@ -236,7 +235,7 @@ needs from earlier tasks is ticked.
 
 ### 2.5 Transport, loopback, network simulator (`unison_net`)
 - [x] 2.5.1 `ITransport`, `PeerId`, `Channel`, `LoopbackHub` with endpoints. Test: messages delivered between two endpoints in order.
-- [ ] 2.5.2 `NetworkSimulator` (seeded): latency, jitter, loss, reordering; the reliable channel never loses or reorders. Test: loss rate within tolerance over 10 000 packets; the reliable channel intact.
+- [x] 2.5.2 `NetworkSimulator` (seeded): latency, jitter, loss, reordering; the reliable channel never loses or reorders. Test: loss rate within tolerance over 10 000 packets; the reliable channel intact.
 - [ ] 2.5.3 Protocol messages (`Hello`, `Welcome`, `Input`, `Confirmed`, `Checksum`, `Desync`, `SnapshotRequest`, `SnapshotChunk`, `Ping`, `Pong`, `Leave`, `Kick`) with writer and reader. Test: round trip of every message; malformed bytes are rejected.
 
 ### 2.6 Relay core
