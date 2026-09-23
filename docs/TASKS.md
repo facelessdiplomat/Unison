@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.3.9**, splitting `Session`. Last finished: 2.6.8, splitting `RelayCore`.
+- Next up: **1.5.13**, splitting `PhysicsWorld`. Last finished: 2.3.9, splitting `Session`.
 - Taken ahead of **2.7.1** on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
   classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, the steady-state allocation test,
   which also retires what 2.2.2 left behind in restores. 2.7.1 follows them.
@@ -31,12 +31,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 38 | 28 |
+| 2 Rollback session (local) | 8 | 39 | 29 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **170** | **99** |
+| **Total** | **31** | **171** | **100** |
 
 ## Charter amendments made while planning
 
@@ -232,6 +232,7 @@ needs from earlier tasks is ticked.
 - [x] 2.3.6 Verified checksums taken from the snapshot at confirmation on `checksumInterval`, which joins `SessionConfig` so every client checksums the same frames. Test: the checksum of frame `F` equals a fresh simulation to `F`; only frames on the interval are checksummed.
 - [x] 2.3.7 `RollbackStats` (count, max depth, resimulated frames, stalled ticks, frames played, per-second rates over the time played). Test: values after a scripted misprediction.
 - [x] 2.3.8 Optional `inputDelayFrames`, a choice of each client rather than part of `SessionConfig`. Test: delay 2 applies the input two frames later and, against a relay that answers in two ticks, removes every rollback in a scripted scenario.
+- [x] 2.3.9 (+) `Session` split before the networked session, spectators and late-join grow it: which input every slot of every frame in the window plays, the local player's own, the relay's or a guess, and whether a confirmation matches what a frame holds, move to `InputTimeline`; the session keeps the frame numbers, the ring and the events. Reason: the session stood at 265 lines against the 300 of `CLAUDE.md` 3. Test: the timeline answers on its own, its contracts included, and every session test passes unchanged.
 
 ### 2.4 Event raise/cancel diffing (`unison_session`, `unison_view`)
 - [x] 2.4.1 The session records event keys per frame above `V`; after resimulation it computes `cancelled` and `raised` sets. Test: an event predicted at `F` and absent after resimulation is cancelled; a new one is raised.

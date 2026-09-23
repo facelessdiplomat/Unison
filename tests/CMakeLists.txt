@@ -72,6 +72,7 @@ add_executable(
     net/session_config_test.cpp
     session/event_history_test.cpp
     session/input_buffer_test.cpp
+    session/input_timeline_test.cpp
     session/local_input_test.cpp
     session/repeat_last_input_predictor_test.cpp
     session/session_checksum_test.cpp

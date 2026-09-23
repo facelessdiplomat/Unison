@@ -3,8 +3,7 @@
 #include <unison/net/session_config.hpp>
 #include <unison/session/event_history.hpp>
 #include <unison/session/input_buffer.hpp>
-#include <unison/session/local_input.hpp>
-#include <unison/session/repeat_last_input_predictor.hpp>
+#include <unison/session/input_timeline.hpp>
 #include <unison/session/rollback_stats.hpp>
 #include <unison/session/snapshot_ring.hpp>
 #include <unison/session/verified_checksum.hpp>
@@ -81,28 +80,17 @@ private:
 
     void play(std::uint32_t frameNumber);
 
-    void sampleLocalInput(std::uint32_t frameNumber);
-
-    void guessUnconfirmedInputs(std::uint32_t frameNumber);
-
     void advanceVerified();
 
     [[nodiscard]] bool mayPlay(std::uint32_t frameNumber) const;
 
-    [[nodiscard]] bool wasPlayedAs(std::uint32_t frameNumber, const sim::FrameInputs& confirmed) const;
-
-    [[nodiscard]] bool isConfirmed(std::uint32_t frameNumber) const;
-
     sim::Frame& liveFrame;
     const sim::SystemPipeline& systemPipeline;
     net::SessionConfig config;
-    std::size_t localSlot;
     std::uint32_t inputDelay;
-    InputBuffer inputBuffer;
+    InputTimeline inputTimeline;
     SnapshotRing snapshotRing;
     EventHistory eventHistory;
-    LocalInput localInput;
-    RepeatLastInputPredictor predictor;
     std::uint32_t verified;
     std::uint32_t predicted;
     std::optional<std::uint32_t> firstMispredicted;

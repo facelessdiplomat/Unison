@@ -444,7 +444,8 @@ each frame holding the `FrameInputs` its tick reads and, per slot, whether that 
 predicted, or is confirmed by the relay. The window keeps `V` itself, because a prediction repeats a slot's
 last confirmed input and at `V` every slot has one. A frame outside the window is refused, not stored.
 The local slot is not guessed: each tick writes the input the host gave last, as present and unconfirmed,
-which is exactly how the relay will settle it unless it gives the input up.
+which is exactly how the relay will settle it unless it gives the input up. An `InputTimeline` holds the
+buffer and applies these rules, so the session itself only tracks which frames are played and verified.
 
 Each tick:
 
