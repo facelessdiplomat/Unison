@@ -236,6 +236,81 @@ TEST_CASE("a confirmation of a frame already verified is turned away")
     REQUIRE(session.verifiedFrame() == 2U);
 }
 
+TEST_CASE("a session stops predicting once it is as far ahead of the relay as it may be")
+{
+    unison::sim::Frame frame;
+    const unison::sim::SystemPipeline pipeline;
+    unison::session::Session session{frame, pipeline, threePlayers(), kLocalSlot};
+
+    for (std::uint32_t round = 0; round < 6; ++round)
+    {
+        session.tick();
+    }
+
+    REQUIRE(session.isStalled());
+    REQUIRE(session.predictedFrame() == 4U);
+}
+
+TEST_CASE("a stalled session plays on once the relay confirms a frame")
+{
+    unison::sim::Frame frame;
+    const unison::sim::SystemPipeline pipeline;
+    unison::session::Session session{frame, pipeline, threePlayers(), kLocalSlot};
+
+    for (std::uint32_t round = 0; round < 5; ++round)
+    {
+        session.tick();
+    }
+
+    REQUIRE(confirmAsPlayed(session, 1));
+
+    session.tick();
+
+    REQUIRE_FALSE(session.isStalled());
+    REQUIRE(session.predictedFrame() == 5U);
+}
+
+TEST_CASE("a stalled tick still plays again the frames it guessed wrong")
+{
+    unison::sim::Frame frame;
+    InputRecorder recorder;
+    unison::sim::SystemPipeline pipeline;
+    pipeline.add(recorder);
+    unison::session::Session session{frame, pipeline, threePlayers(), kLocalSlot};
+
+    for (std::uint32_t round = 0; round < 5; ++round)
+    {
+        session.tick();
+    }
+
+    unison::sim::FrameInputs contradicted = session.inputs().inputsAt(2);
+    contradicted.set(0, SampleInput{0, 0, 7, 0}, unison::sim::InputFlags::Present);
+    REQUIRE(session.confirm(2, contradicted));
+
+    session.tick();
+
+    REQUIRE(session.isStalled());
+    REQUIRE(recorder.runCount() == 4U + 3U);
+}
+
+TEST_CASE("a session allowed no prediction plays only frames the relay has confirmed")
+{
+    unison::sim::Frame frame;
+    const unison::sim::SystemPipeline pipeline;
+    unison::session::SessionConfig lockstep = threePlayers();
+    lockstep.maxPrediction = 0;
+    unison::session::Session session{frame, pipeline, lockstep, kLocalSlot};
+
+    session.tick();
+    const std::uint32_t beforeConfirmation = session.predictedFrame();
+    REQUIRE(session.confirm(1, unison::sim::FrameInputs{}));
+    session.tick();
+
+    REQUIRE(beforeConfirmation == 0U);
+    REQUIRE(session.predictedFrame() == 1U);
+    REQUIRE(session.verifiedFrame() == 1U);
+}
+
 TEST_CASE("a session with more players than a frame has slots breaks a contract")
 {
     const unison::test::FatalHandlerProbe probe;

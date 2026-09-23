@@ -44,6 +44,13 @@ void Session::tick()
 
     const std::uint32_t next = predicted + 1;
 
+    stalled = !mayPlay(next);
+
+    if (stalled)
+    {
+        return;
+    }
+
     sampleLocalInput(next);
     guessUnconfirmedInputs(next);
     play(next);
@@ -84,6 +91,11 @@ std::uint32_t Session::predictedFrame() const
 std::uint32_t Session::verifiedFrame() const
 {
     return verified;
+}
+
+bool Session::isStalled() const
+{
+    return stalled;
 }
 
 const InputBuffer& Session::inputs() const
@@ -159,6 +171,14 @@ void Session::advanceVerified()
 
     inputBuffer.evictBelow(verified);
     snapshotRing.evictBelow(verified);
+}
+
+bool Session::mayPlay(std::uint32_t frameNumber) const
+{
+    const bool staysInsideWindow = frameNumber - verified <= config.maxPrediction;
+    const bool isVerifiedAtOnce = verified == predicted && isConfirmed(frameNumber);
+
+    return staysInsideWindow || isVerifiedAtOnce;
 }
 
 bool Session::wasPlayedAs(std::uint32_t frameNumber, const sim::FrameInputs& confirmed) const

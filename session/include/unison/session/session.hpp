@@ -33,7 +33,8 @@ public:
     void setLocalInput(std::span<const std::byte> input);
 
     /// Plays again every frame since the first one guessed wrong, then simulates the frame after the
-    /// predicted one and keeps its snapshot.
+    /// predicted one and keeps its snapshot, unless that frame would take the session further ahead of
+    /// the verified frame than the config allows and the relay has not settled it yet.
     void tick();
 
     /// Takes the inputs the relay settled for a frame and notes whether a frame already played was guessed
@@ -43,6 +44,9 @@ public:
     [[nodiscard]] std::uint32_t predictedFrame() const;
 
     [[nodiscard]] std::uint32_t verifiedFrame() const;
+
+    /// Whether the last tick had to wait for the relay instead of simulating a frame.
+    [[nodiscard]] bool isStalled() const;
 
     [[nodiscard]] const InputBuffer& inputs() const;
 
@@ -59,6 +63,8 @@ private:
 
     void advanceVerified();
 
+    [[nodiscard]] bool mayPlay(std::uint32_t frameNumber) const;
+
     [[nodiscard]] bool wasPlayedAs(std::uint32_t frameNumber, const sim::FrameInputs& confirmed) const;
 
     [[nodiscard]] bool isConfirmed(std::uint32_t frameNumber) const;
@@ -74,6 +80,7 @@ private:
     std::uint32_t verified;
     std::uint32_t predicted;
     std::optional<std::uint32_t> firstMispredicted;
+    bool stalled = false;
 };
 
 }
