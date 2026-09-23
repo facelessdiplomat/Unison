@@ -127,6 +127,7 @@ add_executable(
     tools/rollback_summary_test.cpp
     tools/run_outcome_test.cpp
     tools/runner_options_test.cpp
+    tools/screen_test.cpp
     tools/status_line_test.cpp
     view/event_dispatcher_test.cpp
     view/session_runner_test.cpp

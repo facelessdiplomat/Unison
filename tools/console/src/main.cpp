@@ -1,11 +1,14 @@
 #include "console_keyboard.hpp"
+#include "console_screen.hpp"
 
 #include <unison/console/arena_controls.hpp>
 #include <unison/console/console_options.hpp>
+#include <unison/console/screen.hpp>
 #include <unison/console/status_line.hpp>
 
 #include <arena/arena_input.hpp>
 #include <arena/arena_simulation.hpp>
+#include <arena/text_map.hpp>
 
 #include <unison/core/log_sink.hpp>
 #include <unison/net/clock.hpp>
@@ -32,6 +35,7 @@ namespace
 {
 
 constexpr std::uint64_t kMicrosecondsPerSecond = 1'000'000;
+constexpr std::uint64_t kMicrosecondsPerScreen = 100'000;
 constexpr std::chrono::milliseconds kIdleBetweenFrames{1};
 
 volatile std::sig_atomic_t isStopAsked = 0;
@@ -45,6 +49,12 @@ void printToStandardOutput(unison::LogLevel, std::string_view message)
 {
     std::fprintf(stdout, "%.*s\n", static_cast<int>(message.size()), message.data());
     std::fflush(stdout);
+}
+
+void logStatus(const unison::console::ConsoleStatus& status)
+{
+    unison::logMessage(unison::LogLevel::Info,
+                       std::format("unison_console: {}", unison::console::statusLineOf(status)));
 }
 
 unison::net::SessionConfig configOf(const unison::console::ConsoleOptions& options, const arena::ArenaSimulation& match)
@@ -69,6 +79,7 @@ unison::console::ConsoleStatus statusOf(const unison::console::ConsoleOptions& o
     status.slot = networked.localSlot();
     status.rollbacksLastSecond = rollbacksLastSecond;
     status.roundTripMicroseconds = networked.timeSync().roundTripMicroseconds();
+    status.leadMicroseconds = networked.timeSync().leadMicroseconds();
 
     if (const unison::session::Session* played = networked.session())
     {
@@ -84,6 +95,119 @@ std::uint32_t rollbacksSoFar(const unison::session::NetworkedSession& networked)
     const unison::session::Session* played = networked.session();
 
     return played == nullptr ? 0U : played->rollbackStats().rollbacks;
+}
+
+class Steering
+{
+public:
+    explicit Steering(std::uint64_t now) : lastInputAt{now}
+    {
+    }
+
+    [[nodiscard]] bool isKeyboardAvailable() const
+    {
+        return keyboard.isAvailable();
+    }
+
+    [[nodiscard]] arena::ArenaInput inputAt(std::uint64_t now)
+    {
+        keyboard.readInto(keys);
+
+        const arena::ArenaInput input = controls.inputFor(keys, now - lastInputAt);
+        lastInputAt = now;
+
+        return input;
+    }
+
+private:
+    unison::console::ConsoleKeyboard keyboard;
+    unison::console::HeldKeys keys;
+    unison::console::ArenaControls controls;
+    std::uint64_t lastInputAt;
+};
+
+class StatusDisplay
+{
+public:
+    StatusDisplay(const unison::console::ConsoleOptions& options,
+                  const unison::session::NetworkedSession& networked,
+                  const unison::sim::Frame& frame)
+        : options{options}, networked{networked}, frame{frame}
+    {
+    }
+
+    void update(std::uint64_t now)
+    {
+        if (now >= nextSecondAt)
+        {
+            const std::uint32_t rollbacks = rollbacksSoFar(networked);
+            rollbacksLastSecond = rollbacks - rollbacksAtLastSecond;
+            rollbacksAtLastSecond = rollbacks;
+            nextSecondAt += kMicrosecondsPerSecond;
+
+            if (!screen.isAvailable())
+            {
+                logStatus(statusOf(options, networked, rollbacksLastSecond));
+            }
+        }
+
+        if (screen.isAvailable() && now >= nextScreenAt)
+        {
+            screen.show(
+                unison::console::screenOf(statusOf(options, networked, rollbacksLastSecond), arena::textMapOf(frame)));
+            nextScreenAt = now + kMicrosecondsPerScreen;
+        }
+    }
+
+private:
+    const unison::console::ConsoleOptions& options;
+    const unison::session::NetworkedSession& networked;
+    const unison::sim::Frame& frame;
+    unison::console::ConsoleScreen screen;
+    std::uint64_t nextSecondAt = kMicrosecondsPerSecond;
+    std::uint64_t nextScreenAt = 0;
+    std::uint32_t rollbacksAtLastSecond = 0;
+    std::uint32_t rollbacksLastSecond = 0;
+};
+
+void playUntilStopped(const unison::console::ConsoleOptions& options,
+                      const arena::ArenaSimulation& match,
+                      unison::session::NetworkedSession& networked,
+                      unison::view::SessionRunner& runner,
+                      const unison::net::IClock& clock)
+{
+    const std::uint64_t stopAt = options.runForSeconds > 0 ? options.runForSeconds * kMicrosecondsPerSecond
+                                                           : std::numeric_limits<std::uint64_t>::max();
+    Steering steering{clock.nowMicroseconds()};
+
+    if (!steering.isKeyboardAvailable())
+    {
+        unison::logMessage(unison::LogLevel::Info,
+                           "unison_console: no console to read the keyboard from, so the player stands still");
+    }
+
+    StatusDisplay display{options, networked, match.frame()};
+    networked.join();
+
+    while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt &&
+           networked.state() != unison::session::ConnectionState::Disconnected)
+    {
+        const arena::ArenaInput input = steering.inputAt(clock.nowMicroseconds());
+
+        runner.setLocalInput(std::as_bytes(std::span{&input, 1}));
+        static_cast<void>(runner.update());
+        networked.clearConnectionChanges();
+        display.update(clock.nowMicroseconds());
+        std::this_thread::sleep_for(kIdleBetweenFrames);
+    }
+}
+
+tl::expected<unison::net::EnetConnection, unison::Error> connectToRelay(const unison::console::ConsoleOptions& options)
+{
+    const std::optional<unison::net::EnetAddress> from =
+        options.from.empty() ? std::nullopt : std::optional{unison::net::EnetAddress{options.from, 0}};
+
+    return unison::net::EnetTransport::connect(unison::net::EnetAddress{options.host, options.port}, from);
 }
 
 }
@@ -113,9 +237,7 @@ int main(int argc, char** argv)
 
     arena::ArenaSimulation match{options->players};
     const unison::net::SessionConfig config = configOf(*options, match);
-    const std::optional<unison::net::EnetAddress> from =
-        options->from.empty() ? std::nullopt : std::optional{unison::net::EnetAddress{options->from, 0}};
-    auto connected = unison::net::EnetTransport::connect(unison::net::EnetAddress{options->host, options->port}, from);
+    auto connected = connectToRelay(*options);
 
     if (!connected.has_value())
     {
@@ -129,51 +251,9 @@ int main(int argc, char** argv)
         match.frame(), match.pipeline(), config, *connected->transport, connected->server};
     unison::view::EventDispatcher dispatcher;
     unison::view::SessionRunner runner{networked, dispatcher, clock, config.tickRate};
-    unison::console::ConsoleKeyboard keyboard;
-    unison::console::HeldKeys keys;
-    unison::console::ArenaControls controls;
-    const std::uint64_t stopAt = options->runForSeconds > 0 ? options->runForSeconds * kMicrosecondsPerSecond
-                                                            : std::numeric_limits<std::uint64_t>::max();
-    std::uint64_t nextStatusAt = kMicrosecondsPerSecond;
-    std::uint64_t lastInputAt = clock.nowMicroseconds();
-    std::uint32_t rollbacksAtLastStatus = 0;
 
-    if (!keyboard.isAvailable())
-    {
-        unison::logMessage(unison::LogLevel::Info,
-                           "unison_console: no console to read the keyboard from, so the player stands still");
-    }
-
-    networked.join();
-
-    while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt &&
-           networked.state() != unison::session::ConnectionState::Disconnected)
-    {
-        keyboard.readInto(keys);
-
-        const std::uint64_t now = clock.nowMicroseconds();
-        const arena::ArenaInput input = controls.inputFor(keys, now - lastInputAt);
-
-        lastInputAt = now;
-        runner.setLocalInput(std::as_bytes(std::span{&input, 1}));
-        static_cast<void>(runner.update());
-        networked.clearConnectionChanges();
-
-        if (clock.nowMicroseconds() >= nextStatusAt)
-        {
-            const std::uint32_t rollbacks = rollbacksSoFar(networked);
-
-            unison::logMessage(
-                unison::LogLevel::Info,
-                unison::console::statusLineOf(statusOf(*options, networked, rollbacks - rollbacksAtLastStatus)));
-            rollbacksAtLastStatus = rollbacks;
-            nextStatusAt += kMicrosecondsPerSecond;
-        }
-
-        std::this_thread::sleep_for(kIdleBetweenFrames);
-    }
-
-    unison::logMessage(unison::LogLevel::Info, unison::console::statusLineOf(statusOf(*options, networked, 0)));
+    playUntilStopped(*options, match, networked, runner, clock);
+    logStatus(statusOf(*options, networked, 0));
 
     return networked.state() == unison::session::ConnectionState::Disconnected ? 1 : 0;
 }

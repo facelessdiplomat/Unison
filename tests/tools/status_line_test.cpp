@@ -17,17 +17,26 @@ unison::console::ConsoleStatus playingStatus()
     status.predictedFrame = 318;
     status.rollbacksLastSecond = 12;
     status.roundTripMicroseconds = 3'400;
+    status.leadMicroseconds = 1'700;
 
     return status;
 }
 
 }
 
-TEST_CASE("the status line of a playing client names its slot, its frames, its rollbacks and its round trip")
+TEST_CASE("the status line of a playing client names its slot, its frames, its rollbacks, its round trip and its lead")
 {
     REQUIRE(unison::console::statusLineOf(playingStatus()) ==
-            "unison_console: ada playing in slot 1, verified 312, predicted 318, rollbacks in the last second 12, "
-            "round trip 3 ms");
+            "ada playing in slot 1, verified 312, predicted 318, rollbacks in the last second 12, "
+            "round trip 3 ms, lead 1 ms");
+}
+
+TEST_CASE("a client behind the relay's clock has a lead below nothing")
+{
+    unison::console::ConsoleStatus status = playingStatus();
+    status.leadMicroseconds = -16'700;
+
+    REQUIRE(unison::console::statusLineOf(status).ends_with("lead -16 ms"));
 }
 
 TEST_CASE("the status line of a stalled client says it is stalled")
@@ -51,8 +60,8 @@ TEST_CASE("the status line of a client not in a match yet says where it stands a
     status.state = unison::session::ConnectionState::Disconnected;
     const std::string disconnected = unison::console::statusLineOf(status);
 
-    REQUIRE(idle == "unison_console: ada idle");
-    REQUIRE(connecting == "unison_console: ada connecting to the relay");
-    REQUIRE(joining == "unison_console: ada joining the match");
-    REQUIRE(disconnected == "unison_console: ada disconnected");
+    REQUIRE(idle == "ada idle");
+    REQUIRE(connecting == "ada connecting to the relay");
+    REQUIRE(joining == "ada joining the match");
+    REQUIRE(disconnected == "ada disconnected");
 }

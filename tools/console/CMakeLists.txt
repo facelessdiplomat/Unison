@@ -1,4 +1,4 @@
-add_library(unison_console_core STATIC src/console_options.cpp src/status_line.cpp)
+add_library(unison_console_core STATIC src/console_options.cpp src/screen.cpp src/status_line.cpp)
 
 target_include_directories(unison_console_core PUBLIC include)
 
@@ -18,9 +18,11 @@ unison_apply_language_subset(unison_console_arena)
 
 unison_apply_warnings(unison_console_arena)
 
-add_executable(unison_console src/console_keyboard.cpp src/main.cpp)
+add_executable(unison_console src/console_keyboard.cpp src/console_screen.cpp src/main.cpp)
 
-target_link_libraries(unison_console PRIVATE unison_console_arena unison_console_core unison_view arena_sim)
+target_link_libraries(
+    unison_console PRIVATE arena_view_console unison_console_arena unison_console_core unison_view arena_sim
+)
 
 target_compile_definitions(unison_console PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 

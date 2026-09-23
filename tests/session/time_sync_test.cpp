@@ -194,6 +194,34 @@ TEST_CASE("the round trip is how long the last pong took to come back")
     REQUIRE(sync.roundTripMicroseconds() == 87'000U);
 }
 
+TEST_CASE("the lead is how far ahead of the relay's clock the client played when the last pong came back")
+{
+    unison::session::TimeSync sync{kTickRate};
+
+    sync.observe(unison::net::Pong{kSentAt, 0, kDueFrame}, kCameBackAt, kDueFrame + 10U);
+
+    REQUIRE(sync.leadMicroseconds() == 10 * static_cast<std::int64_t>(kTick) - static_cast<std::int64_t>(kOneWay));
+}
+
+TEST_CASE("a client has no lead before the relay's clock starts")
+{
+    unison::session::TimeSync sync{kTickRate};
+
+    sync.observe(unison::net::Pong{kSentAt, 0, 0}, kCameBackAt, 10U);
+
+    REQUIRE(sync.leadMicroseconds() == 0);
+}
+
+TEST_CASE("the lead follows every pong, those left out while a correction runs included")
+{
+    unison::session::TimeSync sync{kTickRate};
+    observeAhead(sync, 10, kPongsPerJudgement);
+
+    sync.observe(unison::net::Pong{kSentAt, 0, kDueFrame}, kCameBackAt, kDueFrame + 3U);
+
+    REQUIRE(sync.leadMicroseconds() == 3 * static_cast<std::int64_t>(kTick) - static_cast<std::int64_t>(kOneWay));
+}
+
 TEST_CASE("a client that starts ahead settles within the jitter margin under a 100 ms round trip")
 {
     const Drift drift = driftOfAClientStarting(20);

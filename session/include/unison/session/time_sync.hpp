@@ -38,7 +38,14 @@ public:
     /// How long the last pong took to come back, in microseconds; nothing before the first one.
     [[nodiscard]] std::uint64_t roundTripMicroseconds() const;
 
+    /// How far ahead of the relay's clock the client played when the last pong came back, in microseconds: its
+    /// predicted frame against the one the pong had due, less the half round trip since. Nothing before the clock
+    /// starts; about half a round trip once the client keeps pace.
+    [[nodiscard]] std::int64_t leadMicroseconds() const;
+
 private:
+    void judge(std::int64_t aheadOfPace);
+
     std::uint64_t tickMicroseconds;
     TimeSyncSettings settings;
     std::int64_t aheadSum = 0;
@@ -46,6 +53,7 @@ private:
     std::int32_t pendingTicks = 0;
     std::optional<std::uint64_t> lastCorrectedAt;
     std::uint64_t lastRoundTrip = 0;
+    std::int64_t lastLead = 0;
 };
 
 }

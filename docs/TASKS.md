@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.4.4**, the console's stats overlay. Last finished: 3.4.6, spawn points that face the middle
-  of the arena. 3.2.3 is deferred until WSL is installed.
+- Next up: **3.4.7 (+)**, a timer of a millisecond for the relay and the console. Last finished: 3.4.4, the
+  console's screen with its stats. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -40,11 +40,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 17 | 14 |
+| 3 Real networking | 4 | 18 | 15 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **182** | **133** |
+| **Total** | **31** | **183** | **134** |
 
 ## Charter amendments made while planning
 
@@ -324,7 +324,8 @@ needs from earlier tasks is ticked.
 - [x] 3.4.2 Q3 decided (FTXUI vs plain console); non-blocking keyboard input mapped to `ArenaInput` (WASD, space, Q/E yaw, F fire). Test: key state to input quantisation. Plain console, the owner's choice of 2026-09-23: Windows' console input reports keys going up as well as down, which no terminal does. `ArenaControls` turns the aim by the time a key was held, and a lost focus lets every key go; reading the keyboard itself is checked by hand.
 - [x] 3.4.3 Text top-down renderer: grid, players with facing, projectiles, crates, health. Test: golden string for a known frame. `arena_view_console` draws the arena from above, half a metre a column and a metre a row, with a line for every player below it; the console shows it from 3.4.4 on. It tells which way a player looks from the yaw by quarter turns itself rather than calling the arena's inline `facingOf`, so no simulation code is compiled under a host's flags (`DESIGN.md` §7.3). Also: walls fence the map, a crate and a shot show where they are, every quarter turn has its arrow, and a player waiting to come back is off the map.
 - [x] 3.4.6 (+) Every spawn point faces the middle of the arena, as `DESIGN.md` §14 says. The yaws were written as if a yaw turned from +X towards +Z, while `facingOf` reads one from +Z towards +X, so six of the eight spawns look past the middle or away from it in the frame a player appears; 3.4.3's map showed it. Test: `facingOf` of every spawn's yaw points from the spawn at the middle. The scripted match's golden checksums stay as they were, since the next input's yaw takes over from a spawn's; the map's golden shows player 1 looking at the middle. Starting a host's aim where the spawn faces went to the backlog of `DESIGN.md` §15.
-- [ ] 3.4.4 Stats overlay: `V`, `P`, rollbacks per second, RTT, lead, stall indicator. Done when: visible in the console.
+- [x] 3.4.4 Stats overlay: `V`, `P`, rollbacks per second, RTT, lead, stall indicator. Done when: visible in the console. The console draws its screen over the last one ten times a second: the status line, now with the lead of `TimeSync`, above the map of 3.4.3, "stalled" standing for the stall indicator; where its output is no console it prints the status line once a second as before. The program's name moved from the status line to the log line, so the line fits a window 120 columns wide. Test: the lead, the status line, the screen's layout and its escape sequences. Done on 2026-09-23: a console in a hidden window of its own, read back through its console buffer, showed the status line, the map and the players' lines, the cursor at the end of the last line.
+- [ ] 3.4.7 (+) The relay and the console ask Windows for a timer of a millisecond. A thread that sleeps waits at least one tick of Windows' timer, 15.6 ms unless its process asks for less, so both loops, which sleep a millisecond a round, ran at 64 Hz: a message waited up to 16 ms at either end, and 3.4.4's screen showed round trips of 16 to 32 ms on localhost and leads of −8 to −16 ms. Done when: a relay and two consoles on localhost show round trips of a few milliseconds.
 - [ ] 3.4.5 `docs/LAN_TEST.md`: procedure for two machines; Definition of Done item 2 executed and the result recorded.
 
 ---

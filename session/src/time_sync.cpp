@@ -37,18 +37,30 @@ void TimeSync::observe(const net::Pong& pong, std::uint64_t now, std::uint32_t p
     lastRoundTrip = now - pong.pingSentAt;
 
     const bool isClockStarted = pong.dueFrame != 0;
-    const bool isPingedBeforeSettling = lastCorrectedAt.has_value() && pong.pingSentAt <= *lastCorrectedAt;
 
-    if (!isClockStarted || pendingTicks != 0 || isPingedBeforeSettling)
+    if (!isClockStarted)
     {
         return;
     }
 
     const std::int64_t framesAhead =
         static_cast<std::int64_t>(predictedFrame) - static_cast<std::int64_t>(pong.dueFrame);
-    const auto tick = static_cast<std::int64_t>(tickMicroseconds);
+    const std::int64_t playedAhead = framesAhead * static_cast<std::int64_t>(tickMicroseconds);
+    const auto roundTrip = static_cast<std::int64_t>(lastRoundTrip);
 
-    aheadSum += framesAhead * tick - static_cast<std::int64_t>(lastRoundTrip);
+    lastLead = playedAhead - roundTrip / 2;
+
+    const bool isPingedBeforeSettling = lastCorrectedAt.has_value() && pong.pingSentAt <= *lastCorrectedAt;
+
+    if (pendingTicks == 0 && !isPingedBeforeSettling)
+    {
+        judge(playedAhead - roundTrip);
+    }
+}
+
+void TimeSync::judge(std::int64_t aheadOfPace)
+{
+    aheadSum += aheadOfPace;
     ++pongsSeen;
 
     if (pongsSeen < settings.pongsPerJudgement)
@@ -63,7 +75,7 @@ void TimeSync::observe(const net::Pong& pong, std::uint64_t now, std::uint32_t p
 
     if (std::llabs(ahead) > static_cast<std::int64_t>(settings.jitterMarginMicroseconds))
     {
-        pendingTicks = static_cast<std::int32_t>(-ahead / tick);
+        pendingTicks = static_cast<std::int32_t>(-ahead / static_cast<std::int64_t>(tickMicroseconds));
     }
 }
 
@@ -88,6 +100,11 @@ std::int32_t TimeSync::takeCorrection(std::uint64_t now)
 std::uint64_t TimeSync::roundTripMicroseconds() const
 {
     return lastRoundTrip;
+}
+
+std::int64_t TimeSync::leadMicroseconds() const
+{
+    return lastLead;
 }
 
 }

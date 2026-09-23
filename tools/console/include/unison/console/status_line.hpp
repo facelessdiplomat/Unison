@@ -9,8 +9,8 @@
 namespace unison::console
 {
 
-/// What a console tells about its client once a second: the name it shows, where it stands with the relay, and
-/// in a match its slot, its verified and predicted frames, the rollbacks of the last second and the round trip.
+/// What a console tells about its client: the name it shows, where it stands with the relay, and in a match its
+/// slot, its verified and predicted frames, the rollbacks of the last second, the round trip and the lead.
 struct ConsoleStatus
 {
     std::string name;
@@ -20,9 +20,10 @@ struct ConsoleStatus
     std::uint32_t predictedFrame = 0;
     std::uint32_t rollbacksLastSecond = 0;
     std::uint64_t roundTripMicroseconds = 0;
+    std::int64_t leadMicroseconds = 0;
 };
 
-/// The line a console prints about its client, the round trip in whole milliseconds.
+/// The line a console shows about its client, the round trip and the lead in whole milliseconds.
 [[nodiscard]] std::string statusLineOf(const ConsoleStatus& status);
 
 }
