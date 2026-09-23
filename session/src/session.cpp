@@ -44,6 +44,23 @@ void Session::tick()
     snapshotRing.store(liveFrame);
 
     predicted = next;
+    advanceVerified();
+}
+
+bool Session::confirm(std::uint32_t frameNumber, const sim::FrameInputs& confirmed)
+{
+    for (std::size_t slot = 0; slot < config.slotCount; ++slot)
+    {
+        if (!inputBuffer.store(
+                frameNumber, slot, confirmed.bytesAt(slot), confirmed.flagsAt(slot), InputState::Confirmed))
+        {
+            return false;
+        }
+    }
+
+    advanceVerified();
+
+    return true;
 }
 
 std::uint32_t Session::predictedFrame() const
@@ -68,17 +85,41 @@ const SnapshotRing& Session::snapshots() const
 
 void Session::prepareInputs(std::uint32_t frameNumber)
 {
-    const bool sampled = localInput.sampleInto(inputBuffer, frameNumber);
-    UNISON_VERIFY(sampled);
-
     for (std::size_t slot = 0; slot < config.slotCount; ++slot)
     {
-        if (slot != localSlot)
+        if (inputBuffer.stateAt(frameNumber, slot) == InputState::Confirmed)
         {
-            const bool guessed = predictor.predict(inputBuffer, frameNumber, slot);
-            UNISON_VERIFY(guessed);
+            continue;
+        }
+
+        const bool prepared = slot == localSlot ? localInput.sampleInto(inputBuffer, frameNumber)
+                                                : predictor.predict(inputBuffer, frameNumber, slot);
+        UNISON_VERIFY(prepared);
+    }
+}
+
+void Session::advanceVerified()
+{
+    while (verified < predicted && isConfirmed(verified + 1))
+    {
+        ++verified;
+    }
+
+    inputBuffer.evictBelow(verified);
+    snapshotRing.evictBelow(verified);
+}
+
+bool Session::isConfirmed(std::uint32_t frameNumber) const
+{
+    for (std::size_t slot = 0; slot < config.slotCount; ++slot)
+    {
+        if (inputBuffer.stateAt(frameNumber, slot) != InputState::Confirmed)
+        {
+            return false;
         }
     }
+
+    return true;
 }
 
 }

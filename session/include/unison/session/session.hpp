@@ -34,6 +34,10 @@ public:
     /// Simulates the frame after the predicted one and keeps its snapshot.
     void tick();
 
+    /// Takes the inputs the relay settled for a frame. Returns false for a frame outside the window: one
+    /// already verified, or one too far ahead to hold yet.
+    [[nodiscard]] bool confirm(std::uint32_t frameNumber, const sim::FrameInputs& confirmed);
+
     [[nodiscard]] std::uint32_t predictedFrame() const;
 
     [[nodiscard]] std::uint32_t verifiedFrame() const;
@@ -44,6 +48,10 @@ public:
 
 private:
     void prepareInputs(std::uint32_t frameNumber);
+
+    void advanceVerified();
+
+    [[nodiscard]] bool isConfirmed(std::uint32_t frameNumber) const;
 
     sim::Frame& liveFrame;
     const sim::SystemPipeline& systemPipeline;

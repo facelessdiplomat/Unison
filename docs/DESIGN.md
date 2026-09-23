@@ -448,7 +448,9 @@ Each tick:
    emissions to produce `cancelled` / `raised` notifications for the view.
 4. Advance `V` to the newest fully confirmed frame; compute its checksum from the snapshot; send checksums on the
    configured interval (reliable channel).
-5. Simulate frame `P + 1`; store its snapshot.
+5. Simulate frame `P + 1`, on the confirmed inputs of every slot the relay has already settled for it and a
+   guess for the rest; store its snapshot. `V` never passes `P`: a frame is verified once it has been played
+   on confirmed inputs, whether it was confirmed before it was played or matched its guess afterwards.
 
 This is the GGPO-style layout: each frame is simulated once when prediction is right, and
 snapshot cost (bulk copies + `SaveState`) is paid once per frame. The Quantum-style
