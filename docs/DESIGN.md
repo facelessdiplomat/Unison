@@ -205,10 +205,11 @@ state freely; they never mutate it except through `Session` inputs.
   first and unregisters after the last. It is the second piece of global mutable state the engine allows.
   The exception is bounded: the registration is installed before any body exists, no deterministic library
   reads it back, the counter changes only on the simulation thread, and no simulation result depends on it.
-- **A relay's stop request**: a signal handler can reach the program only through a flag of static storage,
-  so `unison_relay`'s `main.cpp` keeps one `volatile std::sig_atomic_t` that `SIGINT` and `SIGTERM` set and
-  its loop reads. It is the third piece of global mutable state, and it never leaves that one source file of
-  an executable. Everything else keeps the constructor injection of `CLAUDE.md` 4.
+- **A terminal host's stop request**: a signal handler can reach the program only through a flag of static
+  storage, so the `main.cpp` of `unison_relay` and that of `unison_console` each keep one
+  `volatile std::sig_atomic_t` that `SIGINT` and `SIGTERM` set and the main loop reads. It is the third piece
+  of global mutable state, and neither flag leaves the one source file of its executable. Everything else
+  keeps the constructor injection of `CLAUDE.md` 4.
 - **Threading**: the simulation runs on one thread chosen by the host (the game thread in Unreal). Unison never
   creates threads inside deterministic libraries.
 
