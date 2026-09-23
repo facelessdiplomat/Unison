@@ -14,6 +14,7 @@ enum class ErrorCode : std::uint16_t
     BufferTooSmall,
     MalformedMessage,
     InvalidOption,
+    NetworkUnavailable,
 };
 
 /// A recoverable failure returned from a boundary inside tl::expected. It is small and trivially

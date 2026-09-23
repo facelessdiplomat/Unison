@@ -614,7 +614,12 @@ allocates nothing and the relay and the session each receive as one small interf
   strays up to that far either way), loss and the reordering jitter brings, so that runner results are
   themselves reproducible. The reliable channel is never lost and never overtaken between the same two ends,
   and simulated time only moves when the runner advances it.
-- `EnetTransport`: ENet client/server with two channels (reliable, unreliable-sequenced).
+- `EnetTransport`: ENet client/server with two channels (reliable, unreliable-sequenced). `listen(address,
+  maxPeers)` binds an IPv4 address and a port, nought for one the system picks, and returns the transport or
+  `NetworkUnavailable` in `tl::expected`; tests listen on 127.0.0.1 only, which keeps the firewall out of
+  them. Every peer that connects gets a peer id the transport never gives again, a send is flushed at once
+  rather than waiting for the next poll, and a message for a peer that has gone is dropped. ENet's headers,
+  which bring in `winsock2.h`, stay inside the transport's source file.
 
 ### 9.2 Relay protocol (v1)
 

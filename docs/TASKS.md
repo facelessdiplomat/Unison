@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.1.1**, the ENet transport's server. Last finished: 2.8.6, Q1 answered; Phase 2 is finished,
-  every micro-task and exit criterion ticked.
+- Next up: **3.1.2**, the ENet transport's client. Last finished: 3.1.1, the ENet transport's server.
+- Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
 - 2.8.7 to 2.8.10 run before 2.8.5: measuring its profiles showed a 240 ms round trip outrunning a window of
@@ -39,11 +39,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 15 | 0 |
+| 3 Real networking | 4 | 15 | 1 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **180** | **119** |
+| **Total** | **31** | **180** | **120** |
 
 ## Charter amendments made while planning
 
@@ -302,7 +302,7 @@ needs from earlier tasks is ticked.
 - [ ] Relay plus two clients over localhost UDP pass in CTest.
 
 ### 3.1 ENet transport
-- [ ] 3.1.1 `EnetTransport` server: listen, accept, `PeerId` mapping, reliable and unreliable-sequenced channels. Test: the server receives a client's message on localhost.
+- [x] 3.1.1 `EnetTransport` server: listen, accept, `PeerId` mapping, reliable and unreliable-sequenced channels. Test: the server receives a client's message on localhost. Also: an address taken or no address at all fails with `NetworkUnavailable`, the server answers a client by the peer id it gave it, and two clients go by different ids.
 - [ ] 3.1.2 `EnetTransport` client: connect, send, receive, disconnect. Test: echo round trip on localhost.
 - [ ] 3.1.3 Timeouts and disconnect events surfaced through `ITransport`. Test: dropping one side raises a disconnect on the other within the timeout.
 - [ ] 3.1.4 Message size policy: unreliable messages capped at an MTU-safe size, reliable ones fragmented by ENet. Test: an oversized unreliable send is rejected; a large reliable message arrives whole.
