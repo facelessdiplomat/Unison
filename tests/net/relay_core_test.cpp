@@ -404,3 +404,44 @@ TEST_CASE("an input that arrives after its frame was confirmed without it is ign
 
     REQUIRE(confirmationsIn(Match::repliesOf(match.first)).empty());
 }
+
+TEST_CASE("an input message lost on the way costs nothing, since the next one repeats its inputs")
+{
+    constexpr std::uint32_t kFrames = 6;
+    constexpr std::uint32_t kRedundancy = 4;
+    constexpr std::uint32_t kLostFrame = 3;
+    Match match;
+
+    for (std::uint32_t frame = 1; frame <= kFrames; ++frame)
+    {
+        const std::uint32_t oldest = frame > kRedundancy - 1 ? frame - (kRedundancy - 1) : 1;
+        std::vector<std::byte> recent;
+
+        for (std::uint32_t repeated = oldest; repeated <= frame; ++repeated)
+        {
+            const std::array<std::byte, 2> input = inputOf(static_cast<std::uint8_t>(repeated));
+            recent.insert(recent.end(), input.begin(), input.end());
+        }
+
+        if (frame != kLostFrame)
+        {
+            match.sendInputs(match.first, oldest, recent);
+        }
+
+        match.sendInputs(match.second, frame, inputOf(static_cast<std::uint8_t>(100 + frame)));
+    }
+
+    const Replies replies = Match::repliesOf(match.second);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+
+    REQUIRE(confirmations.size() == kFrames);
+
+    for (std::uint32_t index = 0; index < kFrames; ++index)
+    {
+        CAPTURE(index);
+
+        REQUIRE(confirmations[index].frame == index + 1);
+        REQUIRE(confirmations[index].slots[0] == std::byte{1});
+        REQUIRE(confirmations[index].slots[1] == std::byte{static_cast<std::uint8_t>(index + 1)});
+    }
+}
