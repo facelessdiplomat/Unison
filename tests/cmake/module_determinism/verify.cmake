@@ -22,7 +22,7 @@ if(entryCount EQUAL 0)
 endif()
 
 set(deterministicModules core sim arena)
-set(plainModules session net view)
+set(plainModules session net view runner)
 set(seenModules "")
 set(joltSeen FALSE)
 set(headerCheckSeen FALSE)
@@ -58,7 +58,7 @@ foreach(entryIndex RANGE ${lastEntry})
         endforeach()
     endif()
 
-    if(entryFile MATCHES "/tests/(core|sim|net|session|view|arena)/")
+    if(entryFile MATCHES "/tests/(core|sim|net|session|view|arena|tools)/")
         set(testExecutableSeen TRUE)
 
         if(NOT entryCommand MATCHES "/EHsc")

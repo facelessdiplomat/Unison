@@ -28,4 +28,6 @@ add_subdirectory(view)
 
 add_subdirectory(samples/arena)
 
+add_subdirectory(tools/runner)
+
 add_subdirectory(tests)

@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.8.1**, the runner tool's command line. Last finished: 2.7.4, the session runner; task 2.7 is complete.
+- Next up: **2.8.2**, the runner's in-process topology. Last finished: 2.8.1, the runner's command line.
 - Taken ahead of 2.7.1 on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
   classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, which also retired what 2.2.2 left
   behind in restores.
@@ -31,12 +31,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 41 | 35 |
+| 2 Rollback session (local) | 8 | 41 | 36 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **175** | **108** |
+| **Total** | **31** | **175** | **109** |
 
 ## Charter amendments made while planning
 
@@ -270,7 +270,7 @@ needs from earlier tasks is ticked.
 - [x] 2.7.6 (+) The client's input window reaches past its prediction window, so a client that stalled through an outage keeps every confirmation arriving meanwhile and plays through them to catch up, rather than turning away frames beyond its window that the relay resends only once. Found in 2.7.3. Test: a session keeps a confirmation far beyond the frames it has played and verifies the frame once it has played up to it.
 
 ### 2.8 Runner tool (`unison_runner`)
-- [ ] 2.8.1 cxxopts dependency and CLI: `--players --frames --seed --latency --jitter --loss --tick-rate --checksum-interval --record`. Test: argument parsing.
+- [x] 2.8.1 cxxopts dependency and CLI: `--players --frames --seed --latency --jitter --loss --tick-rate --checksum-interval --record`. Test: argument parsing.
 - [ ] 2.8.2 In-process topology: N `NetworkedSession` + `RelayCore` over `LoopbackHub` + `NetworkSimulator`, seeded scripted inputs. Done when: 2 players, 600 frames, no faults, exit 0.
 - [ ] 2.8.3 Per-frame checksum comparison across clients with a failure report (frame, slots, hashes); exit code 2 on desync, 3 on window overflow.
 - [ ] 2.8.4 Rollback statistics summary (mean and max depth, rollbacks per second, stalls).

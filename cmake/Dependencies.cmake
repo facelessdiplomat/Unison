@@ -91,3 +91,13 @@ CPMAddPackage(NAME pfr GITHUB_REPOSITORY boostorg/pfr GIT_TAG 2.2.0 DOWNLOAD_ONL
 add_library(boost_pfr INTERFACE)
 
 target_include_directories(boost_pfr INTERFACE "${pfr_SOURCE_DIR}/include")
+
+CPMAddPackage(
+    NAME cxxopts
+    GITHUB_REPOSITORY jarro2783/cxxopts
+    VERSION 3.3.1
+    OPTIONS "CXXOPTS_BUILD_EXAMPLES OFF" "CXXOPTS_BUILD_TESTS OFF" "CXXOPTS_ENABLE_INSTALL OFF"
+            "CXXOPTS_ENABLE_WARNINGS OFF"
+)
+
+target_compile_definitions(cxxopts INTERFACE CXXOPTS_NO_EXCEPTIONS CXXOPTS_NO_RTTI)

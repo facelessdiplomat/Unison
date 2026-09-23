@@ -728,7 +728,7 @@ deterministic-multiplayer-ecs-engine/
 | xxHash (XXH3) | checksums | BSD-2 | header mode |
 | Catch2 v3 | tests, benchmarks | BSL-1.0 | |
 | CPM.cmake | dependency fetching | MIT | |
-| cxxopts | CLI parsing (tools only) | MIT | |
+| cxxopts | CLI parsing (tools only) | MIT | built without exceptions or RTTI (`CXXOPTS_NO_EXCEPTIONS`, `CXXOPTS_NO_RTTI`), so a malformed command line ends the tool with its own message |
 | tl::expected | recoverable errors without exceptions | CC0-1.0 | header-only |
 | FTXUI | console UI (candidate, tools only) | MIT | |
 
