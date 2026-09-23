@@ -7,6 +7,10 @@
 namespace unison::net
 {
 
+/// The most bytes an unreliable message may carry: small enough to cross the internet in one datagram, so
+/// no transport has to split it and make its loss depend on every piece arriving.
+inline constexpr std::size_t kMaxUnreliableMessageSize = 1200;
+
 /// Names one end of a connection, as the transport that carries it sees it.
 enum class PeerId : std::uint32_t
 {
@@ -19,6 +23,13 @@ enum class Channel : std::uint8_t
     Reliable,
     Unreliable
 };
+
+/// Whether a message of `size` bytes may go on the channel: any may go reliably, and none longer than
+/// `kMaxUnreliableMessageSize` unreliably.
+[[nodiscard]] constexpr bool fitsChannel(Channel channel, std::size_t size)
+{
+    return channel == Channel::Reliable || size <= kMaxUnreliableMessageSize;
+}
 
 /// Takes the messages a transport hands over when it is polled.
 class IMessageReceiver
@@ -54,6 +65,8 @@ public:
     ITransport(ITransport&&) = delete;
     ITransport& operator=(ITransport&&) = delete;
 
+    /// Sends a message of any length on the reliable channel; one longer than `kMaxUnreliableMessageSize` on
+    /// the unreliable channel breaks a contract and is not sent.
     virtual void send(PeerId to, Channel channel, std::span<const std::byte> message) = 0;
 
     /// Hands every message that arrived since the last poll to the receiver, oldest first.

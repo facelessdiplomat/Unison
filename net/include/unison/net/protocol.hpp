@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unison/net/session_config.hpp>
+#include <unison/net/transport.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -13,8 +14,9 @@ namespace unison::net
 /// The version of the relay protocol this build speaks; a client speaking another is turned away.
 inline constexpr std::uint16_t kProtocolVersion = 4;
 
-/// The most bytes one message may take, small enough to cross the internet in one piece.
-inline constexpr std::size_t kMaxDatagramSize = 1200;
+/// The most bytes one message may take: as many as an unreliable message may carry, whichever channel it
+/// goes on.
+inline constexpr std::size_t kMaxDatagramSize = kMaxUnreliableMessageSize;
 
 /// The slot a welcome names for a spectator, who has none.
 inline constexpr std::uint8_t kNoSlot = 0xFF;

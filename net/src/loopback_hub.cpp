@@ -19,6 +19,15 @@ PeerId LoopbackEndpoint::id() const
 
 void LoopbackEndpoint::send(PeerId to, Channel channel, std::span<const std::byte> message)
 {
+    const bool fits = fitsChannel(channel, message.size());
+
+    UNISON_VERIFY(fits);
+
+    if (!fits)
+    {
+        return;
+    }
+
     hub.carry(selfId, to, channel, message);
 }
 

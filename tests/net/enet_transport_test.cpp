@@ -4,6 +4,8 @@
 
 #include <enet/enet.h>
 
+#include <support/fatal_handler_probe.hpp>
+
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -419,6 +421,46 @@ TEST_CASE("a client whose server goes away hears of it")
         departuresWithin(std::chrono::milliseconds{500}, *client.transport);
 
     REQUIRE(departures == std::vector<unison::net::PeerId>{client.server});
+}
+
+TEST_CASE("an unreliable message longer than a datagram breaks a contract and is not sent")
+{
+    const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();
+    const unison::net::EnetConnection client = connectionTo(*server);
+    Inbox ignored;
+    client.transport->send(client.server, unison::net::Channel::Reliable, kHello);
+    const std::vector<Received> connected = messagesUntil(1, *server, *client.transport, ignored);
+    const std::vector<std::byte> tooLong(unison::net::kMaxUnreliableMessageSize + 1U);
+    const std::array<std::byte, 1> marker{std::byte{9}};
+    const unison::test::FatalHandlerProbe probe;
+
+    client.transport->send(client.server, unison::net::Channel::Unreliable, tooLong);
+    client.transport->send(client.server, unison::net::Channel::Reliable, marker);
+    const std::vector<Received> received = messagesUntil(1, *server, *client.transport, ignored);
+
+    REQUIRE(connected.size() == 1U);
+    REQUIRE(probe.failureCount() == 1U);
+    REQUIRE(received.size() == 1U);
+    REQUIRE(received.front().bytes == std::vector<std::byte>{std::byte{9}});
+}
+
+TEST_CASE("a reliable message far longer than a datagram arrives whole")
+{
+    const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();
+    const unison::net::EnetConnection client = connectionTo(*server);
+    Inbox ignored;
+    std::vector<std::byte> hundredDatagrams(unison::net::kMaxUnreliableMessageSize * 100U);
+
+    for (std::size_t index = 0; index < hundredDatagrams.size(); ++index)
+    {
+        hundredDatagrams[index] = static_cast<std::byte>(index % 251U);
+    }
+
+    client.transport->send(client.server, unison::net::Channel::Reliable, hundredDatagrams);
+    const std::vector<Received> received = messagesUntil(1, *server, *client.transport, ignored);
+
+    REQUIRE(received.size() == 1U);
+    REQUIRE(received.front().bytes == hundredDatagrams);
 }
 
 TEST_CASE("two clients of a listening transport go by different names")

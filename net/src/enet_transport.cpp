@@ -1,5 +1,7 @@
 #include <unison/net/enet_transport.hpp>
 
+#include <unison/core/contract.hpp>
+
 #include <enet/enet.h>
 
 #include <algorithm>
@@ -251,9 +253,12 @@ std::uint16_t EnetTransport::port() const
 
 void EnetTransport::send(PeerId to, Channel channel, std::span<const std::byte> message)
 {
+    const bool fits = fitsChannel(channel, message.size());
     Host::Peer* peer = host->find(to);
 
-    if (peer == nullptr)
+    UNISON_VERIFY(fits);
+
+    if (!fits || peer == nullptr)
     {
         return;
     }

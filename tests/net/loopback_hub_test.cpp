@@ -171,3 +171,34 @@ TEST_CASE("sending to a peer the hub does not know breaks a contract")
 
     REQUIRE(probe.failureCount() == 1U);
 }
+
+TEST_CASE("an unreliable message longer than a datagram breaks a contract and is not carried")
+{
+    unison::net::LoopbackHub hub;
+    unison::net::LoopbackEndpoint& sender = hub.join();
+    unison::net::LoopbackEndpoint& receiver = hub.join();
+    const std::vector<std::byte> tooLong(unison::net::kMaxUnreliableMessageSize + 1U);
+    const unison::test::FatalHandlerProbe probe;
+
+    sender.send(receiver.id(), unison::net::Channel::Unreliable, tooLong);
+
+    RecordingReceiver recording;
+    receiver.poll(recording);
+    REQUIRE(probe.failureCount() == 1U);
+    REQUIRE(recording.messages().empty());
+}
+
+TEST_CASE("a reliable message longer than a datagram is carried whole")
+{
+    unison::net::LoopbackHub hub;
+    unison::net::LoopbackEndpoint& sender = hub.join();
+    unison::net::LoopbackEndpoint& receiver = hub.join();
+    const std::vector<std::byte> tenDatagrams(unison::net::kMaxUnreliableMessageSize * 10U, std::byte{7});
+
+    sender.send(receiver.id(), unison::net::Channel::Reliable, tenDatagrams);
+
+    RecordingReceiver recording;
+    receiver.poll(recording);
+    REQUIRE(recording.messages().size() == 1U);
+    REQUIRE(recording.messages().front().bytes == tenDatagrams);
+}

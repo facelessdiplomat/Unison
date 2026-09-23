@@ -607,7 +607,11 @@ class ITransport {
 ```
 
 A poll hands messages to a receiver interface rather than to a `std::function`, so polling every tick
-allocates nothing and the relay and the session each receive as one small interface. A poll also reports a
+allocates nothing and the relay and the session each receive as one small interface. A reliable message may
+be of any length, the transport splitting it as it must; an unreliable one carries at most
+`kMaxUnreliableMessageSize` (1200) bytes, so it crosses the internet in one datagram and is lost or not as a
+whole, and a longer one breaks a contract in every transport alike. ENet would otherwise split it and send
+the pieces reliably. The protocol's `kMaxDatagramSize` is that same limit. A poll also reports a
 peer that has gone, whether it said goodbye or stopped answering; a receiver that does not follow peers
 ignores it by default, and one that hands messages on, such as the runner's checksum wiretap, hands the
 departure on too. A peer arriving needs no report: it says hello.
