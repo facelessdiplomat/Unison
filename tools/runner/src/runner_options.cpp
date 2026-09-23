@@ -54,7 +54,7 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
     read.seed = parsed["seed"].as<std::uint64_t>();
     read.latencyMilliseconds = parsed["latency"].as<std::uint32_t>();
     read.jitterMilliseconds = parsed["jitter"].as<std::uint32_t>();
-    read.lossPercent = parsed["loss"].as<float>();
+    const float lossPercent = parsed["loss"].as<float>();
     read.tickRate = parsed["tick-rate"].as<std::uint16_t>();
     read.checksumInterval = parsed["checksum-interval"].as<std::uint32_t>();
     read.recordPath = parsed["record"].as<std::string>();
@@ -70,10 +70,12 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
         return refused("--frames takes one frame at least");
     }
 
-    if (!(read.lossPercent >= 0.0F && read.lossPercent <= kWholeLossPercent))
+    if (!(lossPercent >= 0.0F && lossPercent <= kWholeLossPercent))
     {
         return refused("--loss takes a share from 0 to 100 per cent");
     }
+
+    read.lossRate = lossPercent / kWholeLossPercent;
 
     if (read.tickRate == 0)
     {

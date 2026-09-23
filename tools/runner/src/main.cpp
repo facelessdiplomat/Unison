@@ -1,4 +1,7 @@
+#include <unison/runner/runner_match.hpp>
 #include <unison/runner/runner_options.hpp>
+
+#include <arena/assets.hpp>
 
 #include <cstddef>
 #include <cstdio>
@@ -22,7 +25,35 @@ int main(int argc, char** argv)
     if (options->isHelpAsked)
     {
         std::fputs(unison::runner::runnerHelp().c_str(), stdout);
+
+        return 0;
     }
+
+    if (options->players > arena::kPlayerCount)
+    {
+        std::fprintf(stderr, "unison_runner: the arena holds %zu players at most\n", arena::kPlayerCount);
+
+        return 1;
+    }
+
+    unison::runner::RunnerMatch match{*options};
+    const unison::runner::RunOutcome outcome = match.play();
+
+    if (!outcome.isComplete)
+    {
+        std::fprintf(stderr,
+                     "unison_runner: the slowest client verified %u of %u frames in %u host frames\n",
+                     outcome.fewestVerifiedFrames,
+                     options->frames,
+                     outcome.hostFrames);
+
+        return 1;
+    }
+
+    std::printf("unison_runner: %u players verified %u frames in %u host frames\n",
+                options->players,
+                options->frames,
+                outcome.hostFrames);
 
     return 0;
 }

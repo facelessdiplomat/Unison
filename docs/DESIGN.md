@@ -655,7 +655,10 @@ often are, is dropped; so is anything from a peer other than the relay. A `Kick`
 ### 10.2 Terminal hosts
 
 - `unison_runner`: CI workhorse; arguments for players, frames, seed, network simulator parameters, checksum interval,
-  replay recording; non-zero exit code on desync or window overflow; prints rollback statistics.
+  replay recording; non-zero exit code on desync or window overflow; prints rollback statistics. It plays the
+  arena with every client and the relay in one process, each client's link crossing one seeded simulated
+  network and each player scripted from the seed, one host frame at a time; a run that has not verified every
+  frame after twice as many host frames and ten seconds more fails.
 - `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard input,
   connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output.
 - `unison_replay`: record / play / verify / diff.

@@ -12,8 +12,9 @@ namespace unison::runner
 {
 
 /// What one run of the runner plays: how many clients for how many frames, from which seed, over how bad a
-/// network, how fast the match ticks, every how many verified frames the clients compare checksums, and the
-/// file the run is recorded into, none when empty. A run asked for help lists the options instead.
+/// network (its loss as a share of one), how fast the match ticks, every how many verified frames the clients
+/// compare checksums, and the file the run is recorded into, none when empty. A run asked for help lists the
+/// options instead.
 struct RunnerOptions
 {
     std::uint32_t players = 2;
@@ -21,7 +22,7 @@ struct RunnerOptions
     std::uint64_t seed = 1;
     std::uint32_t latencyMilliseconds = 0;
     std::uint32_t jitterMilliseconds = 0;
-    float lossPercent = 0.0F;
+    float lossRate = 0.0F;
     std::uint16_t tickRate = 60;
     std::uint32_t checksumInterval = 1;
     std::string recordPath;

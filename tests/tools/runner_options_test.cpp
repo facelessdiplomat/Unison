@@ -36,7 +36,7 @@ TEST_CASE("a runner told nothing plays two players for six hundred frames on a f
     REQUIRE(options->frames == 600U);
     REQUIRE(options->latencyMilliseconds == 0U);
     REQUIRE(options->jitterMilliseconds == 0U);
-    REQUIRE(options->lossPercent == 0.0F);
+    REQUIRE(options->lossRate == 0.0F);
     REQUIRE(options->tickRate == 60U);
     REQUIRE(options->checksumInterval == 1U);
     REQUIRE(options->recordPath.empty());
@@ -70,7 +70,7 @@ TEST_CASE("every option of the runner is read")
     REQUIRE(options->seed == 77U);
     REQUIRE(options->latencyMilliseconds == 120U);
     REQUIRE(options->jitterMilliseconds == 30U);
-    REQUIRE_THAT(options->lossPercent, Catch::Matchers::WithinAbs(5.0, 0.0001));
+    REQUIRE_THAT(options->lossRate, Catch::Matchers::WithinAbs(0.05, 0.0001));
     REQUIRE(options->tickRate == 30U);
     REQUIRE(options->checksumInterval == 20U);
     REQUIRE(options->recordPath == "match.replay");
