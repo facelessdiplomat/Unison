@@ -3,6 +3,24 @@
 namespace unison::sim
 {
 
+void EventBuffer::append(const EventBuffer& source, std::size_t index)
+{
+    UNISON_VERIFY(&source != this);
+    UNISON_VERIFY(index < source.records.size());
+
+    if (&source == this || index >= source.records.size())
+    {
+        return;
+    }
+
+    const Record& record = source.records[index];
+    const auto offset = static_cast<std::uint32_t>(payloads.size());
+    const auto first = source.payloads.begin() + record.offset;
+
+    payloads.insert(payloads.end(), first, first + record.size);
+    records.push_back(Record{record.key, record.kind, offset, record.size});
+}
+
 std::size_t EventBuffer::size() const
 {
     return records.size();

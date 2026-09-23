@@ -23,17 +23,9 @@ bool raises(const sim::EventBuffer& events, const sim::EventKey& key)
     return false;
 }
 
-void addPredictedEventsMissingFrom(const sim::EventBuffer& events,
-                                   const sim::EventBuffer& other,
-                                   std::vector<sim::EventKey>& keys)
+bool isPredictedAndMissingFrom(const sim::EventBuffer& events, std::size_t index, const sim::EventBuffer& other)
 {
-    for (std::size_t index = 0; index < events.size(); ++index)
-    {
-        if (events.kindAt(index) == sim::EventKind::Predicted && !raises(other, events.keyAt(index)))
-        {
-            keys.push_back(events.keyAt(index));
-        }
-    }
+    return events.kindAt(index) == sim::EventKind::Predicted && !raises(other, events.keyAt(index));
 }
 
 }
@@ -52,11 +44,39 @@ void EventHistory::record(std::uint32_t frameNumber, const sim::EventBuffer& eve
         entry.events.clear();
     }
 
-    addPredictedEventsMissingFrom(events, entry.events, changes.raised);
-    addPredictedEventsMissingFrom(entry.events, events, changes.cancelled);
+    for (std::size_t index = 0; index < events.size(); ++index)
+    {
+        if (isPredictedAndMissingFrom(events, index, entry.events))
+        {
+            changes.raised.append(events, index);
+        }
+    }
+
+    for (std::size_t index = 0; index < entry.events.size(); ++index)
+    {
+        if (isPredictedAndMissingFrom(entry.events, index, events))
+        {
+            changes.cancelled.push_back(entry.events.keyAt(index));
+        }
+    }
 
     entry.frameNumber = frameNumber;
     entry.events = events;
+}
+
+void EventHistory::release(std::uint32_t frameNumber, EventChanges& changes) const
+{
+    const Entry& entry = entries[frameNumber % entries.size()];
+
+    UNISON_VERIFY(entry.frameNumber == frameNumber);
+
+    for (std::size_t index = 0; index < entry.events.size(); ++index)
+    {
+        if (entry.events.kindAt(index) == sim::EventKind::VerifiedOnly)
+        {
+            changes.raised.append(entry.events, index);
+        }
+    }
 }
 
 }

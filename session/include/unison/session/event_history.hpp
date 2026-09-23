@@ -8,11 +8,11 @@
 namespace unison::session
 {
 
-/// What playing frames changed for the view: the predicted events it must now show, and the ones it was
-/// shown that a replay took back.
+/// What playing and verifying frames changed for the view: the events it must now show, predicted ones as
+/// soon as they are raised and the others once their frame is verified, and the ones a replay took back.
 struct EventChanges
 {
-    std::vector<sim::EventKey> raised;
+    sim::EventBuffer raised;
     std::vector<sim::EventKey> cancelled;
 };
 
@@ -27,6 +27,10 @@ public:
     /// Keeps the events a frame raised in place of what it raised when last played, and adds to the
     /// changes its predicted events that are new and those it no longer raises.
     void record(std::uint32_t frameNumber, const sim::EventBuffer& events, EventChanges& changes);
+
+    /// Adds to the changes the events of a verified frame that waited for it, as the frame raised them when
+    /// it was last played. The frame must still be in the history.
+    void release(std::uint32_t frameNumber, EventChanges& changes) const;
 
 private:
     struct Entry

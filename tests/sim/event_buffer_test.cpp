@@ -2,6 +2,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <support/fatal_handler_probe.hpp>
+
 #include <cstdint>
 
 namespace
@@ -104,4 +106,31 @@ TEST_CASE("ordinals start again after the buffer is cleared")
     buffer.clear();
 
     REQUIRE(buffer.raise(kFrame + 1, Scored{1, 10}).ordinal == 0U);
+}
+
+TEST_CASE("an event appended from another buffer keeps its key, its kind and its payload")
+{
+    unison::sim::EventBuffer source;
+    source.raise(kFrame, Died{3});
+    const unison::sim::EventKey scored = source.raise(kFrame, Scored{2, 50});
+    unison::sim::EventBuffer target;
+
+    target.append(source, 1);
+
+    REQUIRE(target.size() == 1U);
+    REQUIRE(target.keyAt(0) == scored);
+    REQUIRE(target.kindAt(0) == unison::sim::EventKind::Predicted);
+    REQUIRE(target.payloadAt<Scored>(0).points == 50U);
+}
+
+TEST_CASE("appending an event from the buffer itself breaks a contract")
+{
+    const unison::test::FatalHandlerProbe probe;
+    unison::sim::EventBuffer buffer;
+    buffer.raise(kFrame, Died{3});
+
+    buffer.append(buffer, 0);
+
+    REQUIRE(probe.failureCount() == 1U);
+    REQUIRE(buffer.size() == 1U);
 }

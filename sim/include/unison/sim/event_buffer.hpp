@@ -66,6 +66,10 @@ public:
         return payload;
     }
 
+    /// Copies one event of another buffer to the end of this one, its key and kind unchanged, for code that
+    /// passes events on without knowing their types. Appending from the buffer itself breaks a contract.
+    void append(const EventBuffer& source, std::size_t index);
+
     [[nodiscard]] std::size_t size() const;
 
     [[nodiscard]] const EventKey& keyAt(std::size_t index) const;

@@ -287,7 +287,8 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
 ### 6.5 Events and signals
 
 - **Events** carry POD payloads and an `EventKey = (frame, typeId, ordinal)`.
-  - *Verified-only* events are delivered to the view only once their frame is verified.
+  - *Verified-only* events are delivered to the view only once their frame is verified, exactly once, as the
+    frame raised them the last time it was played; a replay neither raises nor cancels them.
   - *Predicted* events are delivered immediately; after a rollback the view receives
     `cancelled(key)` for events not re-raised and `raised` for new ones. The view layer
     deduplicates by key. A replay counts an event as the same event when its key is the same; the payload

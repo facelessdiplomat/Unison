@@ -122,6 +122,40 @@ public:
     }
 };
 
+/// Raises SlotSettled for every slot whose input moves on the frame being played.
+class SettleAnnouncer final : public sim::ISystem
+{
+public:
+    void update(sim::Frame& frame, const sim::FrameInputs& inputs) override
+    {
+        for (std::uint32_t slot = 0; slot < kSessionSlots; ++slot)
+        {
+            if (inputs.get<SampleInput>(slot).moveX != 0)
+            {
+                frame.events.raise(frame.frameNumber, SlotSettled{slot});
+            }
+        }
+    }
+
+    [[nodiscard]] std::string_view name() const override
+    {
+        return "SettleAnnouncer";
+    }
+};
+
+/// The keys of the events a buffer holds, in the order they went into it.
+[[nodiscard]] inline std::vector<sim::EventKey> keysOf(const sim::EventBuffer& events)
+{
+    std::vector<sim::EventKey> keys;
+
+    for (std::size_t index = 0; index < events.size(); ++index)
+    {
+        keys.push_back(events.keyAt(index));
+    }
+
+    return keys;
+}
+
 /// Remembers the inputs each frame was last played on and how often the pipeline ran.
 class InputRecorder final : public sim::ISystem
 {

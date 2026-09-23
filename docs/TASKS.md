@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.4.2**, releasing verified-only events. Last finished: 2.4.1, event raise and cancel diffing.
+- Next up: **2.4.3**, the event dispatcher. Last finished: 2.4.2, releasing verified-only events.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 14 |
+| 2 Rollback session (local) | 8 | 36 | 15 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **85** |
+| **Total** | **31** | **168** | **86** |
 
 ## Charter amendments made while planning
 
@@ -229,7 +229,7 @@ needs from earlier tasks is ticked.
 
 ### 2.4 Event raise/cancel diffing (`unison_session`, `unison_view`)
 - [x] 2.4.1 The session records event keys per frame above `V`; after resimulation it computes `cancelled` and `raised` sets. Test: an event predicted at `F` and absent after resimulation is cancelled; a new one is raised.
-- [ ] 2.4.2 Verified-only events released when `V` passes their frame. Test: not visible before, visible exactly once after.
+- [x] 2.4.2 Verified-only events released when `V` passes their frame. Test: not visible before, visible exactly once after.
 - [ ] 2.4.3 `EventDispatcher` with typed `on<T>` / `onCancelled<T>` handlers and per-key deduplication. Test: a handler runs once per key even if drained twice.
 
 ### 2.5 Transport, loopback, network simulator (`unison_net`)

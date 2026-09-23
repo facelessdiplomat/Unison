@@ -213,6 +213,7 @@ void Session::advanceVerified()
     while (verified < settled && isConfirmed(verified + 1))
     {
         ++verified;
+        eventHistory.release(verified, pendingEventChanges);
 
         if (verified % config.checksumInterval == 0)
         {

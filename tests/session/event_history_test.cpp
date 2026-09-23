@@ -26,7 +26,7 @@ TEST_CASE("a frame played for the first time raises every predicted event it rai
 
     history.record(5, events, changes);
 
-    REQUIRE(changes.raised == std::vector<unison::sim::EventKey>{first, second});
+    REQUIRE(unison::test::keysOf(changes.raised) == std::vector<unison::sim::EventKey>{first, second});
     REQUIRE(changes.cancelled.empty());
 }
 
@@ -44,7 +44,7 @@ TEST_CASE("a frame played again raises only the predicted events it did not rais
 
     history.record(5, after, changes);
 
-    REQUIRE(changes.raised == std::vector<unison::sim::EventKey>{added});
+    REQUIRE(unison::test::keysOf(changes.raised) == std::vector<unison::sim::EventKey>{added});
     REQUIRE(changes.cancelled.empty());
 }
 
@@ -62,7 +62,7 @@ TEST_CASE("a frame played again cancels the predicted events it no longer raises
 
     history.record(5, after, changes);
 
-    REQUIRE(changes.raised.empty());
+    REQUIRE(changes.raised.size() == 0U);
     REQUIRE(changes.cancelled == std::vector<unison::sim::EventKey>{dropped});
 }
 
@@ -78,8 +78,8 @@ TEST_CASE("a replay neither raises nor cancels events that wait for their frame 
 
     history.record(5, after, changes);
 
-    REQUIRE(firstPlay.raised.empty());
-    REQUIRE(changes.raised.empty());
+    REQUIRE(firstPlay.raised.size() == 0U);
+    REQUIRE(changes.raised.size() == 0U);
     REQUIRE(changes.cancelled.empty());
 }
 
@@ -96,7 +96,7 @@ TEST_CASE("a frame taking the place of an older one in the history is played for
 
     history.record(5 + kCapacity, newer, changes);
 
-    REQUIRE(changes.raised == std::vector<unison::sim::EventKey>{raised});
+    REQUIRE(unison::test::keysOf(changes.raised) == std::vector<unison::sim::EventKey>{raised});
     REQUIRE(changes.cancelled.empty());
 }
 
@@ -107,4 +107,53 @@ TEST_CASE("an event history needs room for at least one frame")
     const unison::session::EventHistory history{0};
 
     REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("a verified frame releases the events that waited for it")
+{
+    unison::session::EventHistory history{kCapacity};
+    unison::sim::EventBuffer events;
+    const unison::sim::EventKey settled = events.raise(4, unison::test::SlotSettled{1});
+    unison::session::EventChanges firstPlay;
+    history.record(5, events, firstPlay);
+    unison::session::EventChanges changes;
+
+    history.release(5, changes);
+
+    REQUIRE(unison::test::keysOf(changes.raised) == std::vector<unison::sim::EventKey>{settled});
+    REQUIRE(changes.raised.payloadAt<unison::test::SlotSettled>(0).slot == 1U);
+}
+
+TEST_CASE("a verified frame releases what it raised when it was last played")
+{
+    unison::session::EventHistory history{kCapacity};
+    unison::sim::EventBuffer before;
+    before.raise(4, unison::test::SlotSettled{0});
+    unison::session::EventChanges firstPlay;
+    history.record(5, before, firstPlay);
+    unison::sim::EventBuffer after;
+    after.raise(4, unison::test::SlotSettled{2});
+    unison::session::EventChanges replay;
+    history.record(5, after, replay);
+    unison::session::EventChanges changes;
+
+    history.release(5, changes);
+
+    REQUIRE(changes.raised.size() == 1U);
+    REQUIRE(changes.raised.payloadAt<unison::test::SlotSettled>(0).slot == 2U);
+}
+
+TEST_CASE("a verified frame releases none of its predicted events again")
+{
+    unison::session::EventHistory history{kCapacity};
+    unison::sim::EventBuffer events;
+    events.raise(4, unison::test::SlotMoved{0});
+    const unison::sim::EventKey settled = events.raise(4, unison::test::SlotSettled{1});
+    unison::session::EventChanges firstPlay;
+    history.record(5, events, firstPlay);
+    unison::session::EventChanges changes;
+
+    history.release(5, changes);
+
+    REQUIRE(unison::test::keysOf(changes.raised) == std::vector<unison::sim::EventKey>{settled});
 }
