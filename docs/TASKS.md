@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.4.1**, event raise and cancel diffing. Last finished: 2.3.8, input delay; task 2.3 is complete.
+- Next up: **2.4.2**, releasing verified-only events. Last finished: 2.4.1, event raise and cancel diffing.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 13 |
+| 2 Rollback session (local) | 8 | 36 | 14 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **84** |
+| **Total** | **31** | **168** | **85** |
 
 ## Charter amendments made while planning
 
@@ -228,7 +228,7 @@ needs from earlier tasks is ticked.
 - [x] 2.3.8 Optional `inputDelayFrames`, a choice of each client rather than part of `SessionConfig`. Test: delay 2 applies the input two frames later and, against a relay that answers in two ticks, removes every rollback in a scripted scenario.
 
 ### 2.4 Event raise/cancel diffing (`unison_session`, `unison_view`)
-- [ ] 2.4.1 The session records event keys per frame above `V`; after resimulation it computes `cancelled` and `raised` sets. Test: an event predicted at `F` and absent after resimulation is cancelled; a new one is raised.
+- [x] 2.4.1 The session records event keys per frame above `V`; after resimulation it computes `cancelled` and `raised` sets. Test: an event predicted at `F` and absent after resimulation is cancelled; a new one is raised.
 - [ ] 2.4.2 Verified-only events released when `V` passes their frame. Test: not visible before, visible exactly once after.
 - [ ] 2.4.3 `EventDispatcher` with typed `on<T>` / `onCancelled<T>` handlers and per-key deduplication. Test: a handler runs once per key even if drained twice.
 

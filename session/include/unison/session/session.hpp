@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unison/session/event_history.hpp>
 #include <unison/session/input_buffer.hpp>
 #include <unison/session/local_input.hpp>
 #include <unison/session/repeat_last_input_predictor.hpp>
@@ -65,6 +66,12 @@ public:
 
     void clearVerifiedChecksums();
 
+    /// The predicted events raised and taken back by the frames played since the changes were last
+    /// cleared: every predicted event of a frame played the first time, and what a replay changed.
+    [[nodiscard]] const EventChanges& eventChanges() const;
+
+    void clearEventChanges();
+
     [[nodiscard]] const InputBuffer& inputs() const;
 
     [[nodiscard]] const SnapshotRing& snapshots() const;
@@ -93,6 +100,7 @@ private:
     std::uint32_t inputDelay;
     InputBuffer inputBuffer;
     SnapshotRing snapshotRing;
+    EventHistory eventHistory;
     LocalInput localInput;
     RepeatLastInputPredictor predictor;
     std::uint32_t verified;
@@ -101,6 +109,7 @@ private:
     bool stalled = false;
     RollbackStats stats;
     std::vector<VerifiedChecksum> pendingChecksums;
+    EventChanges pendingEventChanges;
 };
 
 }

@@ -290,7 +290,10 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
   - *Verified-only* events are delivered to the view only once their frame is verified.
   - *Predicted* events are delivered immediately; after a rollback the view receives
     `cancelled(key)` for events not re-raised and `raised` for new ones. The view layer
-    deduplicates by key.
+    deduplicates by key. A replay counts an event as the same event when its key is the same; the payload
+    is not compared, so an event re-raised with a slightly different payload is neither cancelled nor
+    raised again. The session keeps the events of every frame it may still replay, indexed by the frame it
+    played, since the frame in a key is the one the tick started from.
 - **Signals** are synchronous sim-internal callbacks (e.g. `OnHit`) and never leave the simulation.
 
 ### 6.6 Assets

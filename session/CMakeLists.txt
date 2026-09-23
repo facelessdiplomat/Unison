@@ -1,5 +1,6 @@
 add_library(
     unison_session STATIC
+    src/event_history.cpp
     src/input_buffer.cpp
     src/local_input.cpp
     src/repeat_last_input_predictor.cpp

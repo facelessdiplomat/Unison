@@ -3,6 +3,7 @@
 #include <support/test_components.hpp>
 #include <unison/session/session.hpp>
 #include <unison/sim/advance_frame.hpp>
+#include <unison/sim/event_buffer.hpp>
 #include <unison/sim/frame.hpp>
 #include <unison/sim/frame_checksum.hpp>
 #include <unison/sim/frame_inputs.hpp>
@@ -78,6 +79,47 @@ public:
 
 private:
     std::uint32_t runs = 0;
+};
+
+/// Raised for every slot whose input moves, and shown to the view at once.
+struct SlotMoved
+{
+    std::uint32_t slot = 0;
+};
+
+/// An event the view may only see once the frame that raised it is verified.
+struct SlotSettled
+{
+    std::uint32_t slot = 0;
+};
+
+}
+
+UNISON_EVENT(unison::test::SlotMoved, unison::sim::EventKind::Predicted);
+UNISON_EVENT(unison::test::SlotSettled, unison::sim::EventKind::VerifiedOnly);
+
+namespace unison::test
+{
+
+/// Raises SlotMoved for every slot whose input moves on the frame being played.
+class MoveAnnouncer final : public sim::ISystem
+{
+public:
+    void update(sim::Frame& frame, const sim::FrameInputs& inputs) override
+    {
+        for (std::uint32_t slot = 0; slot < kSessionSlots; ++slot)
+        {
+            if (inputs.get<SampleInput>(slot).moveX != 0)
+            {
+                frame.events.raise(frame.frameNumber, SlotMoved{slot});
+            }
+        }
+    }
+
+    [[nodiscard]] std::string_view name() const override
+    {
+        return "MoveAnnouncer";
+    }
 };
 
 /// Remembers the inputs each frame was last played on and how often the pipeline ran.

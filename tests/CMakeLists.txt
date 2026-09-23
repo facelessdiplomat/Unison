@@ -59,11 +59,13 @@ add_executable(
     core/rng_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
+    session/event_history_test.cpp
     session/input_buffer_test.cpp
     session/local_input_test.cpp
     session/repeat_last_input_predictor_test.cpp
     session/session_checksum_test.cpp
     session/session_config_test.cpp
+    session/session_events_test.cpp
     session/session_input_delay_test.cpp
     session/session_rollback_test.cpp
     session/session_test.cpp

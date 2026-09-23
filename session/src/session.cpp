@@ -27,7 +27,8 @@ Session::Session(sim::Frame& frame,
                  std::uint32_t inputDelayFrames)
     : liveFrame{frame}, systemPipeline{pipeline}, config{config}, localSlot{localSlot}, inputDelay{inputDelayFrames},
       inputBuffer{predictionWindowFor(config) + inputDelayFrames}, snapshotRing{predictionWindowFor(config)},
-      localInput{localSlot}, verified{frame.frameNumber}, predicted{frame.frameNumber}
+      eventHistory{predictionWindowFor(config)}, localInput{localSlot}, verified{frame.frameNumber},
+      predicted{frame.frameNumber}
 {
     UNISON_VERIFY(config.slotCount <= sim::kMaxSlots);
     UNISON_VERIFY(localSlot < config.slotCount);
@@ -126,6 +127,17 @@ void Session::clearVerifiedChecksums()
     pendingChecksums.clear();
 }
 
+const EventChanges& Session::eventChanges() const
+{
+    return pendingEventChanges;
+}
+
+void Session::clearEventChanges()
+{
+    pendingEventChanges.raised.clear();
+    pendingEventChanges.cancelled.clear();
+}
+
 const InputBuffer& Session::inputs() const
 {
     return inputBuffer;
@@ -166,6 +178,7 @@ void Session::play(std::uint32_t frameNumber)
 {
     sim::advanceFrame(liveFrame, systemPipeline, inputBuffer.inputsAt(frameNumber));
     snapshotRing.store(liveFrame);
+    eventHistory.record(frameNumber, liveFrame.events, pendingEventChanges);
 }
 
 void Session::sampleLocalInput(std::uint32_t frameNumber)
