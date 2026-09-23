@@ -23,6 +23,7 @@ namespace
 constexpr std::uint8_t kPlayers = 2;
 constexpr std::uint32_t kFrames = 1000;
 constexpr std::uint32_t kMostTicks = 1100;
+constexpr std::uint64_t kTickMicroseconds = 16'667;
 
 using Reports = std::vector<std::pair<std::uint32_t, std::uint64_t>>;
 
@@ -72,9 +73,13 @@ bool hasVerified(const unison::session::NetworkedSession& client, std::uint32_t 
     return client.session() != nullptr && client.session()->verifiedFrame() >= frames;
 }
 
-void play(unison::session::NetworkedSession& client, const unison::sim::FrameInputs& scripted, std::size_t slot)
+void play(unison::session::NetworkedSession& client,
+          const unison::sim::FrameInputs& scripted,
+          std::size_t slot,
+          std::uint64_t now)
 {
     client.setLocalInput(scripted.bytesAt(slot).first(sizeof(arena::ArenaInput)));
+    client.update(now);
     client.tick();
 }
 
@@ -104,8 +109,8 @@ TEST_CASE("two clients of an arena match played through a relay agree on every o
         relayEnd.poll(tap);
 
         const unison::sim::FrameInputs scripted = unison::test::scriptedInputs(tick);
-        play(first, scripted, 0);
-        play(second, scripted, 1);
+        play(first, scripted, 0, tick * kTickMicroseconds);
+        play(second, scripted, 1, tick * kTickMicroseconds);
     }
 
     relayEnd.poll(tap);

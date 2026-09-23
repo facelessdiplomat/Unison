@@ -488,9 +488,16 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
 
 ### 8.3 Time synchronisation
 
-- The relay stamps confirmed frames; ping messages measure RTT.
-- The client targets `P = V_server + RTT/2 + jitterMargin` (in frames) and corrects drift by occasionally
-  running one extra or one fewer tick per host frame, never by changing `dt`.
+- A playing client pings the relay every 100 ms; the pong carries the frame the relay had confirmed when it
+  answered, and the client times the round trip on its own clock.
+- The client targets `P = V_server + RTT/2`, give or take `jitterMargin` (two frames by default), where
+  `V_server` is the frame a pong carried plus the half round trip the pong took to come back. The relay has
+  no clock of its own and confirms a frame once the last input for it arrives, so `V_server` follows the
+  slowest client, which stands exactly there by construction: the target is a band around it, not a lead
+  beyond it, since a client aiming further ahead would chase a relay its own inputs pace. A `TimeSync`
+  judges on four pongs at a time and corrects by running one fewer tick per host frame until the client is
+  back in the band, or one extra tick after a hitch the relay's deadline covered for, never by changing
+  `dt`; pongs that come back while a correction runs are left out.
 - Optional local input delay (default 0) trades responsiveness for fewer rollbacks; `maxPrediction` and
   input delay together allow lockstep-like tuning without new code paths. With a delay of `d` a tick samples
   the local input for frame `P + 1 + d`, and the first `d` frames of a session play the neutral input for the
@@ -608,10 +615,10 @@ channel with its own stamp and the newest frame the relay has confirmed, and the
 round trip from its own clock.
 
 A client plays through a `NetworkedSession`. It says hello when the host asks it to join, plays a `Session`
-in the slot the `Welcome` names, and on every tick takes in what the relay sent, ticks the session, sends the
-input of its newest frame with up to three before it that the relay has not confirmed yet (`K = 4`) on the
-unreliable channel, and sends the checksums of the frames it verified on the reliable one, through an
-`Outbox` of its own. A confirmation of a frame the session no longer holds, as the relay's reliable resends
+in the slot the `Welcome` names, and on every host frame takes in what the relay sent and pings it when a
+ping is due (§8.3). On every tick it ticks the session, sends the input of its newest frame with up to three
+before it that the relay has not confirmed yet (`K = 4`) on the unreliable channel, and sends the checksums
+of the frames it verified on the reliable one, through an `Outbox` of its own. A confirmation of a frame the session no longer holds, as the relay's reliable resends
 often are, is dropped; so is anything from a peer other than the relay. A `Kick` ends the playing, and a
 `Desync` is kept for the host to read.
 

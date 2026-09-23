@@ -16,7 +16,7 @@ NetworkedSession::NetworkedSession(sim::Frame& frame,
                                    net::PeerId relay,
                                    std::uint32_t inputDelayFrames)
     : frame{frame}, pipeline{pipeline}, config{config}, transport{transport}, relay{relay},
-      inputDelay{inputDelayFrames}, outbox{transport}
+      inputDelay{inputDelayFrames}, outbox{transport}, pace{config.tickRate}
 {
 }
 
@@ -40,10 +40,20 @@ void NetworkedSession::setLocalInput(std::span<const std::byte> input)
     std::ranges::copy(input, localInput.begin());
 }
 
-void NetworkedSession::tick()
+void NetworkedSession::update(std::uint64_t now)
 {
+    updatedAt = now;
     transport.poll(*this);
 
+    if (connection == ConnectionState::Playing && now >= nextPingAt)
+    {
+        outbox.send(relay, net::Channel::Unreliable, net::Ping{now});
+        nextPingAt = now + kPingIntervalMicroseconds;
+    }
+}
+
+void NetworkedSession::tick()
+{
     if (connection != ConnectionState::Playing)
     {
         return;
@@ -54,6 +64,11 @@ void NetworkedSession::tick()
 
     sendInputs();
     sendChecksums();
+}
+
+std::int32_t NetworkedSession::takeTickCorrection()
+{
+    return pace.takeCorrection();
 }
 
 void NetworkedSession::receive(net::PeerId from, net::Channel, std::span<const std::byte> message)
@@ -81,6 +96,11 @@ ConnectionState NetworkedSession::state() const
 const Session* NetworkedSession::session() const
 {
     return played.has_value() ? &*played : nullptr;
+}
+
+const TimeSync& NetworkedSession::timeSync() const
+{
+    return pace;
 }
 
 std::optional<net::Desync> NetworkedSession::lastDesync() const
@@ -119,6 +139,16 @@ void NetworkedSession::handle(const net::Confirmed& confirmed)
     }
 
     static_cast<void>(played->confirm(confirmed.frame, inputs));
+}
+
+void NetworkedSession::handle(const net::Pong& pong)
+{
+    if (connection != ConnectionState::Playing)
+    {
+        return;
+    }
+
+    pace.observe(pong, updatedAt, played->predictedFrame());
 }
 
 void NetworkedSession::handle(const net::Kick&)

@@ -26,6 +26,7 @@ using unison::session::ConnectionState;
 using unison::test::SampleInput;
 
 constexpr std::uint8_t kLocalSlot = unison::test::kSessionLocalSlot;
+constexpr std::uint64_t kTickMicroseconds = 16'667;
 
 unison::net::SessionConfig threePlayers()
 {
@@ -103,7 +104,14 @@ struct Rig
     void playWithMove(std::int8_t moveX)
     {
         client.setLocalInput(unison::test::bytesOf(unison::test::inputWithMove(moveX)));
+        client.update(now);
         client.tick();
+        now += kTickMicroseconds;
+    }
+
+    void pongAt(std::uint64_t sentAt, std::uint32_t confirmedFrame)
+    {
+        relayOutbox.send(clientEnd.id(), unison::net::Channel::Unreliable, unison::net::Pong{sentAt, confirmedFrame});
     }
 
     Mailbox& relayMail()
@@ -123,6 +131,7 @@ struct Rig
     unison::sim::SystemPipeline pipeline;
     unison::session::NetworkedSession client{frame, pipeline, config, clientEnd, relayEnd.id()};
     Mailbox atRelay;
+    std::uint64_t now = 0;
 };
 
 std::vector<std::int8_t> movesOf(const unison::net::Input& input)
@@ -144,7 +153,7 @@ TEST_CASE("a new networked session has not asked to join yet")
 {
     Rig rig;
 
-    rig.client.tick();
+    rig.playWithMove(1);
 
     REQUIRE(rig.client.state() == ConnectionState::Idle);
     REQUIRE(rig.relayMail().letters.empty());
@@ -326,4 +335,57 @@ TEST_CASE("giving a networked session a local input that does not fit a slot bre
     rig.client.setLocalInput(tooLong);
 
     REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("a playing client pings the relay with the time every hundred milliseconds")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+
+    for (std::uint64_t at = 0; at <= 200'000; at += 50'000)
+    {
+        rig.client.update(at);
+    }
+
+    const std::vector<unison::net::Ping> pings = rig.relayMail().all<unison::net::Ping>();
+    REQUIRE(pings.size() == 3U);
+    REQUIRE(pings[0].sentAt == 0U);
+    REQUIRE(pings[1].sentAt == 100'000U);
+    REQUIRE(pings[2].sentAt == 200'000U);
+}
+
+TEST_CASE("a client the relay's pongs show running ahead is told to run a tick fewer")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+
+    for (std::int8_t move = 0; move < 10; ++move)
+    {
+        rig.playWithMove(move);
+    }
+
+    for (std::uint32_t pong = 0; pong < unison::session::TimeSyncSettings{}.pongsPerJudgement; ++pong)
+    {
+        rig.pongAt(rig.now, 0);
+    }
+
+    rig.client.update(rig.now);
+
+    REQUIRE(rig.client.takeTickCorrection() == -1);
+}
+
+TEST_CASE("a pong tells the client how long the round trip to the relay took")
+{
+    Rig rig;
+    rig.now = 1'000'000;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+    rig.playWithMove(1);
+    rig.pongAt(rig.now - 40'000, 0);
+
+    rig.client.update(rig.now);
+
+    REQUIRE(rig.client.timeSync().roundTripMicroseconds() == 40'000U);
 }

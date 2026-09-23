@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.7.2**, the time sync controller. Last finished: 2.7.1, the networked session.
+- Next up: **2.7.3**, stalling and resuming under an outage. Last finished: 2.7.2, the time sync controller.
 - Taken ahead of 2.7.1 on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
   classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, which also retired what 2.2.2 left
   behind in restores.
@@ -31,12 +31,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 39 | 30 |
+| 2 Rollback session (local) | 8 | 39 | 31 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **173** | **103** |
+| **Total** | **31** | **173** | **104** |
 
 ## Charter amendments made while planning
 
@@ -258,7 +258,7 @@ needs from earlier tasks is ticked.
 
 ### 2.7 Networked session (client side)
 - [x] 2.7.1 `NetworkedSession`: sends local inputs, applies `Confirmed`, sends checksums, exposes connection state. Test: two clients over zero-latency loopback stay in sync for 1000 frames.
-- [ ] 2.7.2 `TimeSync` controller: target lead `RTT/2 + jitterMargin`, correction by an extra or skipped tick. Test: the lead converges under simulated 100 ms latency and stays within tolerance.
+- [x] 2.7.2 `TimeSync` controller: target lead `RTT/2 + jitterMargin`, correction by an extra or skipped tick. Test: the lead converges under simulated 100 ms latency and stays within tolerance. The relay follows the slowest client, so the target is a band of `jitterMargin` around `RTT/2` rather than a lead beyond it (`DESIGN.md` §8.3); the networked session pings every 100 ms, feeds the pongs to its `TimeSync` and hands the host the correction, and its `tick()` no longer polls, `update(now)` does.
 - [ ] 2.7.3 Stall and resume under a 500 ms outage. Test: the session stalls, then catches up without desync.
 - [ ] 2.7.4 `SessionRunner::update(hostDelta)` with an accumulator and an injectable clock, returning ticks run and the interpolation alpha. It also lets the event dispatcher forget the keys of frames below `V`, which can no longer be cancelled, so the set of shown keys stops growing. Test: 16.7 ms steps produce one tick each; 50 ms produces three.
 

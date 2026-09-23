@@ -83,6 +83,7 @@ add_executable(
     session/session_rollback_test.cpp
     session/session_test.cpp
     session/snapshot_ring_test.cpp
+    session/time_sync_test.cpp
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp
     sim/asset_registry_test.cpp

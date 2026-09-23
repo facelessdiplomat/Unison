@@ -9,6 +9,7 @@ add_library(
     src/rollback_stats.cpp
     src/session.cpp
     src/snapshot_ring.cpp
+    src/time_sync.cpp
 )
 
 target_include_directories(unison_session PUBLIC include)
