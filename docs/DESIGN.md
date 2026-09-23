@@ -746,7 +746,11 @@ the session's event changes are.
   must agree on as the config's seed, asset hash and pipeline hash come from the build, and prints a status
   line once a second: where it stands, its slot, its verified and predicted frames, the rollbacks of the last
   second and the round trip. It runs on the real clock until Ctrl+C, `--run-for` seconds or a disconnect,
-  which ends it with exit code 1. `--spectate` comes with spectators (4.5.3).
+  which ends it with exit code 1. `--spectate` comes with spectators (4.5.3). The keyboard is read without
+  blocking from Windows' console input, which reports keys going down and up while the window has focus, and
+  a lost focus lets every key go: W and S move forward and back, A and D to the sides, Space jumps, F fires,
+  and Q and E turn the aim half a turn a second for as long as they are held, by the time held rather than by
+  how often the loop asks. A console without a console window, its input redirected, stands still.
 - `unison_replay`: record / play / verify / diff.
 
 ### 10.3 Unreal Engine plugin (Phase 5)
@@ -906,7 +910,7 @@ for 16+ players; frame-local heap allocator; asset loading from files.
 |---|----------|-----------|
 | Q1 | Snapshot ring (single live frame) vs Quantum-style verified + predicted frames | Answered 2026-09-23 from the Phase 1 numbers and the Definition of Done's run (§8.2): the ring stays. It is 13 % cheaper while every guess is right, the two frames 32 % cheaper under 26 rollbacks a second 16 frames deep, and the difference is at most 1.4 ms a second of play, 0.14 % of a core, not worth a second simulation path and a rewrite of the session. |
 | Q2 | SSE2 vs AVX2 baseline for deterministic libraries | Answered 2026-09-22 from measured numbers: SSE2 stays. Building everything for AVX2, our libraries and Jolt together, settles on the same golden checksums for the physics pile and for the scripted arena, so the determinism contract does not rest on the instruction set. It buys 6 % on a tick and nothing on snapshots or restores, while a binary that needs AVX2 cannot run on a machine without it, so shipping it would mean shipping two. Re-run the comparison with `-DUNISON_INSTRUCTION_SET=AVX2`. |
-| Q3 | FTXUI vs plain console output for `unison_console` | Phase 3 |
+| Q3 | FTXUI vs plain console output for `unison_console` | Answered 2026-09-23 by the owner: plain console. A game needs to know which keys are held, and a terminal, FTXUI's included, reports only presses and their auto-repeat, never a release; Windows' console input reports both. Output is plain text and VT sequences, which Windows 10 and later understand, and no dependency is added. |
 | Q4 | Jolt multithreaded stepping inside the simulation | Phase 6 |
 | Q5 | UE version and whether to support UE's Linux server target | Version answered 2026-09-21: UE 5.8 is installed (Visual Studio 18, MSVC 14.51); toolchain compatibility is confirmed in task 5.1.4. The Linux server target stays open until Phase 5. |
 | Q6 | Input deadline and reconnect grace defaults | Phase 3 LAN tests |

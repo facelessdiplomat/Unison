@@ -1,3 +1,6 @@
+#include "console_keyboard.hpp"
+
+#include <unison/console/arena_controls.hpp>
 #include <unison/console/console_options.hpp>
 #include <unison/console/status_line.hpp>
 
@@ -126,18 +129,33 @@ int main(int argc, char** argv)
         match.frame(), match.pipeline(), config, *connected->transport, connected->server};
     unison::view::EventDispatcher dispatcher;
     unison::view::SessionRunner runner{networked, dispatcher, clock, config.tickRate};
-    const arena::ArenaInput standingStill;
+    unison::console::ConsoleKeyboard keyboard;
+    unison::console::HeldKeys keys;
+    unison::console::ArenaControls controls;
     const std::uint64_t stopAt = options->runForSeconds > 0 ? options->runForSeconds * kMicrosecondsPerSecond
                                                             : std::numeric_limits<std::uint64_t>::max();
     std::uint64_t nextStatusAt = kMicrosecondsPerSecond;
+    std::uint64_t lastInputAt = clock.nowMicroseconds();
     std::uint32_t rollbacksAtLastStatus = 0;
+
+    if (!keyboard.isAvailable())
+    {
+        unison::logMessage(unison::LogLevel::Info,
+                           "unison_console: no console to read the keyboard from, so the player stands still");
+    }
 
     networked.join();
 
     while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt &&
            networked.state() != unison::session::ConnectionState::Disconnected)
     {
-        runner.setLocalInput(std::as_bytes(std::span{&standingStill, 1}));
+        keyboard.readInto(keys);
+
+        const std::uint64_t now = clock.nowMicroseconds();
+        const arena::ArenaInput input = controls.inputFor(keys, now - lastInputAt);
+
+        lastInputAt = now;
+        runner.setLocalInput(std::as_bytes(std::span{&input, 1}));
         static_cast<void>(runner.update());
         networked.clearConnectionChanges();
 

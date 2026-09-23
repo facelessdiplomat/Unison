@@ -160,7 +160,7 @@ unison_apply_determinism(unison_core_header_check)
 unison_apply_warnings(unison_core_header_check)
 
 add_executable(
-    unison_tests_arena arena/apply_input_test.cpp arena/arena_input_test.cpp
+    unison_tests_arena arena/apply_input_test.cpp arena/arena_controls_test.cpp arena/arena_input_test.cpp
     arena/arena_simulation_test.cpp arena/assets_test.cpp
     arena/character_move_test.cpp arena/components_test.cpp arena/crates_test.cpp arena/determinism_test.cpp arena/enet_match_test.cpp arena/golden_test.cpp
     arena/hits_test.cpp arena/lifetimes_test.cpp
@@ -171,7 +171,14 @@ add_executable(
 target_include_directories(unison_tests_arena PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
 target_link_libraries(
-    unison_tests_arena PRIVATE arena_sim unison_relay_core unison_runner_match unison_session Catch2::Catch2WithMain
+    unison_tests_arena
+    PRIVATE
+    arena_sim
+    unison_console_arena
+    unison_relay_core
+    unison_runner_match
+    unison_session
+    Catch2::Catch2WithMain
 )
 
 target_compile_options(unison_tests_arena PRIVATE /EHsc)
