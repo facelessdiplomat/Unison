@@ -701,12 +701,13 @@ settled already changes nothing. Anything from a peer other than the relay is dr
 |-------|------|------|
 | Unit | Catch2 | fixed containers, hashing, serialization round-trips, input buffer, snapshot ring, relay state machine |
 | Determinism | Catch2 + golden files | items 1–5 of Section 7.4 |
-| Integration | `unison_runner` via CTest | 2/4/8 clients under several network profiles at 30 and 60 Hz |
+| Integration | `unison_runner` via CTest | 2/4/8 clients at 30 and 60 Hz losing 0, 5 or 20 % of the unreliable messages, over a one-way latency of 120 ms with 30 ms of jitter: eighteen profiles of five seconds of play each, labelled `profile` |
 | Benchmarks | Catch2 `BENCHMARK` | tick, snapshot, restore, resimulate k frames, checksum |
 | Manual | LAN session, UE sample | Definition of Done items 2 and 7 |
 
 CI is a local script in v1 (`tools/ci.ps1`) that configures, builds Debug and Release,
-runs all tests and the golden replay. A hosted CI matrix is a backlog item.
+runs all tests and the golden replay. CTest runs on half the logical processors, since the eight-player
+profiles take half a minute each in Debug. A hosted CI matrix is a backlog item.
 
 Development follows TDD: every micro-feature starts with a failing Catch2 test, ends with a
 self-review of the full diff against the rules in `CLAUDE.md` and the determinism rules of

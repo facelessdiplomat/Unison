@@ -45,3 +45,24 @@ add_test(NAME runner_plays_two_players_for_600_frames COMMAND unison_runner --pl
 set_tests_properties(
     runner_plays_two_players_for_600_frames PROPERTIES PASS_REGULAR_EXPRESSION "2 players verified 600 frames" LABELS fast
 )
+
+set(UNISON_PROFILE_SECONDS 5)
+
+foreach(players IN ITEMS 2 4 8)
+    foreach(tickRate IN ITEMS 30 60)
+        math(EXPR frames "${tickRate} * ${UNISON_PROFILE_SECONDS}")
+
+        foreach(loss IN ITEMS 0 5 20)
+            set(profile "runner_${players}_players_at_${tickRate}_hz_losing_${loss}_percent")
+
+            add_test(
+                NAME ${profile}
+                COMMAND
+                    unison_runner --players ${players} --frames ${frames} --tick-rate ${tickRate} --latency 120 --jitter
+                    30 --loss ${loss}
+            )
+
+            set_tests_properties(${profile} PROPERTIES LABELS profile)
+        endforeach()
+    endforeach()
+endforeach()

@@ -19,13 +19,15 @@ function Invoke-Checked
     }
 }
 
+$testJobs = [Math]::Max(1, [int][Math]::Floor([Environment]::ProcessorCount / 2))
+
 function Invoke-Preset
 {
     param([Parameter(Mandatory)] [string] $Preset)
 
     Invoke-Checked "configure $Preset" { cmake --preset $Preset }
     Invoke-Checked "build $Preset" { cmake --build "build/$Preset" }
-    Invoke-Checked "test $Preset" { ctest --test-dir "build/$Preset" --output-on-failure }
+    Invoke-Checked "test $Preset" { ctest --test-dir "build/$Preset" --output-on-failure --parallel $testJobs }
 }
 
 function Test-TrackedFormatting

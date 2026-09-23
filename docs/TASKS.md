@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.8.5**, the runner's CTest network profiles. Last finished: 2.8.10, an arena for eight
-  players.
+- Next up: **2.8.6**, the snapshot ring against the two-frame layout. Last finished: 2.8.5, the runner's
+  CTest network profiles.
 - 2.8.7 to 2.8.10 run before 2.8.5: measuring its profiles showed a 240 ms round trip outrunning a window of
   10 frames at 60 Hz and every lost confirmation stalling a client until the next reliable batch; the owner
   chose on 2026-09-23 to widen the window and to repeat confirmations. The arena also has to tick at the
@@ -36,12 +36,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 45 | 43 |
+| 2 Rollback session (local) | 8 | 45 | 44 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **179** | **116** |
+| **Total** | **31** | **179** | **117** |
 
 ## Charter amendments made while planning
 
@@ -221,9 +221,9 @@ needs from earlier tasks is ticked.
 ## Phase 2 — Rollback session (local)
 
 **Exit criteria**
-- [ ] Definition of Done item 1 passes: `unison_runner --players 4 --frames 36000 --latency 120 --jitter 30 --loss 5` exits 0.
+- [x] Definition of Done item 1 passes: `unison_runner --players 4 --frames 36000 --latency 120 --jitter 30 --loss 5` exits 0. Passed 2026-09-23 in Release: 36000 frames in 35188 host frames, 17 s, every checksum alike, deepest rollback 20 of 20.
 - [ ] Q1 (snapshot ring vs two-frame layout) answered in `DESIGN.md` with benchmark numbers.
-- [ ] CTest runs runner profiles for 2/4/8 players at 30 and 60 Hz with 0/5/20 % loss.
+- [x] CTest runs runner profiles for 2/4/8 players at 30 and 60 Hz with 0/5/20 % loss.
 
 ### 2.1 Inputs and prediction (`unison_session`)
 - [x] 2.1.1 `InputBuffer`: per-frame per-slot inputs with `Confirmed` / `Predicted` state, window bounded below by the verified frame. Test: set/get, eviction below verified, out-of-window rejected.
@@ -283,7 +283,7 @@ needs from earlier tasks is ticked.
 - [x] 2.8.8 (+) Every confirmation also carries the frames just before it, as every client input already does, so a lost confirmation costs a client one frame rather than the wait for the next reliable batch; the protocol moves to version 3. Found in 2.8.5. Test: the codec round-trips a batch, a client settles a frame whose own confirmation was lost from the next one, and four players at 20 % loss keep pace with the host.
 - [x] 2.8.9 (+) The arena ticks at the rate its session plays instead of always at 60 Hz, which the 30 Hz profiles need. Found in 2.8.5. Test: an arena made for 30 Hz steps its frame by a thirtieth of a second.
 - [x] 2.8.10 (+) The arena holds eight players, with four more spawn points halfway along its walls, which the eight-player profiles need. Found in 2.8.5. Test: eight players start at eight different spawn points.
-- [ ] 2.8.5 CTest profiles: 2/4/8 players × 30/60 Hz × loss 0/5/20 % with latency 120 ms and jitter 30 ms.
+- [x] 2.8.5 CTest profiles: 2/4/8 players × 30/60 Hz × loss 0/5/20 % with latency 120 ms and jitter 30 ms. Five seconds of play each, labelled `profile`; `tools/ci.ps1` runs CTest on half the logical processors so the eight-player profiles cost Debug about fifteen seconds rather than two minutes. Test: all eighteen exit 0 in Debug and Release.
 - [ ] 2.8.6 Benchmark snapshot ring vs two-frame layout using Phase 1 numbers; Q1 answered in `DESIGN.md`.
 
 ---
