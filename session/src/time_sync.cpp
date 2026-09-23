@@ -42,7 +42,7 @@ void TimeSync::observe(const net::Pong& pong, std::uint64_t now, std::uint32_t p
     }
 
     const std::int64_t framesAhead =
-        static_cast<std::int64_t>(predictedFrame) - static_cast<std::int64_t>(pong.confirmedFrame);
+        static_cast<std::int64_t>(predictedFrame) - static_cast<std::int64_t>(pong.newestInputFrame);
     const auto tick = static_cast<std::int64_t>(tickMicroseconds);
 
     aheadSum += framesAhead * tick - static_cast<std::int64_t>(lastRoundTrip);

@@ -125,7 +125,7 @@ void RelayCore::handle(PeerId from, const Ping& ping)
         return;
     }
 
-    outbox.send(from, Channel::Unreliable, Pong{ping.sentAt, confirmedLog.lastFrame()});
+    outbox.send(from, Channel::Unreliable, Pong{ping.sentAt, confirmedLog.lastFrame(), inputs.newestFrame()});
 }
 
 void RelayCore::confirmReadyFrames()

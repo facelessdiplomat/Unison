@@ -22,6 +22,10 @@ public:
 
     [[nodiscard]] std::uint32_t nextFrame() const;
 
+    /// The newest frame any slot has sent an input for that was kept, which is how far the fastest slot has
+    /// got; nought before the first input.
+    [[nodiscard]] std::uint32_t newestFrame() const;
+
     /// Whether every slot in the mask, one bit per slot, has sent its input for the next frame; with no slot
     /// in play no frame is ever ready.
     [[nodiscard]] bool isNextFrameReady(std::uint8_t slotsInPlay) const;
@@ -44,6 +48,7 @@ private:
     std::uint8_t inputSize;
     std::uint32_t window;
     std::uint32_t next = 1;
+    std::uint32_t newest = 0;
     std::vector<std::byte> inputs;
     std::vector<std::uint8_t> received;
     std::vector<std::uint64_t> firstArrivals;

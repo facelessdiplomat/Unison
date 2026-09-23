@@ -167,10 +167,11 @@ TEST_CASE("a ping survives the wire")
 
 TEST_CASE("a pong survives the wire")
 {
-    const auto received = decodedAs<unison::net::Pong>(encoded(unison::net::Pong{123456, 64}));
+    const auto received = decodedAs<unison::net::Pong>(encoded(unison::net::Pong{123456, 64, 70}));
 
     REQUIRE(received.pingSentAt == 123456U);
     REQUIRE(received.confirmedFrame == 64U);
+    REQUIRE(received.newestInputFrame == 70U);
 }
 
 TEST_CASE("a leave survives the wire")

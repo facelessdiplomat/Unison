@@ -109,9 +109,11 @@ struct Rig
         now += kTickMicroseconds;
     }
 
-    void pongAt(std::uint64_t sentAt, std::uint32_t confirmedFrame)
+    void pongAt(std::uint64_t sentAt, std::uint32_t newestInputFrame)
     {
-        relayOutbox.send(clientEnd.id(), unison::net::Channel::Unreliable, unison::net::Pong{sentAt, confirmedFrame});
+        relayOutbox.send(clientEnd.id(),
+                         unison::net::Channel::Unreliable,
+                         unison::net::Pong{sentAt, newestInputFrame, newestInputFrame});
     }
 
     Mailbox& relayMail()

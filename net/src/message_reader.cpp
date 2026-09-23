@@ -224,7 +224,7 @@ tl::expected<Pong, Error> readFields<Pong>(BinaryReader& reader)
 {
     Pong pong;
 
-    if (!readAll(reader, pong.pingSentAt, pong.confirmedFrame))
+    if (!readAll(reader, pong.pingSentAt, pong.confirmedFrame, pong.newestInputFrame))
     {
         return truncated();
     }

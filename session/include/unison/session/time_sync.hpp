@@ -15,11 +15,11 @@ struct TimeSyncSettings
     std::uint64_t jitterMarginMicroseconds = 33'333;
 };
 
-/// Judges from the relay's pongs whether a client runs where it should: half a round trip ahead of the frame
-/// the relay has confirmed by now. The relay confirms a frame once the last input for it arrives, so that is
-/// where the slowest client stands; a client further ahead than the jitter margin runs one tick fewer per
-/// host frame until it is back, and one further behind, after a hitch the relay's deadline covered for, runs
-/// one tick more.
+/// Judges from the relay's pongs whether a client runs where it should: half a round trip ahead of the newest
+/// frame any player's input has reached the relay for, which is where the fastest client stands. A client
+/// further behind than the jitter margin, the slower one or one back from a hitch the relay's deadline
+/// covered for, runs one tick more per host frame until it has caught up, and one further ahead runs one
+/// fewer. Nobody slows down for a player who is out, whose frames the relay confirms late at its deadline.
 class TimeSync
 {
 public:

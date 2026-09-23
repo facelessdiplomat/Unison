@@ -25,7 +25,7 @@ void observeAhead(unison::session::TimeSync& sync, std::int64_t framesAhead, std
 
     for (std::uint32_t pong = 0; pong < pongs; ++pong)
     {
-        sync.observe(unison::net::Pong{kSentAt, kRelayFrame},
+        sync.observe(unison::net::Pong{kSentAt, 0, kRelayFrame},
                      kSentAt + roundTripFrames * kTick,
                      static_cast<std::uint32_t>(kRelayFrame + roundTripFrames + framesAhead));
     }
@@ -70,7 +70,7 @@ Drift driftOfAClientStarting(std::int64_t framesOff)
             const std::uint64_t sentAt = pingsInFlight.front();
             const auto relayFrame = static_cast<std::uint32_t>(kStartFrame + static_cast<std::int64_t>(sentAt / kTick));
 
-            sync.observe(unison::net::Pong{sentAt, relayFrame}, now, static_cast<std::uint32_t>(clientFrame));
+            sync.observe(unison::net::Pong{sentAt, 0, relayFrame}, now, static_cast<std::uint32_t>(clientFrame));
             pingsInFlight.pop_front();
         }
 
@@ -159,7 +159,7 @@ TEST_CASE("the round trip is how long the last pong took to come back")
 {
     unison::session::TimeSync sync{kTickRate};
 
-    sync.observe(unison::net::Pong{2'000'000, 10}, 2'000'000 + 87'000, 16);
+    sync.observe(unison::net::Pong{2'000'000, 10, 10}, 2'000'000 + 87'000, 16);
 
     REQUIRE(sync.roundTripMicroseconds() == 87'000U);
 }
@@ -187,4 +187,21 @@ TEST_CASE("a time sync for a match that never ticks breaks a contract")
     const unison::session::TimeSync sync{0};
 
     REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("frames the relay confirms late for a player who is out do not slow a client down")
+{
+    unison::session::TimeSync sync{kTickRate};
+    constexpr std::uint32_t kFrontier = 200;
+    constexpr std::uint32_t kConfirmedAtTheDeadline = kFrontier - 6;
+    const auto roundTripFrames = static_cast<std::uint32_t>(kRoundTrip / kTick);
+
+    for (std::uint32_t pong = 0; pong < kPongsPerJudgement; ++pong)
+    {
+        sync.observe(unison::net::Pong{1'000'000, kConfirmedAtTheDeadline, kFrontier},
+                     1'000'000 + roundTripFrames * kTick,
+                     kFrontier + roundTripFrames);
+    }
+
+    REQUIRE(sumOfCorrections(sync, 10) == 0);
 }

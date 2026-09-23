@@ -488,16 +488,19 @@ twice; it remains an alternative if snapshot cost proves worse than a physics st
 
 ### 8.3 Time synchronisation
 
-- A playing client pings the relay every 100 ms; the pong carries the frame the relay had confirmed when it
-  answered, and the client times the round trip on its own clock.
+- A playing client pings the relay every 100 ms; the pong carries the frame the relay had confirmed and the
+  newest frame any player had sent an input for when it answered, and the client times the round trip on
+  its own clock.
 - The client targets `P = V_server + RTT/2`, give or take `jitterMargin` (two frames by default), where
-  `V_server` is the frame a pong carried plus the half round trip the pong took to come back. The relay has
-  no clock of its own and confirms a frame once the last input for it arrives, so `V_server` follows the
-  slowest client, which stands exactly there by construction: the target is a band around it, not a lead
-  beyond it, since a client aiming further ahead would chase a relay its own inputs pace. A `TimeSync`
-  judges on four pongs at a time and corrects by running one fewer tick per host frame until the client is
-  back in the band, or one extra tick after a hitch the relay's deadline covered for, never by changing
-  `dt`; pongs that come back while a correction runs are left out.
+  `V_server` is the newest input frame a pong carried plus the half round trip the pong took to come back.
+  The relay has no clock of its own, so its input frontier is the one pace every client can read: it follows
+  the fastest client, which stands exactly on the target by construction, and every other client catches
+  up with it. The target is a band, not a lead beyond it, since a client aiming further ahead would chase a
+  frontier its own inputs set. Following the confirmed frame instead would slow everyone down whenever a
+  player is out, because the relay then confirms each frame only at its deadline. A `TimeSync` judges on
+  four pongs at a time and corrects by running one extra tick per host frame until the client has caught
+  up, or one fewer should it ever run ahead, never by changing `dt`; pongs that come back while a correction
+  runs are left out.
 - Optional local input delay (default 0) trades responsiveness for fewer rollbacks; `maxPrediction` and
   input delay together allow lockstep-like tuning without new code paths. With a delay of `d` a tick samples
   the local input for frame `P + 1 + d`, and the first `d` frames of a session play the neutral input for the
@@ -591,7 +594,7 @@ allocates nothing and the relay and the session each receive as one small interf
 | `Checksum` | client → relay | reliable | frame, hash |
 | `Desync` | relay → all | reliable | frame, one bit per slot in the minority |
 | `SnapshotRequest` / `SnapshotChunk` | relay ↔ clients | reliable | frame; for a chunk also its index, the chunk count and length-prefixed bytes |
-| `Ping` / `Pong` | both | unreliable | sender's timestamp in microseconds; the pong echoes it with the frame the relay confirmed so far |
+| `Ping` / `Pong` | both | unreliable | sender's timestamp in microseconds; the pong echoes it with the frame the relay confirmed so far and the newest frame any player has sent an input for |
 | `Leave` / `Kick` | both | reliable | reason (quit, protocol mismatch, config mismatch, room full) |
 
 On the wire a message is a one-byte type tag followed by its fields in order, little-endian, with nothing
@@ -611,8 +614,8 @@ or with another config hash is answered with `Kick`, a player takes the lowest f
 none is left, and a spectator is welcomed without a slot (`kNoSlot`). Rooms that come and go with their
 players are the standalone relay's concern (3.2.2). Bytes that decode to no message go unanswered, and so
 does a `Ping` from a peer that is not in the match; a member's ping is answered at once on the unreliable
-channel with its own stamp and the newest frame the relay has confirmed, and the sender works out the
-round trip from its own clock.
+channel with its own stamp, the newest frame the relay has confirmed and the newest frame any player has
+sent an input for, and the sender works out the round trip from its own clock.
 
 A client plays through a `NetworkedSession`. It says hello when the host asks it to join, plays a `Session`
 in the slot the `Welcome` names, and on every host frame takes in what the relay sent and pings it when a
