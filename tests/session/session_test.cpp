@@ -195,6 +195,43 @@ TEST_CASE("a confirmation of a frame already verified is turned away")
     REQUIRE(session.verifiedFrame() == 2U);
 }
 
+TEST_CASE("a session keeps confirmations far beyond the frames it has played and plays through them")
+{
+    constexpr std::uint32_t kFramesAhead = 40;
+    unison::sim::Frame frame;
+    const unison::sim::SystemPipeline pipeline;
+    unison::session::Session session{frame, pipeline, threePlayers(), kLocalSlot};
+    bool keptEvery = true;
+
+    for (std::uint32_t confirmed = 1; confirmed <= kFramesAhead; ++confirmed)
+    {
+        keptEvery = session.confirm(confirmed, unison::sim::FrameInputs{}) && keptEvery;
+    }
+
+    for (std::uint32_t tick = 0; tick < kFramesAhead; ++tick)
+    {
+        session.tick();
+    }
+
+    REQUIRE(keptEvery);
+    REQUIRE(session.verifiedFrame() == kFramesAhead);
+}
+
+TEST_CASE("a confirmation beyond the frames a session can hold is turned away")
+{
+    unison::sim::Frame frame;
+    const unison::sim::SystemPipeline pipeline;
+    const unison::net::SessionConfig config = threePlayers();
+    unison::session::Session session{frame, pipeline, config, kLocalSlot};
+    const std::uint32_t firstBeyond = config.maxPrediction + 2U + unison::session::kConfirmationsAhead;
+
+    const bool lastHeld = session.confirm(firstBeyond - 1U, unison::sim::FrameInputs{});
+    const bool firstTurnedAway = session.confirm(firstBeyond, unison::sim::FrameInputs{});
+
+    REQUIRE(lastHeld);
+    REQUIRE_FALSE(firstTurnedAway);
+}
+
 TEST_CASE("a session stops predicting once it is as far ahead of the relay as it may be")
 {
     unison::sim::Frame frame;

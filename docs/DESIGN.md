@@ -457,7 +457,10 @@ caching allocator is 6.1.5, should a profile ever ask for it.
 Inputs sit beside the ring in an `InputBuffer`: a window of frames that starts at `V` and only moves forward,
 each frame holding the `FrameInputs` its tick reads and, per slot, whether that input is still missing, was
 predicted, or is confirmed by the relay. The window keeps `V` itself, because a prediction repeats a slot's
-last confirmed input and at `V` every slot has one. A frame outside the window is refused, not stored.
+last confirmed input and at `V` every slot has one. A frame outside the window is refused, not stored. The
+window reaches `kConfirmationsAhead` (128) frames past the prediction window, about two seconds at 60 Hz:
+the relay sends each frame reliably only once, so a client that stalled through an outage has to keep every
+confirmation arriving meanwhile, and then plays through them one settled frame after another to catch up.
 The local slot is not guessed: each tick writes the input the host gave last, as present and unconfirmed,
 which is exactly how the relay will settle it unless it gives the input up. An `InputTimeline` holds the
 buffer and applies these rules, so the session itself only tracks which frames are played and verified.

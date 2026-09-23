@@ -26,7 +26,7 @@ Session::Session(sim::Frame& frame,
                  std::size_t localSlot,
                  std::uint32_t inputDelayFrames)
     : liveFrame{frame}, systemPipeline{pipeline}, config{config}, inputDelay{inputDelayFrames},
-      inputTimeline{config.slotCount, localSlot, predictionWindowFor(config) + inputDelayFrames},
+      inputTimeline{config.slotCount, localSlot, predictionWindowFor(config) + inputDelayFrames + kConfirmationsAhead},
       snapshotRing{predictionWindowFor(config)}, eventHistory{predictionWindowFor(config)}, verified{frame.frameNumber},
       predicted{frame.frameNumber}
 {

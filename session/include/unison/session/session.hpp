@@ -19,6 +19,11 @@
 namespace unison::session
 {
 
+/// How many frames past its prediction window a session holds the relay's confirmations for, about two seconds
+/// at 60 Hz: a client that stalled through an outage keeps every confirmation that arrives meanwhile, since the
+/// relay sends each frame reliably only once, and plays through them to catch up.
+inline constexpr std::uint32_t kConfirmationsAhead = 128;
+
 /// One client's side of a match, played ahead of the relay: every tick simulates the next frame on the
 /// local player's input and a guess for everyone else and keeps a snapshot of it to roll back to. The
 /// frame and the pipeline belong to the game, which keeps them alive for as long as the session runs.
