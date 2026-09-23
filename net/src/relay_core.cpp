@@ -3,7 +3,6 @@
 #include <unison/core/contract.hpp>
 #include <unison/net/message_codec.hpp>
 
-#include <algorithm>
 #include <optional>
 #include <variant>
 
@@ -21,8 +20,8 @@ RelayCore::RelayCore(ITransport& transport,
                      const IClock& clock,
                      const SessionConfig& config,
                      const RelaySettings& settings)
-    : transport{transport}, clock{clock}, config{config}, settings{settings}, configHash{hashOf(config)},
-      inputs{config.slotCount, config.inputSize, kPendingFrames},
+    : clock{clock}, config{config}, settings{settings}, configHash{hashOf(config)}, roster{config.slotCount},
+      outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames},
       confirmedLog{std::size_t{config.slotCount} * (1U + config.inputSize)},
       confirmedSlots(std::size_t{config.slotCount} * (1U + config.inputSize))
 {
@@ -69,7 +68,7 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
-    const std::uint8_t slot = freeSlot();
+    const std::uint8_t slot = roster.freeSlot();
 
     if (slot == kNoSlot)
     {
@@ -83,7 +82,7 @@ void RelayCore::handle(PeerId from, const Hello& hello)
 
 void RelayCore::handle(PeerId from, const Input& input)
 {
-    const std::uint8_t slot = slotOf(from);
+    const std::uint8_t slot = roster.slotOf(from);
 
     if (slot == kNoSlot || input.inputSize != config.inputSize)
     {
@@ -103,14 +102,15 @@ void RelayCore::handle(PeerId from, const Input& input)
 
 void RelayCore::handle(PeerId from, const Checksum& checksum)
 {
-    const std::uint8_t slot = slotOf(from);
+    const std::uint8_t slot = roster.slotOf(from);
 
     if (slot == kNoSlot)
     {
         return;
     }
 
-    const std::optional<std::uint8_t> minority = referee.record(checksum.frame, slot, checksum.checksum, slotsInPlay());
+    const std::optional<std::uint8_t> minority =
+        referee.record(checksum.frame, slot, checksum.checksum, roster.slotsInPlay());
 
     if (minority.has_value() && *minority != 0U)
     {
@@ -120,17 +120,17 @@ void RelayCore::handle(PeerId from, const Checksum& checksum)
 
 void RelayCore::handle(PeerId from, const Ping& ping)
 {
-    if (!isMember(from))
+    if (!roster.isMember(from))
     {
         return;
     }
 
-    sendTo(from, Channel::Unreliable, Pong{ping.sentAt, confirmedLog.lastFrame()});
+    outbox.send(from, Channel::Unreliable, Pong{ping.sentAt, confirmedLog.lastFrame()});
 }
 
 void RelayCore::confirmReadyFrames()
 {
-    const std::uint8_t inPlay = slotsInPlay();
+    const std::uint8_t inPlay = roster.slotsInPlay();
 
     while (inputs.isNextFrameReady(inPlay) ||
            inputs.isNextFrameOverdue(clock.nowMicroseconds(), settings.inputDeadlineMicroseconds))
@@ -158,77 +158,21 @@ void RelayCore::resendReliably(std::uint32_t lastFrame)
 
 void RelayCore::admit(PeerId peer, std::uint8_t slot)
 {
-    members.push_back(Member{peer, slot});
-    sendTo(peer, Channel::Reliable, Welcome{slot, config, 0, 0, 0});
+    roster.admit(peer, slot);
+    outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, 0});
 }
 
 void RelayCore::turnAway(PeerId peer, LeaveReason reason)
 {
-    sendTo(peer, Channel::Reliable, Kick{reason});
-}
-
-void RelayCore::sendTo(PeerId peer, Channel channel, const Message& message)
-{
-    const tl::expected<std::size_t, Error> written = encode(message, sendBuffer);
-
-    UNISON_VERIFY(written.has_value());
-
-    if (!written.has_value())
-    {
-        return;
-    }
-
-    transport.send(peer, channel, std::span{sendBuffer}.first(*written));
+    outbox.send(peer, Channel::Reliable, Kick{reason});
 }
 
 void RelayCore::sendToAll(Channel channel, const Message& message)
 {
-    for (const Member& member : members)
+    for (const Roster::Member& member : roster.members())
     {
-        sendTo(member.peer, channel, message);
+        outbox.send(member.peer, channel, message);
     }
-}
-
-bool RelayCore::isMember(PeerId peer) const
-{
-    return std::ranges::find(members, peer, &Member::peer) != members.end();
-}
-
-std::uint8_t RelayCore::slotOf(PeerId peer) const
-{
-    const auto found = std::ranges::find(members, peer, &Member::peer);
-
-    return found == members.end() ? kNoSlot : found->slot;
-}
-
-std::uint8_t RelayCore::slotsInPlay() const
-{
-    std::uint8_t inPlay = 0;
-
-    for (const Member& member : members)
-    {
-        if (member.slot != kNoSlot)
-        {
-            inPlay = static_cast<std::uint8_t>(inPlay | (1U << member.slot));
-        }
-    }
-
-    return inPlay;
-}
-
-std::uint8_t RelayCore::freeSlot() const
-{
-    for (std::uint8_t slot = 0; slot < config.slotCount; ++slot)
-    {
-        const bool isTaken = std::ranges::any_of(members, [slot](const Member& member) { return member.slot == slot; });
-
-        if (!isTaken)
-        {
-            return slot;
-        }
-    }
-
-    return kNoSlot;
 }
 
 }

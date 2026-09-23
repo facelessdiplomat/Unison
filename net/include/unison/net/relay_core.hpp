@@ -4,11 +4,12 @@
 #include <unison/net/clock.hpp>
 #include <unison/net/confirmed_log.hpp>
 #include <unison/net/input_collector.hpp>
+#include <unison/net/outbox.hpp>
 #include <unison/net/protocol.hpp>
+#include <unison/net/roster.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/net/transport.hpp>
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -44,12 +45,6 @@ public:
     void update();
 
 private:
-    struct Member
-    {
-        PeerId peer{};
-        std::uint8_t slot = kNoSlot;
-    };
-
     void handle(PeerId from, const Hello& hello);
 
     void handle(PeerId from, const Input& input);
@@ -71,29 +66,18 @@ private:
 
     void resendReliably(std::uint32_t lastFrame);
 
-    void sendTo(PeerId peer, Channel channel, const Message& message);
-
     void sendToAll(Channel channel, const Message& message);
 
-    [[nodiscard]] std::uint8_t freeSlot() const;
-
-    [[nodiscard]] bool isMember(PeerId peer) const;
-
-    [[nodiscard]] std::uint8_t slotOf(PeerId peer) const;
-
-    [[nodiscard]] std::uint8_t slotsInPlay() const;
-
-    ITransport& transport;
     const IClock& clock;
     SessionConfig config;
     RelaySettings settings;
     std::uint64_t configHash;
-    std::vector<Member> members;
+    Roster roster;
+    Outbox outbox;
     InputCollector inputs;
     ChecksumReferee referee;
     ConfirmedLog confirmedLog;
     std::vector<std::byte> confirmedSlots;
-    std::array<std::byte, kMaxDatagramSize> sendBuffer{};
 };
 
 }

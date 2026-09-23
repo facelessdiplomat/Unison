@@ -18,7 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.7.1**, the networked session. Last finished: 2.6.7, ping and pong; task 2.6 is complete.
+- Next up: **2.3.9**, splitting `Session`. Last finished: 2.6.8, splitting `RelayCore`.
+- Taken ahead of **2.7.1** on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
+  classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, the steady-state allocation test,
+  which also retires what 2.2.2 left behind in restores. 2.7.1 follows them.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +31,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 37 | 27 |
+| 2 Rollback session (local) | 8 | 38 | 28 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **169** | **98** |
+| **Total** | **31** | **170** | **99** |
 
 ## Charter amendments made while planning
 
@@ -249,6 +252,7 @@ needs from earlier tasks is ticked.
 - [x] 2.6.5 Checksum comparison per frame across slots and `Desync` with the minority. Test: one deviating client is reported.
 - [x] 2.6.6 Periodic reliable resend of confirmed batches for recovery. Test: a client that lost unreliable packets still receives every confirmed frame.
 - [x] 2.6.7 `Ping` / `Pong` with the relay's current confirmed frame. Test: RTT and relay frame reported.
+- [x] 2.6.8 (+) `RelayCore` split before late-join, reconnect and spectators grow it: who is in the match and which slot each plays moves to `Roster`, writing a message for the wire and handing it to the transport to `Outbox`, which the client side can send through as well, and the eight slots every mask of slots allows become `kMaxSlots`. Reason: the relay stood at 234 lines against the 300 of `CLAUDE.md` 3. Test: the roster and the outbox answer on their own, a roster of more slots than a mask has bits breaks a contract, and every relay test passes unchanged.
 
 ### 2.7 Networked session (client side)
 - [ ] 2.7.1 `NetworkedSession`: sends local inputs, applies `Confirmed`, sends checksums, exposes connection state. Test: two clients over zero-latency loopback stay in sync for 1000 frames.

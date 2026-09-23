@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unison/net/protocol.hpp>
+
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -21,13 +23,11 @@ public:
     record(std::uint32_t frame, std::uint8_t slot, std::uint64_t checksum, std::uint8_t slotsInPlay);
 
 private:
-    static constexpr std::size_t kSlots = 8;
-
     struct Reports
     {
         std::uint32_t frame = 0;
         std::uint8_t reported = 0;
-        std::array<std::uint64_t, kSlots> checksums{};
+        std::array<std::uint64_t, kMaxSlots> checksums{};
     };
 
     [[nodiscard]] Reports& reportsFor(std::uint32_t frame);

@@ -66,7 +66,9 @@ add_executable(
     net/loopback_hub_test.cpp
     net/message_codec_test.cpp
     net/network_simulator_test.cpp
+    net/outbox_test.cpp
     net/relay_core_test.cpp
+    net/roster_test.cpp
     net/session_config_test.cpp
     session/event_history_test.cpp
     session/input_buffer_test.cpp

@@ -21,7 +21,7 @@ bool isSet(std::uint8_t mask, std::uint8_t slot)
 std::optional<std::uint8_t>
 ChecksumReferee::record(std::uint32_t frame, std::uint8_t slot, std::uint64_t checksum, std::uint8_t slotsInPlay)
 {
-    if (slot >= kSlots || !isSet(slotsInPlay, slot))
+    if (slot >= kMaxSlots || !isSet(slotsInPlay, slot))
     {
         return std::nullopt;
     }
@@ -68,7 +68,7 @@ std::uint8_t ChecksumReferee::minorityOf(const Reports& reports)
 {
     const int reporting = std::popcount(reports.reported);
 
-    for (std::uint8_t candidate = 0; candidate < kSlots; ++candidate)
+    for (std::uint8_t candidate = 0; candidate < kMaxSlots; ++candidate)
     {
         if (!isSet(reports.reported, candidate))
         {
@@ -90,7 +90,7 @@ std::uint8_t ChecksumReferee::slotsReporting(const Reports& reports, std::uint64
 {
     std::uint8_t agreeing = 0;
 
-    for (std::uint8_t slot = 0; slot < kSlots; ++slot)
+    for (std::uint8_t slot = 0; slot < kMaxSlots; ++slot)
     {
         if (isSet(reports.reported, slot) && reports.checksums[slot] == checksum)
         {
