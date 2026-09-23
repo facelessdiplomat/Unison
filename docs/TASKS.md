@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.1.1**, the snapshot ring. Last finished: 1.7.5; task 1.7 and the whole of phase 1 are complete.
+- Next up: **2.1.2**, the repeat-last-input predictor. Last finished: 2.1.1, the input buffer.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 0 |
+| 2 Rollback session (local) | 8 | 36 | 1 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **71** |
+| **Total** | **31** | **168** | **72** |
 
 ## Charter amendments made while planning
 
@@ -204,7 +204,7 @@ needs from earlier tasks is ticked.
 - [ ] CTest runs runner profiles for 2/4/8 players at 30 and 60 Hz with 0/5/20 % loss.
 
 ### 2.1 Inputs and prediction (`unison_session`)
-- [ ] 2.1.1 `InputBuffer`: per-frame per-slot inputs with `Confirmed` / `Predicted` state, window bounded below by the verified frame. Test: set/get, eviction below verified, out-of-window rejected.
+- [x] 2.1.1 `InputBuffer`: per-frame per-slot inputs with `Confirmed` / `Predicted` state, window bounded below by the verified frame. Test: set/get, eviction below verified, out-of-window rejected.
 - [ ] 2.1.2 `RepeatLastInputPredictor`. Test: a missing slot gets its last confirmed input flagged `Predicted`; a slot with no history gets the neutral input.
 - [ ] 2.1.3 Local input sampling: `setLocalInput` stored per host frame, sampled once per tick for the local slot. Test: the same input is reused when the host does not update it.
 

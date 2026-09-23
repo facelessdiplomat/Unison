@@ -1,7 +1,23 @@
 #include <unison/sim/frame_inputs.hpp>
 
+#include <algorithm>
+
 namespace unison::sim
 {
+
+void FrameInputs::setBytes(std::size_t slot, std::span<const std::byte> input, InputFlags flags)
+{
+    UNISON_VERIFY(slot < kMaxSlots);
+    UNISON_VERIFY(input.size() <= kMaxInputSize);
+
+    if (input.size() > kMaxInputSize)
+    {
+        return;
+    }
+
+    std::ranges::copy(input, slots.at(slot).begin());
+    slotFlags.at(slot) = flags;
+}
 
 InputFlags FrameInputs::flagsAt(std::size_t slot) const
 {

@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <span>
 #include <type_traits>
 
 namespace unison::sim
@@ -86,6 +87,10 @@ public:
 
         return input;
     }
+
+    /// Writes a slot from the bytes of an input, for code that carries inputs without knowing the
+    /// game's type, as the session and the wire do. More bytes than a slot holds break a contract.
+    void setBytes(std::size_t slot, std::span<const std::byte> input, InputFlags flags);
 
     [[nodiscard]] InputFlags flagsAt(std::size_t slot) const;
 

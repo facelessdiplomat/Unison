@@ -272,7 +272,8 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
   values to these integers; no host float reaches the simulation.
 - `FrameInputs` = one `Input` per player slot plus a per-slot `flags` byte (present / predicted / dropped).
   It is a plain class, not a template over `Input`: the slots hold the input erased to bytes, and only the
-  accessor is typed. A template would spread through `ISystem`, `SystemPipeline` and `Session`, and §7.3
+  accessor is typed; code that carries inputs without knowing their type, the session and the wire, writes
+  a slot from bytes. A template would spread through `ISystem`, `SystemPipeline` and `Session`, and §7.3
   forbids a host module from instantiating simulation templates, which the Unreal plugin would have to do to
   drive a session. The 64-byte cap on `Input` exists to make the erased slot possible.
 - Prediction policy: repeat the last known input of each remote player.
@@ -420,6 +421,11 @@ not a stale number.
 Unison keeps **one live `Frame`** and a **ring of snapshots**, one per simulated frame, sized
 `maxPrediction + 2`. A snapshot is a bulk copy of every component pool (in registration order)
 plus Jolt `SaveState` output plus globals.
+
+Inputs sit beside the ring in an `InputBuffer`: a window of frames that starts at `V` and only moves forward,
+each frame holding the `FrameInputs` its tick reads and, per slot, whether that input is still missing, was
+predicted, or is confirmed by the relay. The window keeps `V` itself, because a prediction repeats a slot's
+last confirmed input and at `V` every slot has one. A frame outside the window is refused, not stored.
 
 Each tick:
 

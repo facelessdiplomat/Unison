@@ -58,7 +58,7 @@ foreach(entryIndex RANGE ${lastEntry})
         endforeach()
     endif()
 
-    if(entryFile MATCHES "/tests/(core|sim|net|arena)/")
+    if(entryFile MATCHES "/tests/(core|sim|net|session|arena)/")
         set(testExecutableSeen TRUE)
 
         if(NOT entryCommand MATCHES "/EHsc")

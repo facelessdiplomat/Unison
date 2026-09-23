@@ -5,7 +5,9 @@
 #include <support/fatal_handler_probe.hpp>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace
 {
@@ -90,6 +92,29 @@ TEST_CASE("slots keep their inputs apart")
 
     REQUIRE(inputs.get<SampleInput>(0).moveX == 1);
     REQUIRE(inputs.get<SampleInput>(1).moveX == 2);
+}
+
+TEST_CASE("a slot written from bytes reads back as the input they were taken from")
+{
+    unison::sim::FrameInputs inputs;
+    const SampleInput input{1, -2, 300, 5};
+
+    inputs.setBytes(kSlot, std::as_bytes(std::span{&input, 1}), unison::sim::InputFlags::Present);
+
+    REQUIRE(inputs.get<SampleInput>(kSlot).moveY == -2);
+    REQUIRE(inputs.get<SampleInput>(kSlot).yaw == 300);
+    REQUIRE(inputs.flagsAt(kSlot) == unison::sim::InputFlags::Present);
+}
+
+TEST_CASE("bytes that do not fit a slot break a contract")
+{
+    const unison::test::FatalHandlerProbe probe;
+    unison::sim::FrameInputs inputs;
+    const std::array<std::byte, unison::sim::kMaxInputSize + 1> oversized{};
+
+    inputs.setBytes(0, oversized, unison::sim::InputFlags::Present);
+
+    REQUIRE(probe.failureCount() == 1U);
 }
 
 TEST_CASE("reading a slot as the wrong input type breaks a contract")

@@ -59,6 +59,7 @@ add_executable(
     core/rng_test.cpp
     core/xxhash_vectors_test.cpp
     net/enet_smoke_test.cpp
+    session/input_buffer_test.cpp
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp
     sim/asset_registry_test.cpp
@@ -93,7 +94,7 @@ add_executable(
 
 target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
-target_link_libraries(unison_tests_fast PRIVATE unison_net unison_sim Catch2::Catch2WithMain)
+target_link_libraries(unison_tests_fast PRIVATE unison_net unison_session unison_sim Catch2::Catch2WithMain)
 
 target_compile_options(unison_tests_fast PRIVATE /EHsc)
 

@@ -1,4 +1,4 @@
-add_library(unison_session STATIC src/session.cpp)
+add_library(unison_session STATIC src/input_buffer.cpp)
 
 target_include_directories(unison_session PUBLIC include)
 
