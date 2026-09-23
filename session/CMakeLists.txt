@@ -4,6 +4,7 @@ add_library(
     src/input_buffer.cpp
     src/input_timeline.cpp
     src/local_input.cpp
+    src/networked_session.cpp
     src/repeat_last_input_predictor.cpp
     src/rollback_stats.cpp
     src/session.cpp

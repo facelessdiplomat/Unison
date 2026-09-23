@@ -607,6 +607,14 @@ does a `Ping` from a peer that is not in the match; a member's ping is answered 
 channel with its own stamp and the newest frame the relay has confirmed, and the sender works out the
 round trip from its own clock.
 
+A client plays through a `NetworkedSession`. It says hello when the host asks it to join, plays a `Session`
+in the slot the `Welcome` names, and on every tick takes in what the relay sent, ticks the session, sends the
+input of its newest frame with up to three before it that the relay has not confirmed yet (`K = 4`) on the
+unreliable channel, and sends the checksums of the frames it verified on the reliable one, through an
+`Outbox` of its own. A confirmation of a frame the session no longer holds, as the relay's reliable resends
+often are, is dropped; so is anything from a peer other than the relay. A `Kick` ends the playing, and a
+`Desync` is kept for the host to read.
+
 ---
 
 ## 10. Host Integration

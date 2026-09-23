@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.7.1**, the networked session. Last finished: 6.1.4, the steady-state allocation test.
+- Next up: **2.7.2**, the time sync controller. Last finished: 2.7.1, the networked session.
 - Taken ahead of 2.7.1 on the owner's request of 2026-09-23: the splits 2.6.8, 2.3.9 and 1.5.13 of the
   classes nearing or past the 300 lines of `CLAUDE.md` 3, then 6.1.4, which also retired what 2.2.2 left
   behind in restores.
@@ -31,12 +31,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
-| 2 Rollback session (local) | 8 | 39 | 29 |
+| 2 Rollback session (local) | 8 | 39 | 30 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **173** | **102** |
+| **Total** | **31** | **173** | **103** |
 
 ## Charter amendments made while planning
 
@@ -257,7 +257,7 @@ needs from earlier tasks is ticked.
 - [x] 2.6.8 (+) `RelayCore` split before late-join, reconnect and spectators grow it: who is in the match and which slot each plays moves to `Roster`, writing a message for the wire and handing it to the transport to `Outbox`, which the client side can send through as well, and the eight slots every mask of slots allows become `kMaxSlots`. Reason: the relay stood at 234 lines against the 300 of `CLAUDE.md` 3. Test: the roster and the outbox answer on their own, a roster of more slots than a mask has bits breaks a contract, and every relay test passes unchanged.
 
 ### 2.7 Networked session (client side)
-- [ ] 2.7.1 `NetworkedSession`: sends local inputs, applies `Confirmed`, sends checksums, exposes connection state. Test: two clients over zero-latency loopback stay in sync for 1000 frames.
+- [x] 2.7.1 `NetworkedSession`: sends local inputs, applies `Confirmed`, sends checksums, exposes connection state. Test: two clients over zero-latency loopback stay in sync for 1000 frames.
 - [ ] 2.7.2 `TimeSync` controller: target lead `RTT/2 + jitterMargin`, correction by an extra or skipped tick. Test: the lead converges under simulated 100 ms latency and stays within tolerance.
 - [ ] 2.7.3 Stall and resume under a 500 ms outage. Test: the session stalls, then catches up without desync.
 - [ ] 2.7.4 `SessionRunner::update(hostDelta)` with an accumulator and an injectable clock, returning ticks run and the interpolation alpha. It also lets the event dispatcher forget the keys of frames below `V`, which can no longer be cancelled, so the set of shown keys stops growing. Test: 16.7 ms steps produce one tick each; 50 ms produces three.
