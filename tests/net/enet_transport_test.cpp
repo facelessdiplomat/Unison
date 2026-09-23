@@ -223,6 +223,135 @@ TEST_CASE("a listening transport answers a client by the name it gave it")
     REQUIRE(client.received == std::vector<std::vector<std::uint8_t>>{{1, 2, 3}});
 }
 
+namespace
+{
+
+class Echo final : public unison::net::IMessageReceiver
+{
+public:
+    explicit Echo(unison::net::ITransport& transport) : transport{transport}
+    {
+    }
+
+    void receive(unison::net::PeerId from, unison::net::Channel channel, std::span<const std::byte> message) override
+    {
+        transport.send(from, channel, message);
+    }
+
+private:
+    unison::net::ITransport& transport;
+};
+
+unison::net::EnetConnection connectionTo(const unison::net::EnetTransport& server)
+{
+    auto connection = unison::net::EnetTransport::connect(unison::net::EnetAddress{"127.0.0.1", server.port()},
+                                                          unison::net::EnetAddress{"127.0.0.1", 0});
+
+    REQUIRE(connection.has_value());
+
+    return std::move(*connection);
+}
+
+std::vector<Received> messagesUntil(std::size_t count,
+                                    unison::net::ITransport& waiting,
+                                    unison::net::ITransport& other,
+                                    unison::net::IMessageReceiver& otherReceiver)
+{
+    Inbox inbox;
+    const auto giveUpAt = std::chrono::steady_clock::now() + kPatience;
+
+    while (inbox.messages.size() < count && std::chrono::steady_clock::now() < giveUpAt)
+    {
+        other.poll(otherReceiver);
+        waiting.poll(inbox);
+    }
+
+    return inbox.messages;
+}
+
+}
+
+TEST_CASE("a connecting transport hears its message echoed by a listening one on localhost")
+{
+    const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();
+    Echo echo{*server};
+    const unison::net::EnetConnection client = connectionTo(*server);
+
+    client.transport->send(client.server, unison::net::Channel::Reliable, kHello);
+    const std::vector<Received> echoed = messagesUntil(1, *client.transport, *server, echo);
+
+    REQUIRE(echoed.size() == 1U);
+    REQUIRE(echoed.front().from == client.server);
+    REQUIRE(echoed.front().channel == unison::net::Channel::Reliable);
+    REQUIRE(echoed.front().bytes == std::vector<std::byte>(kHello.begin(), kHello.end()));
+}
+
+TEST_CASE("messages sent before the connection is up go out once it is, in the order they were sent")
+{
+    const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();
+    const unison::net::EnetConnection client = connectionTo(*server);
+    Inbox ignored;
+
+    for (std::uint8_t value = 1; value <= 3; ++value)
+    {
+        const std::array<std::byte, 1> message{std::byte{value}};
+        client.transport->send(client.server, unison::net::Channel::Reliable, message);
+    }
+
+    const std::vector<Received> received = messagesUntil(3, *server, *client.transport, ignored);
+
+    REQUIRE(received.size() == 3U);
+    REQUIRE(received[0].bytes == std::vector<std::byte>{std::byte{1}});
+    REQUIRE(received[1].bytes == std::vector<std::byte>{std::byte{2}});
+    REQUIRE(received[2].bytes == std::vector<std::byte>{std::byte{3}});
+}
+
+TEST_CASE("connecting to an address that is no address fails")
+{
+    const auto connection = unison::net::EnetTransport::connect(unison::net::EnetAddress{"not an address", 7000});
+
+    REQUIRE_FALSE(connection.has_value());
+    REQUIRE(connection.error().code() == unison::ErrorCode::NetworkUnavailable);
+}
+
+TEST_CASE("a transport that goes away says goodbye, so the other side hears of it at once")
+{
+    REQUIRE(enet_initialize() == 0);
+    ENetAddress rawServerAddress{};
+    REQUIRE(enet_address_set_host_ip(&rawServerAddress, "127.0.0.1") == 0);
+    ENetHost* rawServer = enet_host_create(&rawServerAddress, 1, 2, 0, 0);
+    REQUIRE(rawServer != nullptr);
+    auto connected = unison::net::EnetTransport::connect(unison::net::EnetAddress{"127.0.0.1", rawServer->address.port},
+                                                         unison::net::EnetAddress{"127.0.0.1", 0});
+    REQUIRE(connected.has_value());
+    std::optional<unison::net::EnetConnection> client{std::move(*connected)};
+    Inbox ignored;
+    bool isConnected = false;
+    bool isGone = false;
+    ENetEvent event{};
+    const auto giveUpConnectingAt = std::chrono::steady_clock::now() + kPatience;
+
+    while (!isConnected && std::chrono::steady_clock::now() < giveUpConnectingAt)
+    {
+        client->transport->poll(ignored);
+        isConnected = enet_host_service(rawServer, &event, 1) > 0 && event.type == ENET_EVENT_TYPE_CONNECT;
+    }
+
+    client.reset();
+    const auto giveUpWaitingAt = std::chrono::steady_clock::now() + std::chrono::milliseconds{500};
+
+    while (!isGone && std::chrono::steady_clock::now() < giveUpWaitingAt)
+    {
+        isGone = enet_host_service(rawServer, &event, 1) > 0 && event.type == ENET_EVENT_TYPE_DISCONNECT;
+    }
+
+    enet_host_destroy(rawServer);
+    enet_deinitialize();
+
+    REQUIRE(isConnected);
+    REQUIRE(isGone);
+}
+
 TEST_CASE("two clients of a listening transport go by different names")
 {
     const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();

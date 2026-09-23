@@ -20,6 +20,20 @@ tl::unexpected<Error> unavailable(std::string_view why)
     return tl::unexpected{Error{ErrorCode::NetworkUnavailable, why}};
 }
 
+std::optional<ENetAddress> addressOf(const EnetAddress& address)
+{
+    ENetAddress parsed{};
+
+    if (enet_address_set_host_ip(&parsed, address.host.c_str()) != 0)
+    {
+        return std::nullopt;
+    }
+
+    parsed.port = address.port;
+
+    return parsed;
+}
+
 class EnetShutdown
 {
 public:
@@ -44,37 +58,94 @@ struct HostDeleter
     }
 };
 
+void sendNow(ENetPeer* connection, Channel channel, std::span<const std::byte> message)
+{
+    const bool isReliable = channel == Channel::Reliable;
+    ENetPacket* packet =
+        enet_packet_create(message.data(), message.size(), isReliable ? ENET_PACKET_FLAG_RELIABLE : 0U);
+
+    if (enet_peer_send(connection, isReliable ? kReliableChannel : kUnreliableChannel, packet) != 0)
+    {
+        enet_packet_destroy(packet);
+    }
+}
+
 }
 
 struct EnetTransport::Host
 {
+    struct Waiting
+    {
+        Channel channel = Channel::Reliable;
+        std::vector<std::byte> bytes;
+    };
+
     struct Peer
     {
         PeerId id{};
         ENetPeer* connection = nullptr;
+        bool isConnected = false;
+        std::vector<Waiting> waiting;
     };
 
     explicit Host(ENetHost* handle) : handle{handle}
     {
     }
 
-    [[nodiscard]] PeerId idOf(const ENetPeer* connection) const
+    Host(const Host&) = delete;
+    Host& operator=(const Host&) = delete;
+    Host(Host&&) = delete;
+    Host& operator=(Host&&) = delete;
+
+    ~Host()
+    {
+        for (const Peer& peer : peers)
+        {
+            enet_peer_disconnect_now(peer.connection, 0);
+        }
+    }
+
+    [[nodiscard]] Peer* find(const ENetPeer* connection)
     {
         const auto found = std::ranges::find(peers, connection, &Peer::connection);
 
-        return found != peers.end() ? found->id : PeerId{};
+        return found != peers.end() ? &*found : nullptr;
     }
 
-    [[nodiscard]] ENetPeer* connectionOf(PeerId id) const
+    [[nodiscard]] Peer* find(PeerId id)
     {
         const auto found = std::ranges::find(peers, id, &Peer::id);
 
-        return found != peers.end() ? found->connection : nullptr;
+        return found != peers.end() ? &*found : nullptr;
     }
 
-    void admit(ENetPeer* connection)
+    PeerId name(ENetPeer* connection, bool isConnected)
     {
-        peers.push_back(Peer{PeerId{++lastPeerId}, connection});
+        peers.push_back(Peer{PeerId{++lastPeerId}, connection, isConnected, {}});
+
+        return peers.back().id;
+    }
+
+    void markConnected(ENetPeer* connection)
+    {
+        Peer* peer = find(connection);
+
+        if (peer == nullptr)
+        {
+            static_cast<void>(name(connection, true));
+
+            return;
+        }
+
+        peer->isConnected = true;
+
+        for (const Waiting& message : peer->waiting)
+        {
+            sendNow(connection, message.channel, message.bytes);
+        }
+
+        peer->waiting.clear();
+        enet_host_flush(handle.get());
     }
 
     void forget(const ENetPeer* connection)
@@ -90,22 +161,19 @@ struct EnetTransport::Host
 
 tl::expected<std::unique_ptr<EnetTransport>, Error> EnetTransport::listen(const EnetAddress& at, std::size_t maxPeers)
 {
+    const std::optional<ENetAddress> address = addressOf(at);
+
+    if (!address.has_value())
+    {
+        return unavailable("the address to listen on is no address");
+    }
+
     if (enet_initialize() != 0)
     {
         return unavailable("the network could not be started");
     }
 
-    ENetAddress address{};
-
-    if (enet_address_set_host_ip(&address, at.host.c_str()) != 0)
-    {
-        enet_deinitialize();
-
-        return unavailable("the address to listen on is no address");
-    }
-
-    address.port = at.port;
-    ENetHost* handle = enet_host_create(&address, maxPeers, kChannelCount, 0, 0);
+    ENetHost* handle = enet_host_create(&*address, maxPeers, kChannelCount, 0, 0);
 
     if (handle == nullptr)
     {
@@ -115,6 +183,44 @@ tl::expected<std::unique_ptr<EnetTransport>, Error> EnetTransport::listen(const 
     }
 
     return std::make_unique<EnetTransport>(Passkey{}, std::make_unique<Host>(handle));
+}
+
+tl::expected<EnetConnection, Error> EnetTransport::connect(const EnetAddress& to,
+                                                           const std::optional<EnetAddress>& from)
+{
+    const std::optional<ENetAddress> server = addressOf(to);
+    const std::optional<ENetAddress> local = from.has_value() ? addressOf(*from) : std::nullopt;
+
+    if (!server.has_value() || (from.has_value() && !local.has_value()))
+    {
+        return unavailable("the address to connect to or from is no address");
+    }
+
+    if (enet_initialize() != 0)
+    {
+        return unavailable("the network could not be started");
+    }
+
+    ENetHost* handle = enet_host_create(local.has_value() ? &*local : nullptr, 1, kChannelCount, 0, 0);
+
+    if (handle == nullptr)
+    {
+        enet_deinitialize();
+
+        return unavailable("the address to connect from cannot be used");
+    }
+
+    auto transport = std::make_unique<EnetTransport>(Passkey{}, std::make_unique<Host>(handle));
+    ENetPeer* connection = enet_host_connect(handle, &*server, kChannelCount, 0);
+
+    if (connection == nullptr)
+    {
+        return unavailable("the connection could not be started");
+    }
+
+    const PeerId serverId = transport->host->name(connection, false);
+
+    return EnetConnection{std::move(transport), serverId};
 }
 
 EnetTransport::EnetTransport(Passkey, std::unique_ptr<Host> host) : host{std::move(host)}
@@ -130,24 +236,21 @@ std::uint16_t EnetTransport::port() const
 
 void EnetTransport::send(PeerId to, Channel channel, std::span<const std::byte> message)
 {
-    ENetPeer* connection = host->connectionOf(to);
+    Host::Peer* peer = host->find(to);
 
-    if (connection == nullptr)
+    if (peer == nullptr)
     {
         return;
     }
 
-    const bool isReliable = channel == Channel::Reliable;
-    ENetPacket* packet =
-        enet_packet_create(message.data(), message.size(), isReliable ? ENET_PACKET_FLAG_RELIABLE : 0U);
-
-    if (enet_peer_send(connection, isReliable ? kReliableChannel : kUnreliableChannel, packet) != 0)
+    if (!peer->isConnected)
     {
-        enet_packet_destroy(packet);
+        peer->waiting.push_back(Host::Waiting{channel, {message.begin(), message.end()}});
 
         return;
     }
 
+    sendNow(peer->connection, channel, message);
     enet_host_flush(host->handle.get());
 }
 
@@ -160,17 +263,21 @@ void EnetTransport::poll(IMessageReceiver& receiver)
         switch (event.type)
         {
             case ENET_EVENT_TYPE_CONNECT:
-                host->admit(event.peer);
+                host->markConnected(event.peer);
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
                 host->forget(event.peer);
                 break;
             case ENET_EVENT_TYPE_RECEIVE:
-                receiver.receive(host->idOf(event.peer),
+            {
+                const Host::Peer* peer = host->find(event.peer);
+
+                receiver.receive(peer != nullptr ? peer->id : PeerId{},
                                  event.channelID == kReliableChannel ? Channel::Reliable : Channel::Unreliable,
                                  std::as_bytes(std::span{event.packet->data, event.packet->dataLength}));
                 enet_packet_destroy(event.packet);
                 break;
+            }
             case ENET_EVENT_TYPE_NONE:
                 break;
         }

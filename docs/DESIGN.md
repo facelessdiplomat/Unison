@@ -617,9 +617,13 @@ allocates nothing and the relay and the session each receive as one small interf
 - `EnetTransport`: ENet client/server with two channels (reliable, unreliable-sequenced). `listen(address,
   maxPeers)` binds an IPv4 address and a port, nought for one the system picks, and returns the transport or
   `NetworkUnavailable` in `tl::expected`; tests listen on 127.0.0.1 only, which keeps the firewall out of
-  them. Every peer that connects gets a peer id the transport never gives again, a send is flushed at once
-  rather than waiting for the next poll, and a message for a peer that has gone is dropped. ENet's headers,
-  which bring in `winsock2.h`, stay inside the transport's source file.
+  them. `connect(to, from)` returns the transport with the peer id it knows the server by, sending from
+  `from` or, when it is not given, from any interface through a port the system picks; the connection
+  comes up as the transport is polled, and what is sent before then waits for it and goes in order. Every
+  peer gets a peer id the transport never gives again, a send is flushed at once rather than waiting for
+  the next poll, a message for a peer that has gone is dropped, and a transport that goes away says goodbye
+  to every peer, so the other side hears of it at once rather than at a timeout. ENet's headers, which bring
+  in `winsock2.h`, stay inside the transport's source file.
 
 ### 9.2 Relay protocol (v1)
 
