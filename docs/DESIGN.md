@@ -664,7 +664,15 @@ or whose config hashes otherwise is answered with `Kick`, a player takes the low
 when none is left, and a spectator is welcomed without a slot (`kNoSlot`). A `Hello` carries the whole
 config rather than its hash because the relay never simulates and cannot know a game's asset and pipeline
 hashes: the standalone relay opens a room from the first `Hello` of a config, one room per config, since
-lobbies are out of scope in v1, and rooms that come and go with their players are its concern (3.2.2). Bytes that decode to no message go unanswered, and so
+lobbies are out of scope in v1, and rooms that come and go with their players are its concern (3.2.2).
+
+`unison_relay` is that standalone relay: it listens with an `EnetTransport` on `--bind` and `--port`
+(0.0.0.0:7777 unless told otherwise) for `--max-peers` peers, and hands every message to `RelayRooms`, which
+opens a `RelayCore` for the first `Hello` of every config and passes each seated peer's messages to its room
+from then on; a peer that has said no hello is not answered. The loop polls the transport, lets every room
+confirm the frames whose deadline has passed and sleeps a millisecond, on a `SteadyClock` that counts from
+start-up; `--input-deadline`, `--resend-interval` and `--peer-timeout` set the room's `RelaySettings` and the
+transport, and `--run-for` stops it after that many seconds. It logs through `LogSink` to standard output. Bytes that decode to no message go unanswered, and so
 does a `Ping` from a peer that is not in the match; a member's ping is answered at once on the unreliable
 channel with its own stamp, the newest frame the relay has confirmed and the frame its `MatchClock` has due
 (§8.3), and the sender works out the round trip from its own clock.

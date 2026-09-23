@@ -1,0 +1,154 @@
+#include <unison/relay/relay_rooms.hpp>
+
+#include <unison/net/clock.hpp>
+#include <unison/net/loopback_hub.hpp>
+#include <unison/net/message_codec.hpp>
+#include <unison/net/outbox.hpp>
+
+#include <catch2/catch_test_macros.hpp>
+
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <optional>
+#include <span>
+#include <variant>
+#include <vector>
+
+namespace
+{
+
+unison::net::SessionConfig matchOf(std::uint8_t players)
+{
+    unison::net::SessionConfig config;
+    config.slotCount = players;
+    config.inputSize = 2;
+
+    return config;
+}
+
+class Mailbox final : public unison::net::IMessageReceiver
+{
+public:
+    void receive(unison::net::PeerId, unison::net::Channel, std::span<const std::byte> message) override
+    {
+        letters.emplace_back(message.begin(), message.end());
+    }
+
+    template <typename T>
+    [[nodiscard]] std::optional<T> first() const
+    {
+        for (const std::vector<std::byte>& letter : letters)
+        {
+            const auto decoded = unison::net::decode(letter);
+
+            if (decoded.has_value() && std::holds_alternative<T>(*decoded))
+            {
+                return std::get<T>(*decoded);
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::vector<std::vector<std::byte>> letters;
+};
+
+struct Relay
+{
+    unison::net::LoopbackHub hub;
+    unison::net::LoopbackEndpoint& endpoint = hub.join();
+    unison::net::ManualClock clock;
+    unison::relay::RelayRooms rooms{endpoint, clock, unison::net::RelaySettings{}};
+
+    struct Client
+    {
+        unison::net::LoopbackEndpoint& endpoint;
+        unison::net::Outbox outbox{endpoint};
+        Mailbox mail;
+    };
+
+    Client& join(const unison::net::SessionConfig& config)
+    {
+        Client& client = clients.emplace_back(hub.join());
+        client.outbox.send(endpoint.id(),
+                           unison::net::Channel::Reliable,
+                           unison::net::Hello{unison::net::kProtocolVersion, config, unison::net::Role::Player, 0});
+        endpoint.poll(rooms);
+        client.endpoint.poll(client.mail);
+
+        return client;
+    }
+
+    std::deque<Client> clients;
+};
+
+}
+
+TEST_CASE("a relay has no room open before the first hello")
+{
+    const Relay relay;
+
+    REQUIRE(relay.rooms.roomCount() == 0U);
+}
+
+TEST_CASE("the first hello of a match opens a room and is welcomed into its first slot")
+{
+    Relay relay;
+
+    const Relay::Client& client = relay.join(matchOf(2));
+
+    REQUIRE(relay.rooms.roomCount() == 1U);
+    REQUIRE(client.mail.first<unison::net::Welcome>().has_value());
+    REQUIRE(client.mail.first<unison::net::Welcome>()->slot == 0U);
+}
+
+TEST_CASE("a hello of the same match joins the room it has")
+{
+    Relay relay;
+    static_cast<void>(relay.join(matchOf(2)));
+
+    const Relay::Client& second = relay.join(matchOf(2));
+
+    REQUIRE(relay.rooms.roomCount() == 1U);
+    REQUIRE(second.mail.first<unison::net::Welcome>()->slot == 1U);
+}
+
+TEST_CASE("a hello of another match opens a room of its own")
+{
+    Relay relay;
+    static_cast<void>(relay.join(matchOf(2)));
+
+    const Relay::Client& other = relay.join(matchOf(3));
+
+    REQUIRE(relay.rooms.roomCount() == 2U);
+    REQUIRE(other.mail.first<unison::net::Welcome>()->slot == 0U);
+}
+
+TEST_CASE("a client in a room is answered by that room")
+{
+    Relay relay;
+    Relay::Client& client = relay.join(matchOf(2));
+
+    client.outbox.send(relay.endpoint.id(), unison::net::Channel::Unreliable, unison::net::Ping{42});
+    relay.endpoint.poll(relay.rooms);
+    client.endpoint.poll(client.mail);
+
+    REQUIRE(client.mail.first<unison::net::Pong>().has_value());
+    REQUIRE(client.mail.first<unison::net::Pong>()->pingSentAt == 42U);
+}
+
+TEST_CASE("a peer that has said no hello is not answered and opens no room")
+{
+    Relay relay;
+    unison::net::LoopbackEndpoint& stranger = relay.hub.join();
+    unison::net::Outbox outbox{stranger};
+    Mailbox mail;
+
+    outbox.send(relay.endpoint.id(), unison::net::Channel::Unreliable, unison::net::Ping{42});
+    relay.endpoint.poll(relay.rooms);
+    stranger.poll(mail);
+
+    REQUIRE(relay.rooms.roomCount() == 0U);
+    REQUIRE(mail.letters.empty());
+}

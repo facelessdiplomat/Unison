@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 
 namespace unison::net
@@ -31,6 +32,19 @@ public:
 
 private:
     std::uint64_t now = 0;
+};
+
+/// A clock that follows the system's steady clock, counting from when it was made. Only hosts and the
+/// standalone relay read it; the simulation never does.
+class SteadyClock final : public IClock
+{
+public:
+    SteadyClock();
+
+    [[nodiscard]] std::uint64_t nowMicroseconds() const override;
+
+private:
+    std::chrono::steady_clock::time_point start;
 };
 
 }

@@ -120,6 +120,9 @@ add_executable(
     tools/checksum_ledger_test.cpp
     tools/checksum_wiretap_test.cpp
     tools/client_outcome_test.cpp
+    tools/relay_options_test.cpp
+    tools/relay_over_enet_test.cpp
+    tools/relay_rooms_test.cpp
     tools/rollback_summary_test.cpp
     tools/run_outcome_test.cpp
     tools/runner_options_test.cpp
@@ -130,7 +133,15 @@ add_executable(
 target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 
 target_link_libraries(
-    unison_tests_fast PRIVATE unison_net unison_runner_core unison_session unison_sim unison_view Catch2::Catch2WithMain
+    unison_tests_fast
+    PRIVATE
+    unison_net
+    unison_relay_core
+    unison_runner_core
+    unison_session
+    unison_sim
+    unison_view
+    Catch2::Catch2WithMain
 )
 
 target_compile_options(unison_tests_fast PRIVATE /EHsc)

@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.2.1**, the relay executable's main loop. Last finished: 3.2.4, a `Hello` that carries the
-  whole config, which 3.2.1 needs to open a room.
+- Next up: **3.2.2**, rooms that close when empty and a relay that stops on Ctrl+C. Last finished: 3.2.1,
+  the relay executable's main loop.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -40,11 +40,11 @@ needs from earlier tasks is ticked.
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
-| 3 Real networking | 4 | 16 | 5 |
+| 3 Real networking | 4 | 16 | 6 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **31** | **181** | **124** |
+| **Total** | **31** | **181** | **125** |
 
 ## Charter amendments made while planning
 
@@ -310,7 +310,7 @@ needs from earlier tasks is ticked.
 
 ### 3.2 Relay server executable (`unison_relay`)
 - [x] 3.2.4 (+) A `Hello` carries the whole config the client would play instead of its hash, and the relay hashes it itself, so a standalone relay, which never simulates and cannot know a game's asset and pipeline hashes, can open a room from it. The protocol moves to version 5. Found in 3.2.1; the owner chose it on 2026-09-23 over giving the relay the config on its command line, and one room per config over named rooms. Test: a hello survives the wire with the whole config, and every relay and session test joins with it.
-- [ ] 3.2.1 Main loop: config (port, room limits, deadlines), `RelayCore` over `EnetTransport`, stdout logging via `LogSink`. Done when: a client connects and gets `Welcome`.
+- [x] 3.2.1 Main loop: config (port, room limits, deadlines), `RelayCore` over `EnetTransport`, stdout logging via `LogSink`. Done when: a client connects and gets `Welcome`. `RelayRooms` opens a room from the first hello of every config and passes the room its peers' messages; a `SteadyClock` gives the relay its time. Test: rooms open, join and answer as they should over loopback, a client connecting over ENet is welcomed, and `unison_relay --bind 127.0.0.1 --port 0 --run-for 1` prints the address it listens on and exits 0.
 - [ ] 3.2.2 Room lifecycle: created on first `Hello`, destroyed when empty; graceful shutdown on Ctrl+C. Test: room count follows joins and leaves.
 - [ ] 3.2.3 Portability check: the relay builds and runs under Linux (WSL, gcc or clang). Optional in v1; record the result here.
 
