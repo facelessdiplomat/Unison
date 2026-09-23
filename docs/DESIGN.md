@@ -617,7 +617,9 @@ whole, and a longer one breaks a contract in every transport alike. ENet would o
 the pieces reliably. The protocol's `kMaxDatagramSize` is that same limit. A poll also reports a
 peer that has gone, whether it said goodbye or stopped answering; a receiver that does not follow peers
 ignores it by default, and one that hands messages on, such as the runner's checksum wiretap, hands the
-departure on too. A peer arriving needs no report: it says hello.
+departure on too. A peer whose connection comes up is reported as well, which is how a client tells a
+transport still reaching its relay from a relay that has not let it in yet; a transport without
+connections, as the loopback hub, never reports one.
 
 - `LoopbackHub`: in-process endpoints that deliver to one another at once. A `SimulatedLink` wraps any
   transport so that what it sends first crosses a seeded `NetworkSimulator` with latency, jitter (the delay
@@ -689,8 +691,15 @@ ping is due (§8.3). On every tick it ticks the session, sends the input of its 
 before it that the relay has not confirmed yet (`K = 4`) on the unreliable channel, and sends the checksums
 of the frames it verified on the reliable one, through an `Outbox` of its own. Every frame a confirmation carries is settled in turn; one the
 session no longer holds, as the relay's repeats and reliable resends often are, is dropped, and one it has
-settled already changes nothing. Anything from a peer other than the relay is dropped too. A `Kick` ends the playing, and a
-`Desync` is kept for the host to read.
+settled already changes nothing. Anything from a peer other than the relay is dropped too. A `Desync` is
+kept for the host to read.
+
+Where the client stands is a `ConnectionState`: `Idle` until the host asks it to join, `Connecting` while its
+hello waits for the transport to reach the relay, `Joining` once the transport has (an in-process transport
+never says so, and the welcome moves a connecting client straight on), `Playing` in the slot the welcome
+names, `Stalled` while its prediction window is full, and `Disconnected` once the relay sends it away or its
+transport reports the relay gone. Every state it moves into is kept in order until the host clears them, as
+the session's event changes are.
 
 ---
 

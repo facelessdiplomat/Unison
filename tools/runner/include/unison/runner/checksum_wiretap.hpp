@@ -20,6 +20,8 @@ public:
 
     void receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message) override;
 
+    void peerArrived(net::PeerId peer) override;
+
     void peerLeft(net::PeerId peer) override;
 
 private:

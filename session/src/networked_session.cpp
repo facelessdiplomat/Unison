@@ -24,7 +24,7 @@ void NetworkedSession::join()
 {
     outbox.send(relay, net::Channel::Reliable, net::Hello{net::kProtocolVersion, config, net::Role::Player, 0});
 
-    connection = ConnectionState::Joining;
+    moveTo(ConnectionState::Connecting);
 }
 
 void NetworkedSession::setLocalInput(std::span<const std::byte> input)
@@ -44,7 +44,7 @@ void NetworkedSession::update(std::uint64_t now)
     updatedAt = now;
     transport.poll(*this);
 
-    if (connection == ConnectionState::Playing && now >= nextPingAt)
+    if (isInMatch() && now >= nextPingAt)
     {
         outbox.send(relay, net::Channel::Unreliable, net::Ping{now});
         nextPingAt = now + kPingIntervalMicroseconds;
@@ -53,13 +53,14 @@ void NetworkedSession::update(std::uint64_t now)
 
 void NetworkedSession::tick()
 {
-    if (connection != ConnectionState::Playing)
+    if (!isInMatch())
     {
         return;
     }
 
     played->setLocalInput(localInput);
     played->tick();
+    moveTo(played->isStalled() ? ConnectionState::Stalled : ConnectionState::Playing);
 
     sendInputs();
     sendChecksums();
@@ -87,9 +88,35 @@ void NetworkedSession::receive(net::PeerId from, net::Channel, std::span<const s
     std::visit([this](const auto& received) { handle(received); }, *decoded);
 }
 
+void NetworkedSession::peerArrived(net::PeerId peer)
+{
+    if (peer == relay && connection == ConnectionState::Connecting)
+    {
+        moveTo(ConnectionState::Joining);
+    }
+}
+
+void NetworkedSession::peerLeft(net::PeerId peer)
+{
+    if (peer == relay && connection != ConnectionState::Idle)
+    {
+        moveTo(ConnectionState::Disconnected);
+    }
+}
+
 ConnectionState NetworkedSession::state() const
 {
     return connection;
+}
+
+std::span<const ConnectionState> NetworkedSession::connectionChanges() const
+{
+    return changes;
+}
+
+void NetworkedSession::clearConnectionChanges()
+{
+    changes.clear();
 }
 
 std::uint8_t NetworkedSession::localSlot() const
@@ -122,20 +149,21 @@ std::optional<net::Desync> NetworkedSession::lastDesync() const
 
 void NetworkedSession::handle(const net::Welcome& welcome)
 {
-    if (connection != ConnectionState::Joining || welcome.slot >= config.slotCount)
+    const bool isWaitingToBeLetIn = connection == ConnectionState::Connecting || connection == ConnectionState::Joining;
+
+    if (!isWaitingToBeLetIn || welcome.slot >= config.slotCount)
     {
         return;
     }
 
     givenSlot = welcome.slot;
     played.emplace(frame, pipeline, config, givenSlot, inputDelay);
-    connection = ConnectionState::Playing;
+    moveTo(ConnectionState::Playing);
 }
 
 void NetworkedSession::handle(const net::Confirmed& confirmed)
 {
-    if (connection != ConnectionState::Playing || confirmed.slotCount != config.slotCount ||
-        confirmed.inputSize != config.inputSize)
+    if (!isInMatch() || confirmed.slotCount != config.slotCount || confirmed.inputSize != config.inputSize)
     {
         return;
     }
@@ -150,7 +178,7 @@ void NetworkedSession::handle(const net::Confirmed& confirmed)
 
 void NetworkedSession::handle(const net::Pong& pong)
 {
-    if (connection != ConnectionState::Playing)
+    if (!isInMatch())
     {
         return;
     }
@@ -160,12 +188,28 @@ void NetworkedSession::handle(const net::Pong& pong)
 
 void NetworkedSession::handle(const net::Kick&)
 {
-    connection = ConnectionState::Disconnected;
+    moveTo(ConnectionState::Disconnected);
 }
 
 void NetworkedSession::handle(const net::Desync& desync)
 {
     reportedDesync = desync;
+}
+
+void NetworkedSession::moveTo(ConnectionState next)
+{
+    if (next == connection)
+    {
+        return;
+    }
+
+    connection = next;
+    changes.push_back(next);
+}
+
+bool NetworkedSession::isInMatch() const
+{
+    return connection == ConnectionState::Playing || connection == ConnectionState::Stalled;
 }
 
 void NetworkedSession::settle(std::uint32_t frameNumber, std::span<const std::byte> slots)

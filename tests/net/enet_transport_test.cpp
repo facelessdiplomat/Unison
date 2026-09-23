@@ -36,12 +36,18 @@ public:
         messages.push_back(Received{from, channel, {message.begin(), message.end()}});
     }
 
+    void peerArrived(unison::net::PeerId peer) override
+    {
+        arrivals.push_back(peer);
+    }
+
     void peerLeft(unison::net::PeerId peer) override
     {
         departures.push_back(peer);
     }
 
     std::vector<Received> messages;
+    std::vector<unison::net::PeerId> arrivals;
     std::vector<unison::net::PeerId> departures;
 };
 
@@ -376,6 +382,24 @@ std::vector<unison::net::PeerId> departuresWithin(std::chrono::milliseconds pati
     return inbox.departures;
 }
 
+}
+
+TEST_CASE("each side of a connection hears of the other once the connection is up")
+{
+    const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();
+    const unison::net::EnetConnection client = connectionTo(*server);
+    Inbox atServer;
+    Inbox atClient;
+    const auto giveUpAt = std::chrono::steady_clock::now() + kPatience;
+
+    while ((atServer.arrivals.empty() || atClient.arrivals.empty()) && std::chrono::steady_clock::now() < giveUpAt)
+    {
+        server->poll(atServer);
+        client.transport->poll(atClient);
+    }
+
+    REQUIRE(atServer.arrivals.size() == 1U);
+    REQUIRE(atClient.arrivals == std::vector<unison::net::PeerId>{client.server});
 }
 
 TEST_CASE("a peer that says goodbye is reported gone at once")

@@ -45,6 +45,14 @@ public:
 
     virtual void receive(PeerId from, Channel channel, std::span<const std::byte> message) = 0;
 
+    /// A peer's connection is up: a client's to its server, or a server's to a client. A transport that has
+    /// no connections, as an in-process one, never says so. A receiver that does not follow peers leaves it
+    /// alone; one that hands messages on hands this on too.
+    virtual void peerArrived(PeerId peer)
+    {
+        static_cast<void>(peer);
+    }
+
     /// A peer has gone: it said goodbye, or it stopped answering for longer than the transport waits. A
     /// receiver that does not follow peers leaves it alone; one that hands messages on hands this on too.
     virtual void peerLeft(PeerId peer)

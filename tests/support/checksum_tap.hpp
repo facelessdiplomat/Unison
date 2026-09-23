@@ -39,6 +39,11 @@ public:
         relay.receive(from, channel, message);
     }
 
+    void peerArrived(net::PeerId peer) override
+    {
+        relay.peerArrived(peer);
+    }
+
     void peerLeft(net::PeerId peer) override
     {
         relay.peerLeft(peer);

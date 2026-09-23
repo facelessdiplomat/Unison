@@ -30,6 +30,11 @@ void ChecksumWiretap::receive(net::PeerId from, net::Channel channel, std::span<
     relay.receive(from, channel, message);
 }
 
+void ChecksumWiretap::peerArrived(net::PeerId peer)
+{
+    relay.peerArrived(peer);
+}
+
 void ChecksumWiretap::peerLeft(net::PeerId peer)
 {
     relay.peerLeft(peer);

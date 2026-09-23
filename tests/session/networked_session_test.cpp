@@ -183,6 +183,16 @@ TEST_CASE("joining says hello to the relay as a player of the config the client 
     REQUIRE(unison::net::hashOf(hellos.front().config) == unison::net::hashOf(rig.config));
     REQUIRE(hellos.front().role == unison::net::Role::Player);
     REQUIRE(rig.atRelay.channels.front() == unison::net::Channel::Reliable);
+    REQUIRE(rig.client.state() == ConnectionState::Connecting);
+}
+
+TEST_CASE("a connecting client is joining once its transport has reached the relay")
+{
+    Rig rig;
+    rig.client.join();
+
+    rig.client.peerArrived(rig.relayEnd.id());
+
     REQUIRE(rig.client.state() == ConnectionState::Joining);
 }
 
@@ -194,7 +204,7 @@ TEST_CASE("a client plays nothing until the relay lets it in")
     rig.playWithMove(1);
     rig.playWithMove(2);
 
-    REQUIRE(rig.client.state() == ConnectionState::Joining);
+    REQUIRE(rig.client.state() == ConnectionState::Connecting);
     REQUIRE(rig.client.session() == nullptr);
     REQUIRE(rig.client.localSlot() == unison::net::kNoSlot);
     REQUIRE(rig.relayMail().all<unison::net::Input>().empty());
@@ -223,7 +233,7 @@ TEST_CASE("a welcome into a slot the match does not have is ignored")
 
     rig.playWithMove(1);
 
-    REQUIRE(rig.client.state() == ConnectionState::Joining);
+    REQUIRE(rig.client.state() == ConnectionState::Connecting);
 }
 
 TEST_CASE("a client sends the input of every frame it plays with the three before it")
@@ -346,6 +356,65 @@ TEST_CASE("a client the relay sends away stops playing")
     REQUIRE(rig.client.session()->predictedFrame() == 1U);
 }
 
+TEST_CASE("a playing client whose prediction window is full is stalled until a frame is confirmed")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+
+    for (std::int8_t move = 0; move <= static_cast<std::int8_t>(rig.config.maxPrediction); ++move)
+    {
+        rig.playWithMove(move);
+    }
+
+    const ConnectionState whenFull = rig.client.state();
+    rig.confirm(1, rig.client.session()->inputs().inputsAt(1));
+    rig.playWithMove(1);
+
+    REQUIRE(whenFull == ConnectionState::Stalled);
+    REQUIRE(rig.client.state() == ConnectionState::Playing);
+}
+
+TEST_CASE("a client whose relay has gone is disconnected")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+    rig.playWithMove(1);
+
+    rig.client.peerLeft(rig.relayEnd.id());
+
+    REQUIRE(rig.client.state() == ConnectionState::Disconnected);
+}
+
+TEST_CASE("peers other than the relay coming and going change nothing for a client")
+{
+    Rig rig;
+    rig.client.join();
+
+    rig.client.peerArrived(unison::net::PeerId{77});
+    rig.client.peerLeft(unison::net::PeerId{77});
+
+    REQUIRE(rig.client.state() == ConnectionState::Connecting);
+}
+
+TEST_CASE("every state a client moves into is kept for the host, in order, until the host clears them")
+{
+    Rig rig;
+    rig.client.join();
+    rig.client.peerArrived(rig.relayEnd.id());
+    rig.welcome(kLocalSlot);
+    rig.playWithMove(1);
+    const std::vector<ConnectionState> moved{rig.client.connectionChanges().begin(),
+                                             rig.client.connectionChanges().end()};
+
+    rig.client.clearConnectionChanges();
+
+    REQUIRE(moved == std::vector<ConnectionState>{
+                         ConnectionState::Connecting, ConnectionState::Joining, ConnectionState::Playing});
+    REQUIRE(rig.client.connectionChanges().empty());
+}
+
 TEST_CASE("a client keeps the desync the relay reports")
 {
     Rig rig;
@@ -371,7 +440,7 @@ TEST_CASE("a client listens to the relay and to nobody else")
 
     rig.playWithMove(1);
 
-    REQUIRE(rig.client.state() == ConnectionState::Joining);
+    REQUIRE(rig.client.state() == ConnectionState::Connecting);
 }
 
 TEST_CASE("giving a networked session a local input that does not fit a slot breaks a contract")

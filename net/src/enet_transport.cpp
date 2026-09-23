@@ -130,15 +130,13 @@ struct EnetTransport::Host
         return peers.back().id;
     }
 
-    void markConnected(ENetPeer* connection)
+    PeerId markConnected(ENetPeer* connection)
     {
         Peer* peer = find(connection);
 
         if (peer == nullptr)
         {
-            static_cast<void>(name(connection, true));
-
-            return;
+            return name(connection, true);
         }
 
         peer->isConnected = true;
@@ -150,6 +148,8 @@ struct EnetTransport::Host
 
         peer->waiting.clear();
         enet_host_flush(handle.get());
+
+        return peer->id;
     }
 
     std::optional<PeerId> forget(const ENetPeer* connection)
@@ -283,7 +283,7 @@ void EnetTransport::poll(IMessageReceiver& receiver)
         switch (event.type)
         {
             case ENET_EVENT_TYPE_CONNECT:
-                host->markConnected(event.peer);
+                receiver.peerArrived(host->markConnected(event.peer));
                 break;
             case ENET_EVENT_TYPE_DISCONNECT:
                 if (const std::optional<PeerId> gone = host->forget(event.peer))

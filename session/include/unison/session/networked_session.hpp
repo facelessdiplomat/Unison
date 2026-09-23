@@ -15,17 +15,21 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace unison::session
 {
 
-/// Where a client stands with the relay: not asked to join yet, waiting to be let in, playing in the slot
-/// it was given, or sent away.
+/// Where a client stands with the relay: not asked to join yet, waiting for its transport to reach the
+/// relay, waiting to be let in, playing in the slot it was given, playing but waiting for the relay with its
+/// prediction window full, or sent away or left behind by a relay that has gone.
 enum class ConnectionState : std::uint8_t
 {
     Idle,
+    Connecting,
     Joining,
     Playing,
+    Stalled,
     Disconnected
 };
 
@@ -70,7 +74,19 @@ public:
 
     void receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message) override;
 
+    /// The relay reached: a connecting client is joining from then on.
+    void peerArrived(net::PeerId peer) override;
+
+    /// The relay gone: the client is disconnected from then on.
+    void peerLeft(net::PeerId peer) override;
+
     [[nodiscard]] ConnectionState state() const;
+
+    /// Every state the client has moved into since the host last cleared them, oldest first.
+    [[nodiscard]] std::span<const ConnectionState> connectionChanges() const;
+
+    /// Clears the connection changes once the host has taken them.
+    void clearConnectionChanges();
 
     /// The slot the relay gave this client, `kNoSlot` before it has given one.
     [[nodiscard]] std::uint8_t localSlot() const;
@@ -104,6 +120,10 @@ private:
 
     void settle(std::uint32_t frameNumber, std::span<const std::byte> slots);
 
+    void moveTo(ConnectionState next);
+
+    [[nodiscard]] bool isInMatch() const;
+
     void sendInputs();
 
     void sendChecksums();
@@ -117,6 +137,7 @@ private:
     net::Outbox outbox;
     TimeSync pace;
     ConnectionState connection = ConnectionState::Idle;
+    std::vector<ConnectionState> changes;
     std::uint8_t givenSlot = net::kNoSlot;
     std::optional<Session> played;
     std::optional<net::Desync> reportedDesync;
