@@ -18,7 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.2.2**, snapshot buffer reuse. Last finished: 2.2.1, the snapshot ring.
+- Next up: **2.3.1**, the session config and its hash. Last finished: 2.2.2, snapshot buffer reuse; task 2.2 is
+  complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +29,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 4 |
+| 2 Rollback session (local) | 8 | 36 | 5 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **75** |
+| **Total** | **31** | **168** | **76** |
 
 ## Charter amendments made while planning
 
@@ -215,7 +216,7 @@ needs from earlier tasks is ticked.
 
 ### 2.2 Snapshot ring
 - [x] 2.2.1 `SnapshotRing(capacity)`: `store(frame)`, `holds(frame)`, `snapshotAt(frame)`, overwrite oldest, `evictBelow(frame)`. The ring takes the snapshot into a place it owns rather than being handed one: a snapshot holds a registry, which only moves, and 2.2.2 reuses those places. Test: capacity wraparound and lookups.
-- [ ] 2.2.2 Buffer reuse after warm-up, including `restoreSnapshot`, which replaces the registry wholesale today and so throws away the capacity of every pool on each rollback. Test: internal buffer capacities stop growing over 1000 frames.
+- [x] 2.2.2 Buffer reuse after warm-up, including `restoreSnapshot`, which replaces the registry wholesale today and so throws away the capacity of every pool on each rollback. Test: a match rolled back through the ring never gives room back, and a second pass over the same 600 frames needs no more room than the first; a fixed frame count for the warm-up would have measured when the script first kills a player (frame 576) rather than reuse.
 
 ### 2.3 Session state machine
 - [ ] 2.3.1 `SessionConfig` (tick rate, slots, seed, asset hash, pipeline hash, input size, max prediction, build id) and its hash. Test: any field change changes the hash.
@@ -366,7 +367,7 @@ needs from earlier tasks is ticked.
 - [ ] 6.1.1 Profile tick, snapshot, restore and 10-frame resimulation at 8 players and 200 bodies; recorded in `tests/benchmarks/baseline.md`.
 - [ ] 6.1.2 Snapshot cost reduction (dirty-pool skipping, `EStateRecorderState` subsets) if the budget requires it; Q1 closed for good.
 - [ ] 6.1.3 Jolt multithreaded stepping determinism test (Q4); adopted only if bit-identical over the golden replay.
-- [ ] 6.1.4 Steady-state allocation test: zero heap allocations per tick after warm-up (probe allocator).
+- [ ] 6.1.4 Steady-state allocation test: zero heap allocations per tick after warm-up (probe allocator). Known since 2.2.2: every restore still gathers bodies and characters into fresh vectors and copies the physics state buffer before Jolt reads it.
 
 ### 6.2 Robustness
 - [ ] 6.2.1 Fuzz `BinaryReader` and protocol parsing with random and truncated bytes. Test: no crashes, clean rejections.

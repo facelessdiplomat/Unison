@@ -7,7 +7,9 @@
 
 #include <entt/entity/registry.hpp>
 
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace
@@ -56,6 +58,38 @@ TEST_CASE("restoring a snapshot brings back the checksum it was taken at")
     unison::sim::restoreSnapshot(snapshot, frame);
 
     REQUIRE(unison::sim::checksumOf(frame) == original);
+}
+
+TEST_CASE("a snapshot taken again into the same holder keeps the room its pools had")
+{
+    unison::sim::Frame frame;
+    populate(frame);
+    unison::sim::FrameSnapshot snapshot;
+    unison::sim::takeSnapshot(frame, snapshot);
+    const std::size_t room = snapshot.registry.storage<unison::test::Health>().capacity();
+    frame.registry.clear<unison::test::Health>();
+
+    unison::sim::takeSnapshot(frame, snapshot);
+
+    REQUIRE(room > 0U);
+    REQUIRE(snapshot.registry.storage<unison::test::Health>().capacity() == room);
+}
+
+TEST_CASE("a restored frame keeps the room its pools had")
+{
+    unison::sim::Frame frame;
+    unison::sim::FrameSnapshot bare;
+    unison::sim::takeSnapshot(frame, bare);
+    populate(frame);
+    const std::size_t room = frame.registry.storage<unison::test::Health>().capacity();
+
+    unison::sim::restoreSnapshot(bare, frame);
+
+    const auto* pool = std::as_const(frame.registry).storage<unison::test::Health>();
+
+    REQUIRE(room > 0U);
+    REQUIRE(pool != nullptr);
+    REQUIRE(pool->capacity() == room);
 }
 
 TEST_CASE("restoring a snapshot brings back the frame number and step")

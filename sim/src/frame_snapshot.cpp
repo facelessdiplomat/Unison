@@ -12,7 +12,6 @@ void takeSnapshot(const Frame& frame, FrameSnapshot& snapshot)
     snapshot.frameNumber = frame.frameNumber;
     snapshot.dt = frame.dt;
     snapshot.globals = frame.globals;
-    snapshot.registry = entt::registry{};
 
     cloneRegistry(frame.registry, snapshot.registry);
 
@@ -24,7 +23,6 @@ void restoreSnapshot(const FrameSnapshot& snapshot, Frame& frame)
     frame.frameNumber = snapshot.frameNumber;
     frame.dt = snapshot.dt;
     frame.globals = snapshot.globals;
-    frame.registry = entt::registry{};
 
     cloneRegistry(snapshot.registry, frame.registry);
 

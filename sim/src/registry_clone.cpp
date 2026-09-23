@@ -11,6 +11,16 @@ namespace unison::sim
 namespace
 {
 
+void emptyStorages(entt::registry& registry)
+{
+    for (auto&& pool : registry.storage())
+    {
+        pool.second.clear();
+    }
+
+    registry.storage<entt::entity>().clear();
+}
+
 void cloneEntities(const entt::registry& source, entt::registry& destination)
 {
     using Traits = entt::entt_traits<entt::entity>;
@@ -39,8 +49,7 @@ void cloneEntities(const entt::registry& source, entt::registry& destination)
 
 void cloneRegistry(const entt::registry& source, entt::registry& destination)
 {
-    UNISON_VERIFY(destination.storage<entt::entity>().size() == 0);
-
+    emptyStorages(destination);
     cloneEntities(source, destination);
 
     for (const ComponentInfo& component : componentRegistry().components())

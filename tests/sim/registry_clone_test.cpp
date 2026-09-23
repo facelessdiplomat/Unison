@@ -37,6 +37,53 @@ void churn(entt::registry& registry)
     }
 }
 
+void giveAnotherHistory(entt::registry& registry)
+{
+    churn(registry);
+    churn(registry);
+    registry.emplace<unison::test::Health>(registry.create(), 7);
+}
+
+std::vector<entt::entity> positionOrderOf(const entt::registry& registry)
+{
+    std::vector<entt::entity> order;
+
+    for (const entt::entity entity : registry.view<unison::test::Position>())
+    {
+        order.push_back(entity);
+    }
+
+    return order;
+}
+
+}
+
+TEST_CASE("a clone made over a registry with another history hands out the identifiers its source would")
+{
+    entt::registry source;
+    churn(source);
+    entt::registry clone;
+    giveAnotherHistory(clone);
+
+    unison::sim::cloneRegistry(source, clone);
+
+    for (int step = 0; step < 20; ++step)
+    {
+        REQUIRE(clone.create() == source.create());
+    }
+}
+
+TEST_CASE("a clone made over a registry with another history keeps nothing of it")
+{
+    entt::registry source;
+    churn(source);
+    entt::registry clone;
+    giveAnotherHistory(clone);
+
+    unison::sim::cloneRegistry(source, clone);
+
+    REQUIRE(clone.view<unison::test::Health>().size() == 0U);
+    REQUIRE(positionOrderOf(clone) == positionOrderOf(source));
 }
 
 TEST_CASE("a clone hands out the same identifiers as its source from then on")

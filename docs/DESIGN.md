@@ -426,7 +426,10 @@ not a stale number.
 
 Unison keeps **one live `Frame`** and a **ring of snapshots**, one per simulated frame, sized
 `maxPrediction + 2`. A snapshot is a bulk copy of every component pool (in registration order)
-plus Jolt `SaveState` output plus globals.
+plus Jolt `SaveState` output plus globals. The ring owns its snapshots and takes each one into the place of
+the frame `capacity` ticks older; copying into a registry, whether a snapshot's or the live frame's on a
+restore, empties its pools without giving their room back, so once a match has been through its largest
+state no buffer grows again.
 
 Inputs sit beside the ring in an `InputBuffer`: a window of frames that starts at `V` and only moves forward,
 each frame holding the `FrameInputs` its tick reads and, per slot, whether that input is still missing, was
