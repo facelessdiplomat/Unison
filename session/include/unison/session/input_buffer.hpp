@@ -12,8 +12,8 @@
 namespace unison::session
 {
 
-/// What the session knows of one slot's input for one frame: nothing yet, a guess it simulated with
-/// while the real input was on its way, or the input the relay settled on.
+/// What the session knows of one slot's input for one frame: nothing yet, an input it played before the
+/// relay settled it, whether a guess or its own player's, or the input the relay settled on.
 enum class InputState : std::uint8_t
 {
     Missing,

@@ -1,4 +1,4 @@
-add_library(unison_session STATIC src/input_buffer.cpp src/repeat_last_input_predictor.cpp)
+add_library(unison_session STATIC src/input_buffer.cpp src/local_input.cpp src/repeat_last_input_predictor.cpp)
 
 target_include_directories(unison_session PUBLIC include)
 

@@ -18,7 +18,7 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **2.1.3**, local input sampling. Last finished: 2.1.2, the repeat-last-input predictor.
+- Next up: **2.2.1**, the snapshot ring. Last finished: 2.1.3, local input sampling; task 2.1 is complete.
 - 1.3.3 runs before 1.2.6: the lifecycle helpers raise events, and `raise` belongs to the event buffer, so the
   board order contradicts the dependency order it asks for. Ids stay as they are.
 
@@ -28,12 +28,12 @@ needs from earlier tasks is ticked.
 |-------|-------|-------------|------|
 | 0 Bootstrap | 2 | 15 | 15 |
 | 1 Deterministic simulation core | 7 | 56 | 56 |
-| 2 Rollback session (local) | 8 | 36 | 2 |
+| 2 Rollback session (local) | 8 | 36 | 3 |
 | 3 Real networking | 4 | 15 | 0 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 15 | 0 |
 | 6 Hardening | 3 | 11 | 0 |
-| **Total** | **31** | **168** | **73** |
+| **Total** | **31** | **168** | **74** |
 
 ## Charter amendments made while planning
 
@@ -211,7 +211,7 @@ needs from earlier tasks is ticked.
 ### 2.1 Inputs and prediction (`unison_session`)
 - [x] 2.1.1 `InputBuffer`: per-frame per-slot inputs with `Confirmed` / `Predicted` state, window bounded below by the verified frame. Test: set/get, eviction below verified, out-of-window rejected.
 - [x] 2.1.2 `RepeatLastInputPredictor`. Test: a missing slot gets its last confirmed input, bytes and flags alike, marked `Predicted` in the buffer and nowhere else; a slot with no history gets the neutral input.
-- [ ] 2.1.3 Local input sampling: `setLocalInput` stored per host frame, sampled once per tick for the local slot. Test: the same input is reused when the host does not update it.
+- [x] 2.1.3 Local input sampling: `setLocalInput` stored per host frame, sampled once per tick for the local slot. Test: the same input is reused when the host does not update it.
 
 ### 2.2 Snapshot ring
 - [ ] 2.2.1 `SnapshotRing(capacity)`: `store(frame, snapshot)`, `get(frame)`, overwrite oldest, `evictBelow(frame)`. Test: capacity wraparound and lookups.

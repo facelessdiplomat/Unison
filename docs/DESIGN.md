@@ -432,6 +432,8 @@ Inputs sit beside the ring in an `InputBuffer`: a window of frames that starts a
 each frame holding the `FrameInputs` its tick reads and, per slot, whether that input is still missing, was
 predicted, or is confirmed by the relay. The window keeps `V` itself, because a prediction repeats a slot's
 last confirmed input and at `V` every slot has one. A frame outside the window is refused, not stored.
+The local slot is not guessed: each tick writes the input the host gave last, as present and unconfirmed,
+which is exactly how the relay will settle it unless it gives the input up.
 
 Each tick:
 
