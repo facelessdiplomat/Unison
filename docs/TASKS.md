@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.2.1**, `unison_apply_language_subset` on clang: `-fno-exceptions -fno-rtti`. Last finished: X.1.3,
-  the Mac's clang-format accepting the tree as Windows' does, which closes task X.1. On the owner's word of
-  2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the
-  LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.2.2**, `unison_apply_warnings` on clang: `-Wall -Wextra -Wpedantic -Wshadow -Werror`. Last
+  finished: X.2.1, the language subset on clang: `-fno-exceptions -fno-rtti`. On the owner's word of 2026-09-25
+  Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run,
+  stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 5 |
+| X Cross-platform: macOS | 10 | 54 | 6 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **141** |
+| **Total** | **41** | **246** | **142** |
 
 ## Charter amendments made while planning
 
@@ -362,7 +362,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.1.3 Formatting parity: the Mac's clang-format passes `--dry-run --Werror` over the tracked sources exactly as Windows' does. Done when: the check passes on the tree at HEAD without a single change; any file the two versions disagree on is reported to the owner before anything is touched. Done on 2026-09-25: clang-format 20.1.8 from `tools/env.sh` passes all 329 tracked sources at HEAD with the flags of `tools/ci.ps1`, and fails with exit code 1 on a copy of `core/src/contract.cpp` spaced wrongly on purpose; no file needed a change.
 
 ### X.2 The compiler contract on clang
-- [ ] X.2.1 `unison_apply_language_subset` on clang: `-fno-exceptions -fno-rtti` (no `_HAS_EXCEPTIONS`, which is the MSVC STL's switch). Test: a probe target built with the function carries both flags in `compile_commands.json`; `throw` in a probe source fails to compile.
+- [x] X.2.1 `unison_apply_language_subset` on clang: `-fno-exceptions -fno-rtti` (no `_HAS_EXCEPTIONS`, which is the MSVC STL's switch). Test: a probe target built with the function carries both flags in `compile_commands.json`; `throw` in a probe source fails to compile. Done on 2026-09-25: the CTest case `language_subset` configures a probe project of its own, as `determinism_guard` does, and reads the flags off the probe target rather than `compile_commands.json`, which X.2.7 walks for every module; on clang it also finds `throw` and `typeid` compiling without the flags and rejected under them for the reason clang gives. It fails on a module that forgets `-fno-rtti` and on one that turns both back on after them. Until the main project configures on the Mac in X.3, the probe runs there on its own: `cmake -S tests/cmake/language_subset -B build/language_subset -G Ninja`.
 - [ ] X.2.2 `unison_apply_warnings` on clang: the set of Q-D. Test: a deliberate shadowed variable in a probe fails the build.
 - [ ] X.2.3 `unison_apply_determinism` on clang: `-fno-fast-math -ffp-contract=off -fexcess-precision=standard` and `-include` of `determinism_guard.hpp`, after every flag a toolchain puts before them; not `-ffp-model=precise`, which followed by `-ffp-contract=off` trips `-Woverriding-option` under `-Werror` (R1). `UNISON_INSTRUCTION_SET` gains `NEON`, the only value on arm64 and its default there, while `SSE2` and `AVX2` stay x86-64 values (SSE2 is clang's x86-64 baseline and adds no flag; `AVX2` adds `-mavx2` and never `-mfma`); Jolt's `USE_SSE*`/`USE_AVX*` options are passed on x86-64 only. Test: the flags appear on the probe's command line; `-DUNISON_INSTRUCTION_SET=SSE2` on arm64 fails at configure with a message naming the architecture.
 - [ ] X.2.4 `determinism_guard.hpp` on clang: rejects `__FAST_MATH__` and `__FINITE_MATH_ONLY__`, turns contraction off with `#pragma STDC FP_CONTRACT OFF`, and rejects any other compiler with a message. The MSVC branch stays as it is. Done when: `guard_probe.cpp` compiles under the flags of X.2.3 and fails under `-ffast-math` with the guard's own message.

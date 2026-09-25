@@ -29,6 +29,14 @@ add_test(
 set_tests_properties(determinism_guard PROPERTIES LABELS slow)
 
 add_test(
+    NAME language_subset
+    COMMAND ${CMAKE_COMMAND} -S "${CMAKE_CURRENT_LIST_DIR}/cmake/language_subset" -B
+            "${CMAKE_CURRENT_BINARY_DIR}/language_subset" -G "${CMAKE_GENERATOR}"
+)
+
+set_tests_properties(language_subset PROPERTIES LABELS slow)
+
+add_test(
     NAME module_determinism
     COMMAND
         ${CMAKE_COMMAND} -D "UNISON_BUILD_DIR=${CMAKE_BINARY_DIR}" -D
