@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.5.4**, `unison_session` and `unison_view` build with `-Werror` on the Mac. Last finished: X.5.3. On
-  the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase
-  4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until
-  WSL is installed.
+- Next up: **X.5.5**, the arena, its text map and the cores of the console, the relay and the runner build with
+  `-Werror` on the Mac. Last finished: X.5.4. On the owner's word of 2026-09-25 Phase X, the port to macOS and
+  play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it
+  between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 24 |
+| X Cross-platform: macOS | 10 | 54 | 25 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **160** |
+| **Total** | **41** | **246** | **161** |
 
 ## Charter amendments made while planning
 
@@ -391,7 +391,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.5.1 `unison_core` and `unison_core_header_check` build with `-Werror`; the byte-order assertions of `BinaryWriter` and `BinaryReader` stop saying that Unison targets x64. Done when: `cmake --build build/clang-debug --target unison_core unison_core_header_check` exits 0. Done on 2026-09-25: both build on the Mac without a warning, the header check since X.4.2 took `FpEnvGuard` off `<xmmintrin.h>`, and the assertions of `BinaryWriter` and `BinaryReader` say that x86-64 and arm64 are both little-endian.
 - [x] X.5.2 `unison_sim` builds. Done when: `--target unison_sim` exits 0. Done on 2026-09-25: `unison_sim` builds on the Mac without a warning and without a change, EnTT, Jolt and Boost.PFR included.
 - [x] X.5.3 `unison_net` builds, ENet included. Done when: `--target unison_net` exits 0. Done on 2026-09-25: `unison_net` builds on the Mac without a warning and without a change; ENet has built there since X.3.2, and `MillisecondTimer` compiles its no-op half.
-- [ ] X.5.4 `unison_session` and `unison_view` build. Done when: `--target unison_session unison_view` exits 0.
+- [x] X.5.4 `unison_session` and `unison_view` build. Done when: `--target unison_session unison_view` exits 0. Done on 2026-09-25: `unison_session` and `unison_view` build on the Mac without a warning and without a change.
 - [ ] X.5.5 `arena_sim`, `arena_view_console`, `unison_console_arena`, `unison_console_core`, `unison_relay_core`, `unison_runner_core` and `unison_runner_match` build. Done when: the build of those targets exits 0.
 - [ ] X.5.6 The executables build and link: `unison_relay`, `unison_runner`, `unison_console` (its macOS keyboard a stub that reads nothing until X.7, so the player stands still, as the log line already says), `unison_tests_fast`, `unison_tests_arena` and `unison_benchmarks`. The test executables link only once every library builds, which is why X.5.1 to X.5.5 stop at building. Done when: `cmake --build build/clang-debug` exits 0 and `unison_benchmarks "[.benchmark]"` prints its table.
 - [ ] X.5.7 `ctest -L fast` green in `clang-debug`: every Catch2 case of both test executables, the goldens included (their verdict is X.6's business; here they merely run and any failure is noted there), the relay listening then stopping, the runner playing 600 frames, the console listing its options, and `millisecond_timer_test` holding on macOS' own sleep granularity with the timer a no-op. Done when: `ctest --test-dir build/clang-debug -L fast` exits 0.
