@@ -18,10 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.7.6**, a relay and two consoles on localhost on the Mac for a minute, recorded in the plan's §9.2.
-  Last finished: X.7.5. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and
-  macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS.
-  3.2.3 is deferred until WSL is installed.
+- Next up: **X.8.1**, `docs/LAN_TEST.md` extended so the owner can follow it on the Mac: building there, the
+  binaries' paths, the firewall's prompt, Input Monitoring, `echo $?` and `--from`. Last finished: X.7.6. On the
+  owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4,
+  and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL
+  is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +44,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 43 |
+| X Cross-platform: macOS | 10 | 55 | 44 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **179** |
+| **Total** | **41** | **247** | **180** |
 
 ## Charter amendments made while planning
 
@@ -416,7 +417,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.7.3 macOS `ConsoleKeyboard`: the terminal in raw mode (echo and canonical input off, `ISIG` kept so Ctrl+C still stops the console), stdin drained, the eight keys read from `CGEventSourceKeyState` by their `kVK_ANSI_*` codes on every `readInto`. Done when: on the Mac, two consoles and a relay on localhost, a player walks, turns and fires from the keyboard, two keys held at once included. Done on 2026-09-25 but for the hand check: the Mac's `ConsoleKeyboard` takes a terminal on standard input into a mode without echo and whole lines, `ISIG` kept, drains what was typed on every read and asks `CGEventSourceKeyState` about the eight game keys by the codes of `macKeyCodeOf`, which `key_codes.hpp` holds beside the Windows table and a case checks; an impossible `GameKey` breaks a contract there. At start it says whether its terminal holds Input Monitoring, asking nothing of macOS. Built under a pseudo-terminal it turned echo and whole lines off for its lifetime and gave them back, and without a terminal it reports no keyboard. A player walking, turning and firing on the Mac, two keys held at once, is the owner's hand check, the Terminal half of X.7.2 with it.
 - [x] X.7.4 The terminal is given back: raw mode and the cursor restored on every ending, Ctrl+C, `--run-for` and a disconnect alike. Done when: the shell prompt after each ending echoes typed text again. Done on 2026-09-25 but for the hand check: every ending leaves the play loop by its condition, Ctrl+C and `SIGTERM` through the stop flag, `--run-for` through the clock, a disconnect or a desync through `isInPlay`, and nothing in `main.cpp` leaves by `exit` or `abort`, so the keyboard's destructor always runs; the harness of X.7.3 showed it giving the mode back. Claude runs no console under a terminal of its own, since polling `CGEventSourceKeyState` from Claude's process could put Claude on the Mac's Input Monitoring list, so the three endings in Terminal.app are the owner's hand check. Ctrl+Z suspends the console with the terminal as the console set it until `fg`.
 - [x] X.7.5 POSIX `ConsoleScreen`: available when standard output is a terminal, VT sequences as on Windows, the cursor hidden and shown as before. Done when: the screen of 3.4.4 redraws in place in Terminal.app and the status line prints once a second when output is redirected to a file. Done on 2026-09-25 but for the hand check: `ConsoleScreen` is one source for both platforms, which hides the cursor, draws every screen in place and shows the cursor below the last one, and it asks `TerminalOutput`, whose source is per platform, whether standard output draws escape sequences: on Windows by switching its console to VT processing and back as before, on the Mac when standard output is a terminal. Under a pseudo-terminal a probe that builds the screen alone received the hidden cursor, both screens redrawn from the top left and the cursor shown below them byte for byte, and nothing with its output in a file; it caught a mutant that asked standard input instead. Two consoles and a relay on localhost with their output in files printed the status line once a second and no escape sequence. The keyboard's Input Monitoring notice moved to when the console stops, below its last screen, since the first screen draws over whatever was printed before it; the charter, `docs/LAN_TEST.md` and the plan say so. The Windows source compiles under the project's warnings against a stand-in for `windows.h` and waits for the owner's build; the screen redrawing in Terminal.app is the owner's hand check.
-- [ ] X.7.6 A relay and two consoles on localhost on the Mac for a minute, round trips of a few milliseconds, the verified frame a frame behind the predicted one, as 3.4.7 recorded on Windows. Recorded in `docs/CROSS_PLATFORM.md` §9.
+- [x] X.7.6 A relay and two consoles on localhost on the Mac for a minute, round trips of a few milliseconds, the verified frame a frame behind the predicted one, as 3.4.7 recorded on Windows. Recorded in `docs/CROSS_PLATFORM.md` §9. Done on 2026-09-25: a relay and two consoles of the Release build at `ae55410` played a minute on localhost with round trips of 1 to 3 ms, the verified frame one behind the predicted one in 58 of 59 seconds and level in the other, one rollback for each console in its first second, zero desyncs and exit codes 0, as 3.4.7 recorded on Windows; `docs/CROSS_PLATFORM.md` §9.2 holds the run and its commands. The consoles read no keys and drew no screen, their standard input from `/dev/null` and their output in files; keys held together are the owner's hand check of X.7.3.
 
 ### X.8 The cross-platform LAN run
 - [ ] X.8.1 `docs/LAN_TEST.md` extended: either machine may be the Mac; building there (`cmake --workflow --preset clang-release`), the binaries' paths, the macOS application firewall's prompt for a relay that accepts connections, the Input Monitoring permission of X.7.2, `echo $?` for the exit code, `--from` for a console next to its relay. Done when: the owner can follow it on the Mac without asking.

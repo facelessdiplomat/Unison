@@ -299,6 +299,16 @@ across the two platforms.
 
 | Date | Commit | Round trip | Verified vs predicted | Keys held together | Result |
 |---|---|---|---|---|---|
+| 2026-09-25 | `ae55410`, Release | 1 to 3 ms | one frame behind in 58 of 59 seconds, level in one; 3599 and 3599 at the end | not read: no terminal on standard input, so the owner's hand check of X.7.3 | 60 s, zero desyncs, one rollback for each console in its first second, lead 0 or −1 ms and one tick in 4 and 5 of the seconds, exit codes 0 and 0 |
+
+The run of 2026-09-25 took its consoles' standard input from `/dev/null` and their output into files, so
+neither read keys nor drew a screen, each printing its status line once a second:
+
+```sh
+build/clang-release/tools/relay/unison_relay --bind 127.0.0.1 --port 7802 --run-for 75
+build/clang-release/tools/console/unison_console --port 7802 --name mac-a --run-for 60 </dev/null >mac-a.log
+build/clang-release/tools/console/unison_console --port 7802 --name mac-b --run-for 60 </dev/null >mac-b.log
+```
 
 ### 9.3 The keyboard on the Mac (X.7.2)
 
