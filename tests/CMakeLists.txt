@@ -240,6 +240,7 @@ add_executable(
     arena/outage_test.cpp
     arena/respawn_test.cpp
     arena/rollback_test.cpp
+    arena/session_config_golden_test.cpp
     arena/session_test.cpp
     arena/shot_path_test.cpp
     arena/snapshot_room_test.cpp

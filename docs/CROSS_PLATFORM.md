@@ -166,7 +166,9 @@ Q-C on the version X.1.1 records, and Q-H is taken up only if X.6 locates a diff
 - **Q-G. Golden authority.** **Recommended:** goldens stay recorded on Windows, as they are; macOS only
   verifies. A golden is never re-recorded on the Mac alone. When a golden has to change for a legitimate
   reason (§7.4 of the charter), it is re-recorded on Windows and verified on the Mac inside the same
-  micro-task.
+  micro-task. Amended on 2026-09-25 under the loop of D36: a golden that is new rather than re-recorded may be
+  recorded on the Mac while the Windows machine is out of reach; the owner's run on Windows is then its check,
+  and a disagreement there is located by X.6.8, never settled by recording again.
 - **Q-H. The fallback.** If the arm64 build cannot be made to match within a bounded effort (§7), an x86_64
   build under Rosetta 2 runs the same SSE2 instructions as Windows and would still give a Mac that plays,
   though not natively. **Recommended:** not before X.6 has shown a real, located difference; the owner
