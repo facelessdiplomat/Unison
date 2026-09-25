@@ -39,8 +39,54 @@ ${probeOutput}")
     message(STATUS "guard ${expectation} ${floatingPointFlags}")
 endfunction()
 
-unison_expect_guard("/fp:precise" accepted)
-unison_expect_guard("" rejected)
-unison_expect_guard("/fp:fast" rejected)
-unison_expect_guard("/fp:precise /fp:contract" rejected)
-unison_expect_guard("/fp:strict" rejected)
+function(unison_expect_contraction_turned_off)
+    cmake_path(SET guardHeader NORMALIZE "${guardIncludeDir}/unison/core/determinism_guard.hpp")
+    set(contractionProbeSource "${CMAKE_CURRENT_LIST_DIR}/contraction_probe.cpp")
+
+    try_run(
+        exitWithoutGuard compiledWithoutGuard
+        SOURCES "${contractionProbeSource}"
+        COMPILE_DEFINITIONS -ffp-contract=on
+        COMPILE_OUTPUT_VARIABLE outputWithoutGuard
+        NO_CACHE
+    )
+
+    if(NOT compiledWithoutGuard)
+        message(FATAL_ERROR "the contraction probe does not compile:\n${outputWithoutGuard}")
+    endif()
+
+    if(exitWithoutGuard EQUAL 0)
+        message(STATUS "this machine never fuses a multiply and an add, so there is no contraction to turn off")
+        return()
+    endif()
+
+    try_run(
+        exitWithGuard compiledWithGuard
+        SOURCES "${contractionProbeSource}"
+        COMPILE_DEFINITIONS -ffp-contract=on "-include${guardHeader}"
+        COMPILE_OUTPUT_VARIABLE outputWithGuard
+        NO_CACHE
+    )
+
+    if(NOT compiledWithGuard)
+        message(FATAL_ERROR "the contraction probe does not compile with the guard:\n${outputWithGuard}")
+    endif()
+
+    if(NOT exitWithGuard EQUAL 0)
+        message(FATAL_ERROR "the guard leaves a multiply and an add fused under -ffp-contract=on")
+    endif()
+
+    message(STATUS "the guard keeps a multiply and an add apart under -ffp-contract=on")
+endfunction()
+
+if(MSVC)
+    unison_expect_guard("/fp:precise" accepted)
+    unison_expect_guard("" rejected)
+    unison_expect_guard("/fp:fast" rejected)
+    unison_expect_guard("/fp:precise /fp:contract" rejected)
+    unison_expect_guard("/fp:strict" rejected)
+else()
+    unison_expect_guard("-fno-fast-math -ffp-contract=off -fexcess-precision=standard" accepted)
+    unison_expect_guard("-ffast-math" rejected)
+    unison_expect_contraction_turned_off()
+endif()

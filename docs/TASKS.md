@@ -18,11 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.2.4**, `determinism_guard.hpp` on clang: fast-math refused and contraction turned off by pragma.
-  Last finished: X.2.3, the determinism contract on clang and the instruction set per architecture. On the owner's
-  word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and
-  3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is
-  installed.
+- Next up: **X.2.5**, the guard's test on clang completed: `-ffinite-math-only` and `-ffp-model=aggressive`
+  refused, and what a header cannot see recorded. Last finished: X.2.4, the determinism guard on clang. On the
+  owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4,
+  and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL
+  is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,11 +44,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 8 |
+| X Cross-platform: macOS | 10 | 54 | 9 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **144** |
+| **Total** | **41** | **246** | **145** |
 
 ## Charter amendments made while planning
 
@@ -366,7 +366,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.2.1 `unison_apply_language_subset` on clang: `-fno-exceptions -fno-rtti` (no `_HAS_EXCEPTIONS`, which is the MSVC STL's switch). Test: a probe target built with the function carries both flags in `compile_commands.json`; `throw` in a probe source fails to compile. Done on 2026-09-25: the CTest case `language_subset` configures a probe project of its own, as `determinism_guard` does, and reads the flags off the probe target rather than `compile_commands.json`, which X.2.7 walks for every module; on clang it also finds `throw` and `typeid` compiling without the flags and rejected under them for the reason clang gives. It fails on a module that forgets `-fno-rtti` and on one that turns both back on after them. Until the main project configures on the Mac in X.3, the probe runs there on its own: `cmake -S tests/cmake/language_subset -B build/language_subset -G Ninja`.
 - [x] X.2.2 `unison_apply_warnings` on clang: the set of Q-D. Test: a deliberate shadowed variable in a probe fails the build. Done on 2026-09-25: clang gets `-Wall -Wextra -Wpedantic -Wshadow -Werror`. The CTest case `warnings` checks the flags each compiler gets and that a shadowed local compiles without them and fails under them, through `-Wshadow` on clang and C4456 on MSVC; the helpers it shares with `language_subset` live in `tests/cmake/probe_expectations.cmake`. It fails on a module without `-Wshadow` and on one that turns it off again. `-Wconversion` and `-Wsign-conversion` are tried in X.5 (Q-D).
 - [x] X.2.3 `unison_apply_determinism` on clang: `-fno-fast-math -ffp-contract=off -fexcess-precision=standard` and `-include` of `determinism_guard.hpp`, after every flag a toolchain puts before them; not `-ffp-model=precise`, which followed by `-ffp-contract=off` trips `-Woverriding-option` under `-Werror` (R1). `UNISON_INSTRUCTION_SET` gains `NEON`, the only value on arm64 and its default there, while `SSE2` and `AVX2` stay x86-64 values (SSE2 is clang's x86-64 baseline and adds no flag; `AVX2` adds `-mavx2` and never `-mfma`); Jolt's `USE_SSE*`/`USE_AVX*` options are passed on x86-64 only. Test: the flags appear on the probe's command line; `-DUNISON_INSTRUCTION_SET=SSE2` on arm64 fails at configure with a message naming the architecture. Done on 2026-09-25: the module reads the architecture off `CMAKE_SYSTEM_PROCESSOR` and allows NEON on arm64 and SSE2 or AVX2 on x86-64, the first of them by default. `determinism_flags` reads the probe's command line by the compiler the probe names in `compiler_id.txt`, and the CTest case `determinism_refuses_a_foreign_instruction_set` configures the probe with the other architecture's instruction set and expects the refusal that names this one. They fail on a module without `-ffp-contract=off`, on one without the guard and on one that lets SSE2 onto arm64. Passing Jolt's `USE_SSE*` and `USE_AVX*` on x86-64 only moved to X.3.3, since Jolt ignores them on arm64. The guard itself refuses clang until X.2.4.
-- [ ] X.2.4 `determinism_guard.hpp` on clang: rejects `__FAST_MATH__` and `__FINITE_MATH_ONLY__`, turns contraction off with `#pragma STDC FP_CONTRACT OFF`, and rejects any other compiler with a message. The MSVC branch stays as it is. Done when: `guard_probe.cpp` compiles under the flags of X.2.3 and fails under `-ffast-math` with the guard's own message.
+- [x] X.2.4 `determinism_guard.hpp` on clang: rejects `__FAST_MATH__` and `__FINITE_MATH_ONLY__`, turns contraction off with `#pragma STDC FP_CONTRACT OFF`, and rejects any other compiler with a message. The MSVC branch stays as it is. Done when: `guard_probe.cpp` compiles under the flags of X.2.3 and fails under `-ffast-math` with the guard's own message. Done on 2026-09-25: the MSVC branch reads as before; the clang branch refuses `__FAST_MATH__` and a `__FINITE_MATH_ONLY__` of 1, which clang always defines, 0 or 1, and turns contraction off by pragma; any other compiler is refused. `determinism_guard` expects per compiler now: on clang it accepts the contract of X.2.3, rejects `-ffast-math` with the guard's own message, and runs a probe that fuses a multiply and an add under `-ffp-contract=on` without the guard and rounds twice with it. It fails on a guard without the pragma and on one without the fast-math check.
 - [ ] X.2.5 `tests/cmake/determinism_guard` on clang: `-ffast-math`, `-ffinite-math-only` and `-ffp-model=aggressive` are rejected; the contract of X.2.3 is accepted. Recorded difference from MSVC: no flag at all is accepted on clang, because clang defines no macro for its default model; `-ffp-contract=fast` and `-ffp-model=fast` cannot be caught by a header either, since they define no macro and ignore the pragma (R1). Those are caught by X.2.6 and X.2.8 instead. Test: the CTest case `determinism_guard` passes on the Mac.
 - [ ] X.2.6 `tests/cmake/determinism_flags` per compiler: required on clang `-fno-fast-math`, `-ffp-contract=off`, `-fno-exceptions`, `-fno-rtti`, the `-include` of the guard; forbidden `-ffast-math`, `-Ofast`, `-ffp-model=fast`, `-ffp-model=aggressive`, `-funsafe-math-optimizations`, `-fassociative-math`, `-freciprocal-math`, `-ffp-contract=on`, `-ffp-contract=fast`, `-fexceptions`, `-frtti`, `-mfma`, `-march=native`. Test: the CTest case passes on the Mac and still on Windows.
 - [ ] X.2.7 `tests/cmake/module_determinism` per compiler: the same walk over `compile_commands.json` with clang spellings, Jolt included (`-ffp-contract=off` present, `-mfma` and `-ffast-math` absent, no `-fexceptions`); the test executables carry no `-fno-exceptions`. Test: the CTest case passes on the Mac and still on Windows.
