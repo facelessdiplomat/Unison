@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.6.1**, XXH3 on NEON: the hash vectors recorded on the Mac. Last finished: X.5.11. On the owner's
-  word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and
-  3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is
-  installed.
+- Next up: **X.6.2**, the physics pile's golden in Debug and Release on the Mac. Last finished: X.6.1. On the
+  owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4,
+  and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL
+  is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 32 |
+| X Cross-platform: macOS | 10 | 55 | 33 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **168** |
+| **Total** | **41** | **247** | **169** |
 
 ## Charter amendments made while planning
 
@@ -401,7 +401,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.5.11 (+) The Mac's link lines stop drawing the warning of Apple's linker about duplicate libraries. CMake repeats a static library on a link line where the order of static linking may need it, and Apple's linker warns of the repeat on every executable the Mac links, burying real warnings. Found in X.5.6. Done when: relinking every executable of a `clang-debug` build prints no `ignoring duplicate libraries`, and `tools/ci.sh` still prints `ci: ok`. Done on 2026-09-25: on Apple the root `CMakeLists.txt` sets `CMAKE_LINK_LIBRARIES_STRATEGY` to `REORDER_FREELY`, which lets CMake 3.31 and later drop a repeated library from a link line; `REORDER_MINIMALLY` left the test executables' repeats in place. Relinking every executable of `clang-debug` printed the warning twice before and prints nothing after, and `tools/ci.sh` prints `ci: ok` with every case passing in both configurations. Windows keeps CMake's default order.
 
 ### X.6 Cross-platform goldens
-- [ ] X.6.1 XXH3 on NEON: `xxhash_vectors_test` and `hasher_test` pass on the Mac (part of X.5.7; ticked here so the record is explicit).
+- [x] X.6.1 XXH3 on NEON: `xxhash_vectors_test` and `hasher_test` pass on the Mac (part of X.5.7; ticked here so the record is explicit). Done on 2026-09-25: on the Mac `xxh3 reproduces the xxhash sanity vectors` and every hasher case pass in Debug and in Release, XXH3 taking its NEON path there.
 - [ ] X.6.2 The physics pile: `"fifty falling boxes come to rest where they always have"` reproduces `0x214BC6AEDC1EFBB3` on the Mac in Debug and Release. This is the R7 test: it hashes the raw state buffer.
 - [ ] X.6.3 The scripted arena: `tests/golden/arena_scripted.checksums` verifies on the Mac in Debug and Release, all sixty frames.
 - [ ] X.6.4 The text map: `"the map of a new match of two looks as it did when it was recorded"` passes on the Mac.
