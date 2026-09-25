@@ -20,7 +20,7 @@ if(MSVC)
     set(expectedOptions /permissive- /W4 /WX)
     set(shadowDiagnostic C4456)
 else()
-    set(expectedOptions -Wall -Wextra -Wpedantic -Wshadow -Werror)
+    set(expectedOptions -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Werror)
     set(shadowDiagnostic "declaration shadows a local variable")
 endif()
 
@@ -29,3 +29,8 @@ unison_expect_options(unison_warnings_probe ${expectedOptions})
 get_target_property(warningOptions unison_warnings_probe COMPILE_OPTIONS)
 
 unison_expect_rejected(shadow_probe.cpp "${shadowDiagnostic}" ${warningOptions})
+
+if(NOT MSVC)
+    unison_expect_rejected(narrowing_probe.cpp "implicit conversion loses integer precision" ${warningOptions})
+    unison_expect_rejected(sign_change_probe.cpp "implicit conversion changes signedness" ${warningOptions})
+endif()

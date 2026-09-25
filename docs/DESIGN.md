@@ -397,7 +397,7 @@ is held to that by flags of its own, which `unison_apply_determinism` applies:
 | Instruction set | one `/arch:` baseline for every deterministic library and Jolt: SSE2, or AVX2 for all of them together should a benchmark ever prove it needed (Q2) | the arm64 baseline with NEON and nothing added, `UNISON_INSTRUCTION_SET` reading `NEON`; never `-mfma` or `-march=native` |
 | Determinism guard | `determinism_guard.hpp` force-included with `/FI`: rejects the build unless `_M_FP_PRECISE` is defined and `_M_FP_CONTRACT` is not | the same header force-included with `-include`: rejects `__FAST_MATH__` and `__FINITE_MATH_ONLY__` and turns contraction off with `#pragma STDC FP_CONTRACT OFF`; any other compiler is rejected |
 | Exceptions and RTTI off | `/EHs-c- /GR-` and `_HAS_EXCEPTIONS=0` | `-fno-exceptions -fno-rtti` |
-| Warnings as errors, for our own code | `/permissive- /W4 /WX` | `-Wall -Wextra -Wpedantic -Wshadow -Werror` |
+| Warnings as errors, for our own code | `/permissive- /W4 /WX` | `-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Werror` |
 
 - `/fp:precise` is always passed explicitly: MSVC defines no `_M_FP_*` macro when no `/fp:` flag is
   given, so `determinism_guard.hpp` rejects that case too and no library rests on a compiler default.
