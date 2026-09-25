@@ -126,8 +126,9 @@ reads keys or draws its screen. Those are host matters and are allowed to differ
 Each question has a recommendation. Where the owner chooses otherwise, the micro-tasks of Phase X change
 accordingly and X.0.1 records the choice in the charter.
 
-The owner accepted the plan with these recommendations on 2026-09-25. Q-A still waits on its spike (X.7.2),
-Q-C on the version X.1.1 records, and Q-H is taken up only if X.6 locates a difference.
+The owner accepted the plan with these recommendations on 2026-09-25. Q-A was built after its spike (X.7.2),
+Q-C settled on clang-format 20 (X.1.1), and Q-H was not needed, X.6 having located no difference. The
+charter's §17 records every answer: Q-A as Q8, Q-C as Q9, and Q-B, Q-D to Q-I as Q11 to Q17.
 
 - **Q-A. The keyboard on macOS.** No terminal reports a key going up; Windows' console input does, which is
   why Q3 chose plain console input. On macOS the choices are (1) the terminal in raw mode plus

@@ -468,14 +468,16 @@ is held to that by flags of its own, which `unison_apply_determinism` applies:
 3. Snapshot/restore exactness: run A→B, hash; restore A, run to B, hash; equal.
 4. Multi-client runner under simulated latency, jitter, loss and reordering → identical verified checksums on every frame.
 5. Replay round-trip: record over the network, verify offline.
-6. Windows against macOS: every golden recorded on Windows verifies on macOS in Debug and Release: the physics
-   pile, the scripted arena, the session config's hashes and the protocol's bytes.
+6. Windows against macOS: every golden verifies in Debug and Release on the platform that did not record it: the
+   physics pile, the scripted arena, the session config's hashes and the protocol's bytes.
 7. A Windows client and a macOS client play through one relay without a desync (§2 item 10).
 
-A golden checksum is re-recorded only deliberately: when the physics build, the scene it covers or the
-content of the state buffer changes. A golden that changes for any other reason is a determinism bug,
-not a stale number. Goldens are recorded on Windows and verified on macOS; none is ever re-recorded on one
-platform alone.
+A golden checksum is re-recorded only deliberately: when the physics build, the scene it covers or the content
+of the state buffer changes. A golden that changes for any other reason is a determinism bug, not a stale
+number. Goldens are recorded on Windows and verified on macOS. A new golden may be recorded on macOS while the
+Windows machine is out of reach, and the next run on Windows is its check; none is ever re-recorded on one
+platform alone, and a golden the two platforms disagree on is a difference to locate, never one to record away
+(Q15).
 
 ---
 
@@ -977,8 +979,9 @@ on both platforms, and item 10 for the Unreal hosts.
 **Phase 6 — Hardening.** Profiling, Jolt multithreading evaluation, memory budgets, API polish, docs.
 *Exit*: Definition of Done items 8–9.
 
-**Backlog (post-v1).** C ABI + Unity/Godot bindings; Linux (x64 and ARM64) determinism and a hosted CI
-matrix; universal arm64 and x86-64 macOS binaries of the plugin;
+**Backlog (post-v1).** C ABI + Unity/Godot bindings; determinism on Linux, x64 and ARM64, on x86-64 macOS
+and on ARM64 Windows, with a hosted CI matrix over every platform; universal arm64 and x86-64 macOS binaries
+of the plugin;
 navigation (Recast for baking, Detour at runtime with deterministic math shims); authoritative-server mode;
 DSL/codegen; 2D physics module (Box2D v3, cross-platform deterministic); encryption / Steam relay via
 GameNetworkingSockets; lobbies and matchmaking; multiple local players per client; delta-compressed inputs
@@ -1013,9 +1016,16 @@ player's spawn point faces.
 | Q5 | UE version and whether to support UE's Linux server target | Version answered 2026-09-21: UE 5.8 is installed (Visual Studio 18, MSVC 14.51); toolchain compatibility is confirmed in task 5.1.4. The Linux server target stays open until Phase 5. |
 | Q6 | Input deadline and reconnect grace defaults | Phase 3 LAN tests |
 | Q7 | Checksum interval default for production sessions | Phase 3 |
-| Q8 | How the console reads held keys on macOS | Answered 2026-09-25 with the plan of `docs/CROSS_PLATFORM.md` (Q-A): the terminal in raw mode and `CGEventSourceKeyState` for the game keys; whether macOS 27 asks for the Terminal's Input Monitoring permission is settled by its spike, X.7.2. |
-| Q9 | Which clang-format both machines format with | Open until X.1.1: the major of the clang-format Visual Studio bundles, installed on the Mac from Homebrew. |
+| Q8 | How the console reads held keys on macOS | Answered 2026-09-25 with the plan of `docs/CROSS_PLATFORM.md` (Q-A): the terminal in raw mode and `CGEventSourceKeyState` for the game keys, built in X.7.3. The spike, X.7.2, found the shell it ran in without Input Monitoring; a console whose terminal lacks the permission says so when it stops, and whether a key held in Terminal.app reads as down without it is the owner's hand check. |
+| Q9 | Which clang-format both machines format with | Answered 2026-09-25 in X.1.1 (Q-C): clang-format 20.1.8, the version Visual Studio 2026 bundles, and on the Mac the same from Homebrew's `llvm@20`, which `tools/env.sh` exports as `UNISON_CLANG_FORMAT`. The tree passed the check on both without a change (X.1.3). |
 | Q10 | Whether UE 5.8 builds on the Mac's Xcode 27.0 and macOS 27.0, which Epic's requirements do not list | Phase 5, task 5.1.6; Xcode 26.1.1 beside 27.0 if not. |
+| Q11 | How the CI procedure runs on two platforms | Answered 2026-09-25 with the plan (Q-B): the procedure is a workflow preset of `CMakePresets.json` for each configuration, which `tools/ci.ps1` and `tools/ci.sh` run in the same shape before the formatting check (X.5.10); the Mac needs no PowerShell. |
+| Q12 | Which warnings clang holds our code to | Answered 2026-09-26 (Q-D): `-Wall -Wextra -Wpedantic -Wshadow -Werror` from X.2.2, and `-Wconversion -Wsign-conversion` since X.5.12, once every library and tool built under them without a change. |
+| Q13 | When a change is checked on Windows | Answered 2026-09-25 (Q-E) and reshaped by D36: a change that touches nothing Windows builds or runs is finished once the Mac is green; one that touches a shared CMake module, header, test or golden also needs `tools\ci.ps1` to print `ci: ok` on Windows once the owner has pulled it, and a failure there is fixed first as a `(+)` micro-task (`CLAUDE.md`). |
+| Q14 | Line endings on two platforms | Answered 2026-09-25 (Q-F): `.gitattributes` holds `* text=auto eol=lf`, so clang-format and the golden readers see the same bytes on both machines; the index already held every text file with LF, so no commit renormalised the tree (X.1.2). |
+| Q15 | Which platform records a golden | Answered 2026-09-25 (Q-G) and amended the same day under D36: goldens are recorded on Windows and verified on the Mac, a new golden may be recorded on the Mac while Windows is out of reach and the next Windows run is its check, and none is re-recorded on one platform alone (§7.4). |
+| Q16 | An x86-64 build under Rosetta 2 as the Mac's fallback | Answered 2026-09-25 by X.6 (Q-H): not needed. Every golden recorded on Windows reproduces on arm64 in Debug and in Release, so the Mac plays natively, and x86-64 macOS stays in the backlog. |
+| Q17 | Whether Definition of Done item 2 needs two Windows machines | Answered 2026-09-25 (Q-I): no. X.8.2, the run with the relay on Windows and a console on each platform, counts for item 2 as well, and 3.4.5 is ticked from it. |
 
 ---
 
