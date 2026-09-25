@@ -12,6 +12,11 @@ set(guardProbeSource "${CMAKE_CURRENT_LIST_DIR}/guard_probe.cpp")
 function(unison_expect_guard floatingPointFlags expectation)
     set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
     set(CMAKE_CXX_FLAGS "${floatingPointFlags}")
+    set(shownFlags "${floatingPointFlags}")
+
+    if(shownFlags STREQUAL "")
+        set(shownFlags "no flag at all")
+    endif()
 
     try_compile(
         probeCompiled
@@ -21,22 +26,22 @@ function(unison_expect_guard floatingPointFlags expectation)
     )
 
     if(expectation STREQUAL "accepted" AND NOT probeCompiled)
-        message(FATAL_ERROR "the guard rejected ${floatingPointFlags}:\n${probeOutput}")
+        message(FATAL_ERROR "the guard rejected ${shownFlags}:\n${probeOutput}")
     endif()
 
     if(expectation STREQUAL "rejected")
         if(probeCompiled)
-            message(FATAL_ERROR "the guard accepted ${floatingPointFlags}:
+            message(FATAL_ERROR "the guard accepted ${shownFlags}:
 ${probeOutput}")
         endif()
 
         string(FIND "${probeOutput}" "unison: deterministic code requires" guardMessageOffset)
         if(guardMessageOffset EQUAL -1)
-            message(FATAL_ERROR "${floatingPointFlags} failed for another reason:\n${probeOutput}")
+            message(FATAL_ERROR "${shownFlags} failed for another reason:\n${probeOutput}")
         endif()
     endif()
 
-    message(STATUS "guard ${expectation} ${floatingPointFlags}")
+    message(STATUS "guard ${expectation} ${shownFlags}")
 endfunction()
 
 function(unison_expect_contraction_turned_off)
@@ -87,6 +92,10 @@ if(MSVC)
     unison_expect_guard("/fp:strict" rejected)
 else()
     unison_expect_guard("-fno-fast-math -ffp-contract=off -fexcess-precision=standard" accepted)
+    unison_expect_guard("" accepted)
     unison_expect_guard("-ffast-math" rejected)
+    unison_expect_guard("-ffinite-math-only" rejected)
+    unison_expect_guard("-ffp-model=aggressive" rejected)
+    unison_expect_guard("-Ofast" rejected)
     unison_expect_contraction_turned_off()
 endif()
