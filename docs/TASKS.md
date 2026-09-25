@@ -18,11 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.7.1**, `noteKey` on a platform-neutral `GameKey`. X.6.7 waits for the owner's run of `tools\ci.ps1`
-  on Windows to fill the Windows half of the matrix in `docs/CROSS_PLATFORM.md` §9, whose Mac half is in. Last
-  finished: X.6.6; X.6.8 is dropped, every golden recorded on Windows passing on the Mac. On the owner's word of
-  2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the
-  LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.7.2**, the spike: `CGEventSourceKeyState` from Terminal.app on macOS 27, with and without Input
+  Monitoring. Last finished: X.7.1. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between
+  Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows
+  and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 38 |
+| X Cross-platform: macOS | 10 | 55 | 39 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **174** |
+| **Total** | **41** | **247** | **175** |
 
 ## Charter amendments made while planning
 
@@ -412,7 +411,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [ ] ~~X.6.8 (+, only if X.6.2 or X.6.3 fails) Locate the difference: the checksum split into its parts (globals, identifiers, each pool, physics, characters) printed per frame by a `[.diagnose]` case on both machines, the first differing part and frame recorded in `docs/CROSS_PLATFORM.md`. If positions and rotations agree while the state buffer does not (R7), the checksum moves to a canonical hash of the physics state and §8.5 of the charter changes with it; if a position differs, the cause is found in our code or reported to Jolt before anything else moves.~~ Dropped on 2026-09-25: X.6.2 and X.6.3 pass on the Mac in Debug and Release, so there is no difference to locate.
 
 ### X.7 The console on macOS
-- [ ] X.7.1 `noteKey` takes a platform-neutral `GameKey` instead of a Windows virtual-key code; the Windows reader maps `VK_*` to it. Test: `arena_controls_test` cases rewritten onto `GameKey` pass on both platforms; the Windows console reads keys as before (checked by hand, as 3.4.2 was).
+- [x] X.7.1 `noteKey` takes a platform-neutral `GameKey` instead of a Windows virtual-key code; the Windows reader maps `VK_*` to it. Test: `arena_controls_test` cases rewritten onto `GameKey` pass on both platforms; the Windows console reads keys as before (checked by hand, as 3.4.2 was). Done on 2026-09-25: `GameKey` names the eight keys beside `HeldKeys`, `noteKey` takes one, and `gameKeyOfWindowsKey` in `key_codes.hpp` turns a Windows virtual-key code into one or into nothing, which the Windows reader now asks before it notes a key. The two rewritten cases, one for noting every game key and one for the Windows codes, failed to build before the change, and all nine controls cases pass on the Mac. The Windows reader waits for the owner's build and a hand check of the keyboard, as 3.4.2 had.
 - [ ] X.7.2 Spike (Q-A): a throwaway probe under `tools/console` asks `CGEventSourceKeyState` for W from Terminal.app on macOS 27, with and without Input Monitoring granted. Recorded in `docs/CROSS_PLATFORM.md` and `docs/LAN_TEST.md`: whether the permission is asked for, and how it is granted. Nothing of the probe is committed.
 - [ ] X.7.3 macOS `ConsoleKeyboard`: the terminal in raw mode (echo and canonical input off, `ISIG` kept so Ctrl+C still stops the console), stdin drained, the eight keys read from `CGEventSourceKeyState` by their `kVK_ANSI_*` codes on every `readInto`. Done when: on the Mac, two consoles and a relay on localhost, a player walks, turns and fires from the keyboard, two keys held at once included.
 - [ ] X.7.4 The terminal is given back: raw mode and the cursor restored on every ending, Ctrl+C, `--run-for` and a disconnect alike. Done when: the shell prompt after each ending echoes typed text again.

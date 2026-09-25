@@ -1,9 +1,12 @@
 #include "console_keyboard.hpp"
 
+#include <unison/console/key_codes.hpp>
+
 #include <windows.h>
 
 #include <algorithm>
 #include <array>
+#include <optional>
 
 namespace unison::console
 {
@@ -76,7 +79,10 @@ void ConsoleKeyboard::readInto(HeldKeys& keys)
 
             if (record.EventType == KEY_EVENT)
             {
-                noteKey(keys, record.Event.KeyEvent.wVirtualKeyCode, record.Event.KeyEvent.bKeyDown != FALSE);
+                if (const std::optional<GameKey> key = gameKeyOfWindowsKey(record.Event.KeyEvent.wVirtualKeyCode))
+                {
+                    noteKey(keys, *key, record.Event.KeyEvent.bKeyDown != FALSE);
+                }
             }
 
             if (record.EventType == FOCUS_EVENT && record.Event.FocusEvent.bSetFocus == FALSE)

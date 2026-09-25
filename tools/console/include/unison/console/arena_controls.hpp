@@ -7,6 +7,19 @@
 namespace unison::console
 {
 
+/// The keys a console player plays the arena with, whatever the platform calls them.
+enum class GameKey : std::uint8_t
+{
+    Forward,
+    Back,
+    Left,
+    Right,
+    Jump,
+    Fire,
+    TurnLeft,
+    TurnRight
+};
+
 /// The game keys a console player holds down: W and S, A and D, Space, F, and Q and E.
 struct HeldKeys
 {
@@ -36,7 +49,7 @@ private:
     std::uint64_t aimStepMicroseconds = 0;
 };
 
-/// Notes a key going down or up by its Windows virtual-key code; a key that is no game key changes nothing.
-void noteKey(HeldKeys& keys, std::uint16_t virtualKey, bool isDown);
+/// Notes a game key going down or up.
+void noteKey(HeldKeys& keys, GameKey key, bool isDown);
 
 }

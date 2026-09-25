@@ -10,7 +10,7 @@ unison_apply_language_subset(unison_console_core)
 
 unison_apply_warnings(unison_console_core)
 
-add_library(unison_console_arena OBJECT src/arena_controls.cpp)
+add_library(unison_console_arena OBJECT src/arena_controls.cpp src/key_codes.cpp)
 
 target_include_directories(unison_console_arena PUBLIC include)
 

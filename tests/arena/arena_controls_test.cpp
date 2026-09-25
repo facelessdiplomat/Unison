@@ -1,4 +1,5 @@
 #include <unison/console/arena_controls.hpp>
+#include <unison/console/key_codes.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -113,27 +114,46 @@ TEST_CASE("the aim stays where it was turned once the keys are let go")
     REQUIRE(later == turned);
 }
 
-TEST_CASE("the game keys are noted going down and up by their Windows key codes, and other keys change nothing")
+TEST_CASE("every game key is noted going down and up")
 {
     unison::console::HeldKeys keys;
 
-    unison::console::noteKey(keys, 'W', true);
-    unison::console::noteKey(keys, 'A', true);
-    unison::console::noteKey(keys, 'S', true);
-    unison::console::noteKey(keys, 'D', true);
-    unison::console::noteKey(keys, ' ', true);
-    unison::console::noteKey(keys, 'F', true);
-    unison::console::noteKey(keys, 'Q', true);
-    unison::console::noteKey(keys, 'E', true);
-    unison::console::noteKey(keys, 'Z', true);
-    unison::console::noteKey(keys, 'A', false);
+    for (const unison::console::GameKey key : {unison::console::GameKey::Forward,
+                                               unison::console::GameKey::Back,
+                                               unison::console::GameKey::Left,
+                                               unison::console::GameKey::Right,
+                                               unison::console::GameKey::Jump,
+                                               unison::console::GameKey::Fire,
+                                               unison::console::GameKey::TurnLeft,
+                                               unison::console::GameKey::TurnRight})
+    {
+        unison::console::noteKey(keys, key, true);
+    }
+
+    unison::console::noteKey(keys, unison::console::GameKey::Left, false);
 
     REQUIRE(keys.forward);
-    REQUIRE_FALSE(keys.left);
     REQUIRE(keys.back);
+    REQUIRE_FALSE(keys.left);
     REQUIRE(keys.right);
     REQUIRE(keys.jump);
     REQUIRE(keys.fire);
     REQUIRE(keys.turnLeft);
     REQUIRE(keys.turnRight);
+}
+
+TEST_CASE("each game key has the Windows key code of its letter or of Space and no other key has one")
+{
+    using unison::console::GameKey;
+    using unison::console::gameKeyOfWindowsKey;
+
+    REQUIRE(gameKeyOfWindowsKey('W') == GameKey::Forward);
+    REQUIRE(gameKeyOfWindowsKey('S') == GameKey::Back);
+    REQUIRE(gameKeyOfWindowsKey('A') == GameKey::Left);
+    REQUIRE(gameKeyOfWindowsKey('D') == GameKey::Right);
+    REQUIRE(gameKeyOfWindowsKey(' ') == GameKey::Jump);
+    REQUIRE(gameKeyOfWindowsKey('F') == GameKey::Fire);
+    REQUIRE(gameKeyOfWindowsKey('Q') == GameKey::TurnLeft);
+    REQUIRE(gameKeyOfWindowsKey('E') == GameKey::TurnRight);
+    REQUIRE_FALSE(gameKeyOfWindowsKey('Z').has_value());
 }

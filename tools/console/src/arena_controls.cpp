@@ -9,7 +9,6 @@ namespace
 constexpr std::uint64_t kMicrosecondsPerSecond = 1'000'000;
 constexpr std::uint64_t kWholeTurnStepMicroseconds = 65'536ULL * kMicrosecondsPerSecond;
 constexpr std::int8_t kFullAxis = 127;
-constexpr std::uint16_t kSpaceKey = 0x20;
 
 std::int8_t axisOf(bool towards, bool away)
 {
@@ -50,35 +49,33 @@ arena::ArenaInput ArenaControls::inputFor(const HeldKeys& keys, std::uint64_t he
     return input;
 }
 
-void noteKey(HeldKeys& keys, std::uint16_t virtualKey, bool isDown)
+void noteKey(HeldKeys& keys, GameKey key, bool isDown)
 {
-    switch (virtualKey)
+    switch (key)
     {
-        case 'W':
+        case GameKey::Forward:
             keys.forward = isDown;
             break;
-        case 'S':
+        case GameKey::Back:
             keys.back = isDown;
             break;
-        case 'A':
+        case GameKey::Left:
             keys.left = isDown;
             break;
-        case 'D':
+        case GameKey::Right:
             keys.right = isDown;
             break;
-        case kSpaceKey:
+        case GameKey::Jump:
             keys.jump = isDown;
             break;
-        case 'F':
+        case GameKey::Fire:
             keys.fire = isDown;
             break;
-        case 'Q':
+        case GameKey::TurnLeft:
             keys.turnLeft = isDown;
             break;
-        case 'E':
+        case GameKey::TurnRight:
             keys.turnRight = isDown;
-            break;
-        default:
             break;
     }
 }
