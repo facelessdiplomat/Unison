@@ -8,6 +8,10 @@ Catch2 cases in their own executable, built by every build and run on purpose.
 .\build\msvc-release\tests\unison_benchmarks.exe "[.benchmark]"
 ```
 
+```sh
+build/clang-release/tests/unison_benchmarks "[.benchmark]"
+```
+
 A baseline is only ever recorded on an idle machine: numbers taken while a game or a build shares the
 processor measure the neighbour, not the engine.
 
@@ -39,6 +43,30 @@ processor measure the neighbour, not the engine.
 - Checksumming is 3.7 µs because it saves the physics state to hash it. A session checksums the snapshot
   of a verified frame instead, which already holds that state, and section 8.5 of the charter checksums
   every twentieth verified frame in a session, so this is affordable as it stands.
+
+## On the Mac, 2026-09-25, informative
+
+The Windows numbers above stay the baseline the budget is read against; these say what the same scene costs on
+the second machine.
+
+- Machine: Apple M4 Pro, 10 performance and 4 efficiency cores, macOS 27.0, Apple clang 21.0.0 arm64, Release
+  (`clang-release`) at `b209dee`, Jolt with `CROSS_PLATFORM_DETERMINISTIC=ON` on NEON. Not idle by the rule
+  above: the window server and one desktop app used about half a core and a third of a core throughout, of
+  fourteen, and three runs agreed within 7 % for a tick and a checksum and within 5 % for the rest.
+- Scene: the one above, `ArenaSimulation` with 4 players after 200 frames of the scripted inputs.
+
+| What | Mean, median of three runs | Three runs | Windows baseline |
+|------|----------------------------|------------|------------------|
+| One tick | 5.40 µs | 5.28 to 5.63 µs | 4.99 µs |
+| Taking a snapshot | 1.69 µs | 1.66 to 1.70 µs | 3.71 µs |
+| Restoring a snapshot | 2.14 µs | 2.10 to 2.17 µs | 4.10 µs |
+| Checksumming a frame | 1.99 µs | 1.95 to 2.08 µs | 3.76 µs |
+| Resimulating ten frames after a rollback | 22.0 µs | 21.7 to 22.8 µs | 66.1 µs |
+
+A tick costs about what it costs on Windows, while copying, restoring and hashing a frame take half as long. A
+frame resimulated after a rollback costs about 2 µs here against 5.4 µs for a tick of a match that moves on, a
+gap Windows does not show; the benchmark replays the same ten frames on every iteration, and why the Mac gains
+more from that is not investigated.
 
 ## Since a tick takes nothing from the C++ heap
 
