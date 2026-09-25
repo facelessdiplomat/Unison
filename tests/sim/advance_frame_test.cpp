@@ -1,10 +1,9 @@
 #include <unison/sim/advance_frame.hpp>
 
+#include <unison/core/fp_control_word.hpp>
 #include <unison/sim/entity_lifecycle.hpp>
 
 #include <catch2/catch_test_macros.hpp>
-
-#include <xmmintrin.h>
 
 #include <cstdint>
 #include <string_view>
@@ -12,14 +11,12 @@
 namespace
 {
 
-constexpr std::uint32_t kFlushToZero = 0x8000U;
-
 class ControlWordProbe final : public unison::sim::ISystem
 {
 public:
     void update(unison::sim::Frame&, const unison::sim::FrameInputs&) override
     {
-        observed = _mm_getcsr();
+        observed = unison::readFpControlWord();
         ++runs;
     }
 
@@ -28,7 +25,7 @@ public:
         return "ControlWordProbe";
     }
 
-    [[nodiscard]] std::uint32_t controlWord() const
+    [[nodiscard]] unison::FpControlWord controlWord() const
     {
         return observed;
     }
@@ -39,7 +36,7 @@ public:
     }
 
 private:
-    std::uint32_t observed = 0;
+    unison::FpControlWord observed = 0;
     std::uint32_t runs = 0;
 };
 
@@ -61,8 +58,8 @@ public:
 
 TEST_CASE("the deterministic control word is in force while systems run")
 {
-    const std::uint32_t hostControlWord = _mm_getcsr();
-    _mm_setcsr(hostControlWord | kFlushToZero);
+    const unison::FpControlWord hostControlWord = unison::readFpControlWord();
+    unison::writeFpControlWord(hostControlWord | unison::kFlushToZeroBits);
 
     ControlWordProbe probe;
     unison::sim::SystemPipeline pipeline;
@@ -73,9 +70,9 @@ TEST_CASE("the deterministic control word is in force while systems run")
 
     unison::sim::advanceFrame(frame, pipeline, inputs);
 
-    _mm_setcsr(hostControlWord);
+    unison::writeFpControlWord(hostControlWord);
 
-    REQUIRE((probe.controlWord() & kFlushToZero) == 0U);
+    REQUIRE((probe.controlWord() & unison::kFlushToZeroBits) == 0U);
 }
 
 TEST_CASE("advancing runs the pipeline once and moves the frame on")
@@ -127,9 +124,9 @@ TEST_CASE("the events of a tick do not outlive it")
 
 TEST_CASE("the host keeps its own control word after a tick")
 {
-    const std::uint32_t hostControlWord = _mm_getcsr();
-    _mm_setcsr(hostControlWord | kFlushToZero);
-    const std::uint32_t withFlushToZero = _mm_getcsr();
+    const unison::FpControlWord hostControlWord = unison::readFpControlWord();
+    unison::writeFpControlWord(hostControlWord | unison::kFlushToZeroBits);
+    const unison::FpControlWord withFlushToZero = unison::readFpControlWord();
 
     const unison::sim::SystemPipeline pipeline;
     unison::sim::Frame frame;
@@ -137,8 +134,8 @@ TEST_CASE("the host keeps its own control word after a tick")
 
     unison::sim::advanceFrame(frame, pipeline, inputs);
 
-    const std::uint32_t afterTick = _mm_getcsr();
-    _mm_setcsr(hostControlWord);
+    const unison::FpControlWord afterTick = unison::readFpControlWord();
+    unison::writeFpControlWord(hostControlWord);
 
     REQUIRE(afterTick == withFlushToZero);
 }
