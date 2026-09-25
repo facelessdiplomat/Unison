@@ -436,6 +436,10 @@ is held to that by flags of its own, which `unison_apply_determinism` applies:
   rounds to nearest, keeps denormals rather than flushing them and masks every exception: `0x1F80` in MXCSR,
   `0` in FPCR, which is also what a macOS process starts with. Host engines and audio libraries
   are free to change flush-to-zero on their threads; the simulation is not affected.
+- Clang assumes the default floating-point environment and may move arithmetic it can see across a write of
+  the control register, as the guard's own test showed at `-O2` on 2026-09-25. The guard therefore stands in
+  `advanceFrame` around calls the compiler cannot see through, the systems' and the physics', and no
+  deterministic library is built with link-time optimisation, which would let it see through them.
 - The simulation never reads the wall clock, thread ids, addresses, environment variables, or files.
 
 ### 7.3 Code rules

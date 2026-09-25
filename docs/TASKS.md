@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.4.2**, `FpEnvGuard` over `fp_control_word.hpp`, its tests on the named bits. Last finished: X.4.1.
-  On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before
-  Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred
-  until WSL is installed.
+- Next up: **X.4.3**, `advance_frame_test.cpp` on the named bits: a tick under a host that flushes to zero keeps
+  denormals and gives the host its word back. Last finished: X.4.2. On the owner's word of 2026-09-25 Phase X, the
+  port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until
+  X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 19 |
+| X Cross-platform: macOS | 10 | 54 | 20 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **155** |
+| **Total** | **41** | **246** | **156** |
 
 ## Charter amendments made while planning
 
@@ -384,7 +384,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### X.4 The floating-point environment on ARM64
 - [x] X.4.1 `core/include/unison/core/fp_control_word.hpp`: `readFpControlWord()`, `writeFpControlWord()`, and the named bits per architecture: the deterministic word (`0x1F80` on x64, `0` on AArch64), flush-to-zero (`FTZ | DAZ` on x64, `FZ`, bit 24, on AArch64), the rounding field and its round-toward-zero value (bits 13–14 on x64, bits 22–23 on AArch64). AArch64 reads and writes `fpcr` the way Jolt's `FPControlWord` does. Test: `"the control word reads back what was written"` for the rounding field and the flush bits, host state restored. Done on 2026-09-25: `FpControlWord`, `readFpControlWord` and `writeFpControlWord` come with `kDeterministicFpControlWord`, `kFlushToZeroBits`, `kRoundingModeBits` and `kRoundTowardZeroBits` for each architecture; FPCR goes through ACLE's `__arm_rsr64` and `__arm_wsr64`, and on x86-64 `kFlushToZeroBits` holds DAZ as well as FTZ, matching FPCR's FZ, which flushes inputs and results alike. The two tests failed to build before the header and pass on the Mac after it, built on their own against Catch2, and the header compiles alone under the determinism flags and the warnings. The core header check takes the header in as well and builds on arm64 once X.4.2 has taken `FpEnvGuard` off `<xmmintrin.h>`.
-- [ ] X.4.2 `FpEnvGuard` over `fp_control_word.hpp`, behaviour unchanged. Test: the existing `fp_env_guard_test.cpp` cases rewritten onto the named bits pass on both platforms.
+- [x] X.4.2 `FpEnvGuard` over `fp_control_word.hpp`, behaviour unchanged. Test: the existing `fp_env_guard_test.cpp` cases rewritten onto the named bits pass on both platforms. Done on 2026-09-25: `FpEnvGuard` reads and writes through `fp_control_word.hpp` and no longer includes `<xmmintrin.h>`, and its three tests set the host's state with the named bits; before the change they failed to build on the Mac, and the core header check builds on arm64 since. At `-O2` the rounding test failed on the Mac: clang, which assumes the default environment, moved a division it could see across the write of FPCR. The probes moved to `tests/support/floating_point_probes.cpp`, where no call can be seen through, and the tests pass at `-O0`, `-O2` and `-O3`; `DESIGN.md` §7.2 records why the guard stands around calls in `advanceFrame` and why no deterministic library uses link-time optimisation.
 - [ ] X.4.3 `tests/sim/advance_frame_test.cpp` onto the named bits: a tick under a host that set flush-to-zero runs with denormals kept and gives the host its word back. Test: the existing cases pass on both platforms.
 
 ### X.5 The port proper: every target builds and every test passes on the Mac

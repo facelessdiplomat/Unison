@@ -1,30 +1,25 @@
 #include <unison/core/fp_env_guard.hpp>
 
+#include <unison/core/fp_control_word.hpp>
+
 #include <catch2/catch_test_macros.hpp>
 
-#include <xmmintrin.h>
-
-#include <cstdint>
-#include <limits>
+#include <support/floating_point_probes.hpp>
 
 namespace
 {
 
-constexpr std::uint32_t kFlushToZero = 0x8000U;
-constexpr std::uint32_t kRoundingControlMask = 0x6000U;
-constexpr std::uint32_t kRoundTowardZero = 0x6000U;
-
 class ScopedHostFpState
 {
 public:
-    explicit ScopedHostFpState(std::uint32_t controlWord) : savedControlWord{_mm_getcsr()}
+    explicit ScopedHostFpState(unison::FpControlWord controlWord) : savedControlWord{unison::readFpControlWord()}
     {
-        _mm_setcsr(controlWord);
+        unison::writeFpControlWord(controlWord);
     }
 
     ~ScopedHostFpState()
     {
-        _mm_setcsr(savedControlWord);
+        unison::writeFpControlWord(savedControlWord);
     }
 
     ScopedHostFpState(const ScopedHostFpState&) = delete;
@@ -33,67 +28,52 @@ public:
     ScopedHostFpState& operator=(ScopedHostFpState&&) = delete;
 
 private:
-    std::uint32_t savedControlWord;
+    unison::FpControlWord savedControlWord;
 };
-
-float underflowingProduct()
-{
-    volatile float smallest = std::numeric_limits<float>::min();
-    volatile float half = 0.5F;
-
-    return smallest * half;
-}
-
-float oneThird()
-{
-    volatile float numerator = 1.0F;
-    volatile float denominator = 3.0F;
-
-    return numerator / denominator;
-}
 
 }
 
 TEST_CASE("fp env guard keeps denormals alive while the host flushes them to zero")
 {
-    const ScopedHostFpState hostState{_mm_getcsr() | kFlushToZero};
+    const ScopedHostFpState hostState{unison::readFpControlWord() | unison::kFlushToZeroBits};
 
-    REQUIRE(underflowingProduct() == 0.0F);
+    REQUIRE(unison::test::underflowingProduct() == 0.0F);
 
     {
         const unison::FpEnvGuard guard;
 
-        REQUIRE(underflowingProduct() != 0.0F);
+        REQUIRE(unison::test::underflowingProduct() != 0.0F);
     }
 
-    REQUIRE(underflowingProduct() == 0.0F);
+    REQUIRE(unison::test::underflowingProduct() == 0.0F);
 }
 
 TEST_CASE("fp env guard rounds to nearest while the host rounds toward zero")
 {
-    const ScopedHostFpState hostState{(_mm_getcsr() & ~kRoundingControlMask) | kRoundTowardZero};
+    const ScopedHostFpState hostState{(unison::readFpControlWord() & ~unison::kRoundingModeBits) |
+                                      unison::kRoundTowardZeroBits};
 
-    const float truncated = oneThird();
+    const float truncated = unison::test::oneThird();
 
     {
         const unison::FpEnvGuard guard;
 
-        REQUIRE(oneThird() > truncated);
+        REQUIRE(unison::test::oneThird() > truncated);
     }
 
-    REQUIRE(oneThird() == truncated);
+    REQUIRE(unison::test::oneThird() == truncated);
 }
 
 TEST_CASE("fp env guard restores the host control word on scope exit")
 {
-    const ScopedHostFpState hostState{_mm_getcsr() | kFlushToZero};
-    const std::uint32_t hostControlWord = _mm_getcsr();
+    const ScopedHostFpState hostState{unison::readFpControlWord() | unison::kFlushToZeroBits};
+    const unison::FpControlWord hostControlWord = unison::readFpControlWord();
 
     {
         const unison::FpEnvGuard guard;
 
-        REQUIRE(_mm_getcsr() != hostControlWord);
+        REQUIRE(unison::readFpControlWord() != hostControlWord);
     }
 
-    REQUIRE(_mm_getcsr() == hostControlWord);
+    REQUIRE(unison::readFpControlWord() == hostControlWord);
 }

@@ -1,26 +1,24 @@
 #pragma once
 
-#include <xmmintrin.h>
-
-#include <cstdint>
+#include <unison/core/fp_control_word.hpp>
 
 namespace unison
 {
 
-/// Holds the SSE control word at the architectural default for the length of a scope: round to
-/// nearest even, denormals kept, every exception masked, whatever the host had set on this thread.
-/// The host's word is restored on exit, so a tick is unaffected by audio or engine code around it.
+/// Holds the thread's floating-point control register at the architecture's default for the length of a
+/// scope: round to nearest even, denormals kept, every exception masked, whatever the host had set on this
+/// thread. The host's word is restored on exit, so a tick is unaffected by audio or engine code around it.
 class [[nodiscard]] FpEnvGuard
 {
 public:
-    FpEnvGuard() : hostControlWord{_mm_getcsr()}
+    FpEnvGuard() : hostControlWord{readFpControlWord()}
     {
-        _mm_setcsr(kDeterministicControlWord);
+        writeFpControlWord(kDeterministicFpControlWord);
     }
 
     ~FpEnvGuard()
     {
-        _mm_setcsr(hostControlWord);
+        writeFpControlWord(hostControlWord);
     }
 
     FpEnvGuard(const FpEnvGuard&) = delete;
@@ -29,9 +27,7 @@ public:
     FpEnvGuard& operator=(FpEnvGuard&&) = delete;
 
 private:
-    static constexpr std::uint32_t kDeterministicControlWord = 0x1F80U;
-
-    std::uint32_t hostControlWord;
+    FpControlWord hostControlWord;
 };
 
 }

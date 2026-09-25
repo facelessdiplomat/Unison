@@ -171,6 +171,7 @@ add_executable(
     sim/signals_test.cpp
     sim/system_pipeline_test.cpp
     support/allocation_probe.cpp
+    support/floating_point_probes.cpp
     support/test_components.cpp
     tools/checksum_ledger_test.cpp
     tools/checksum_wiretap_test.cpp
