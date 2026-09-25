@@ -289,11 +289,11 @@ across the two platforms.
 
 | Golden | Commit | Windows Debug | Windows Release | macOS Debug | macOS Release |
 |---|---|---|---|---|---|
-| Physics pile `0x214BC6AEDC1EFBB3` | | | | | |
-| `tests/golden/arena_scripted.checksums` | | | | | |
-| Text map of a new match of two | | | | | |
-| `tests/golden/arena_config.hashes` | | | | | |
-| `tests/golden/protocol.bytes` | | | | | |
+| Physics pile `0x214BC6AEDC1EFBB3` | recorded on Windows; Mac at `103e873` | waits for the owner's run | waits for the owner's run | passes | passes |
+| `tests/golden/arena_scripted.checksums` | recorded on Windows; Mac at `103e873` | waits for the owner's run | waits for the owner's run | passes | passes |
+| Text map of a new match of two | recorded on Windows; Mac at `103e873` | waits for the owner's run | waits for the owner's run | passes | passes |
+| `tests/golden/arena_config.hashes` | recorded on the Mac at `bed30dd` | waits for the owner's run | waits for the owner's run | passes | passes |
+| `tests/golden/protocol.bytes` | recorded on the Mac at `103e873` | waits for the owner's run | waits for the owner's run | passes | passes |
 
 ### 9.2 Console runs on the Mac (X.7.6)
 
