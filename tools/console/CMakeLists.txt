@@ -36,6 +36,10 @@ if(WIN32)
     target_compile_definitions(unison_console PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
+if(APPLE)
+    target_link_libraries(unison_console PRIVATE "-framework CoreGraphics")
+endif()
+
 unison_apply_language_subset(unison_console)
 
 unison_apply_warnings(unison_console)

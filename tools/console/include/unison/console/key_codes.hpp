@@ -11,4 +11,7 @@ namespace unison::console
 /// The game key a Windows virtual-key code stands for, or nothing for a key the game does not use.
 [[nodiscard]] std::optional<GameKey> gameKeyOfWindowsKey(std::uint16_t virtualKey);
 
+/// The macOS virtual key code of a game key, the one `CGEventSourceKeyState` is asked about.
+[[nodiscard]] std::uint16_t macKeyCodeOf(GameKey key);
+
 }

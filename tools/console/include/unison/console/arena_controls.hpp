@@ -2,6 +2,7 @@
 
 #include <arena/arena_input.hpp>
 
+#include <array>
 #include <cstdint>
 
 namespace unison::console
@@ -19,6 +20,16 @@ enum class GameKey : std::uint8_t
     TurnLeft,
     TurnRight
 };
+
+/// Every game key, in the order `GameKey` names them.
+inline constexpr std::array<GameKey, 8> kGameKeys{GameKey::Forward,
+                                                  GameKey::Back,
+                                                  GameKey::Left,
+                                                  GameKey::Right,
+                                                  GameKey::Jump,
+                                                  GameKey::Fire,
+                                                  GameKey::TurnLeft,
+                                                  GameKey::TurnRight};
 
 /// The game keys a console player holds down: W and S, A and D, Space, F, and Q and E.
 struct HeldKeys

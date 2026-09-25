@@ -157,3 +157,18 @@ TEST_CASE("each game key has the Windows key code of its letter or of Space and 
     REQUIRE(gameKeyOfWindowsKey('E') == GameKey::TurnRight);
     REQUIRE_FALSE(gameKeyOfWindowsKey('Z').has_value());
 }
+
+TEST_CASE("each game key has the macOS key code of its letter or of Space")
+{
+    using unison::console::GameKey;
+    using unison::console::macKeyCodeOf;
+
+    REQUIRE(macKeyCodeOf(GameKey::Forward) == 0x0D);
+    REQUIRE(macKeyCodeOf(GameKey::Back) == 0x01);
+    REQUIRE(macKeyCodeOf(GameKey::Left) == 0x00);
+    REQUIRE(macKeyCodeOf(GameKey::Right) == 0x02);
+    REQUIRE(macKeyCodeOf(GameKey::Jump) == 0x31);
+    REQUIRE(macKeyCodeOf(GameKey::Fire) == 0x03);
+    REQUIRE(macKeyCodeOf(GameKey::TurnLeft) == 0x0C);
+    REQUIRE(macKeyCodeOf(GameKey::TurnRight) == 0x0E);
+}
