@@ -60,6 +60,7 @@ set(plainModules session net view console relay runner)
 set(seenModules "")
 set(joltSeen FALSE)
 set(headerCheckSeen FALSE)
+set(canarySeen FALSE)
 set(testExecutableSeen FALSE)
 
 math(EXPR lastEntry "${entryCount} - 1")
@@ -83,6 +84,13 @@ foreach(entryIndex RANGE ${lastEntry})
             "determinism_guard\\.hpp"
         )
         unison_forbid("the core header check" "${entryCommand}" ${forbiddenFlags})
+    endif()
+
+    if(entryFile MATCHES "/tests/support/multiply_then_add\\.cpp")
+        set(canarySeen TRUE)
+
+        unison_require("the determinism canary" "${entryCommand}" ${determinismFlags} "determinism_guard\\.hpp")
+        unison_forbid("the determinism canary" "${entryCommand}" ${forbiddenFlags})
     endif()
 
     if(entryFile MATCHES "/tests/(core|sim|net|session|view|arena|tools)/")
@@ -126,6 +134,10 @@ endif()
 
 if(NOT headerCheckSeen)
     message(FATAL_ERROR "no compile command for the core header check")
+endif()
+
+if(NOT canarySeen)
+    message(FATAL_ERROR "no compile command for the determinism canary")
 endif()
 
 if(NOT testExecutableSeen)

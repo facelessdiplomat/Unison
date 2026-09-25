@@ -76,12 +76,21 @@ set_tests_properties(module_determinism PROPERTIES LABELS slow)
 
 include(Catch)
 
+add_library(unison_determinism_canary STATIC support/multiply_then_add.cpp)
+
+target_include_directories(unison_determinism_canary PUBLIC "${CMAKE_CURRENT_LIST_DIR}")
+
+unison_apply_determinism(unison_determinism_canary)
+
+unison_apply_warnings(unison_determinism_canary)
+
 add_executable(
     unison_tests_fast
     core/asset_id_test.cpp
     core/binary_io_test.cpp
     core/body_id_test.cpp
     core/contract_test.cpp
+    core/determinism_canary_test.cpp
     core/error_test.cpp
     core/fixed_string_test.cpp
     core/fixed_vector_test.cpp
@@ -177,6 +186,7 @@ target_link_libraries(
     unison_tests_fast
     PRIVATE
     unison_console_core
+    unison_determinism_canary
     unison_net
     unison_relay_core
     unison_runner_core
