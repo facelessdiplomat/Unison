@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.3.4**, the console's Windows sources and definitions kept to Windows, its keyboard and screen
-  chosen per platform. Last finished: X.3.3. On the owner's word of 2026-09-25 Phase X, the port to macOS and play
-  between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between
-  Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.4.1**, `fp_control_word.hpp`: the floating-point control register read and written with its bits
+  named, MXCSR on x64 and FPCR on arm64. Last finished: X.3.4. On the owner's word of 2026-09-25 Phase X, the port
+  to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2
+  plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 17 |
+| X Cross-platform: macOS | 10 | 54 | 18 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **153** |
+| **Total** | **41** | **246** | **154** |
 
 ## Charter amendments made while planning
 
@@ -380,7 +380,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.3.1 Catch2 and the test executables declare exceptions per compiler: `/EHsc` on MSVC, nothing on clang, where exceptions are the default. On clang the test executables also take `-ffp-contract=off`: the scenes the goldens are recorded from are set up in test code, which clang would otherwise contract and MSVC, on its SSE2 baseline, cannot. The `module_determinism` walk of X.2.7 asserts both. Test: the CTest case passes; `unison_tests_fast` links on the Mac once X.5 is through. Done on 2026-09-25: Catch2 takes `/EHsc` on MSVC alone, and `unison_apply_test_flags` in `tests/CMakeLists.txt` gives the three test executables `/EHsc` on MSVC and `-ffp-contract=off` on clang. The module walk requires `-ffp-contract=off` of a clang test line and forbids `/EHsc` there, and fails on the build before the change and on a copy of its commands with `/EHsc` put into a test line. No `/EHsc` is left in the Mac's compile commands, and Catch2 builds on the Mac.
 - [x] X.3.2 ENet's `winmm ws2_32`, `/wd5287` and `_WINSOCK_DEPRECATED_NO_WARNINGS` under `if(WIN32)` and `if(MSVC)`. Test: `enet` compiles on the Mac; `tests/net/enet_smoke_test.cpp` passes there. Done on 2026-09-25: ENet links `winmm` and `ws2_32` and defines `_WINSOCK_DEPRECATED_NO_WARNINGS` on Windows alone, and takes `/wd5287` from MSVC alone. Before the change ENet failed to build on the Mac, clang reading `/wd5287` as a missing input file; after it ENet builds, and `tests/net/enet_smoke_test.cpp`, built on its own against Catch2 and ENet, passes there. It runs inside `unison_tests_fast` once X.5 builds that.
 - [x] X.3.3 Jolt on arm64 configured and verified: `CROSS_PLATFORM_DETERMINISTIC ON`, exceptions and RTTI off, `-ffp-contract=off`, no `-mfma`; the `-faligned-allocation` Jolt adds for Apple clang noted. Test: X.2.7's case; `tests/sim/jolt_smoke_test.cpp` passes on the Mac. Done on 2026-09-25: Jolt builds on arm64 with `CROSS_PLATFORM_DETERMINISTIC`, exceptions and RTTI off and `-ffp-contract=off` from its own flags and ours, and Apple clang also gets Jolt's `-faligned-allocation`. Jolt 5.6 turns on GPU compute backends for its hair system by default: Metal on the Mac, with Objective-C++ sources and the Foundation, Metal and MetalKit frameworks linked into every executable, and DirectX 12, Vulkan and a CPU fallback on Windows. The engine steps physics on the CPU alone, so all four are off on both platforms, and the module walk requires Jolt's lines to carry `JPH_CROSS_PLATFORM_DETERMINISTIC` and none of the backends; it failed on the build before the change. Jolt's x86 options stay passed as off on arm64, where Jolt ignores them, since leaving them out would show Jolt's defaults, on, in the cache. `tests/sim/jolt_smoke_test.cpp`, built from its own compile command against Catch2 and Jolt, passes on the Mac and links no graphics framework.
-- [ ] X.3.4 The console's `WIN32_LEAN_AND_MEAN NOMINMAX` under `if(WIN32)`; its keyboard and screen sources chosen per platform (`console_keyboard_windows.cpp` / `console_keyboard_macos.cpp`, `console_screen_windows.cpp` / `console_screen_posix.cpp`) behind the same headers. Done when: the console target configures on both platforms with the right sources listed.
+- [x] X.3.4 The console's `WIN32_LEAN_AND_MEAN NOMINMAX` under `if(WIN32)`; its keyboard and screen sources chosen per platform (`console_keyboard_windows.cpp` / `console_keyboard_macos.cpp`, `console_screen_windows.cpp` / `console_screen_posix.cpp`) behind the same headers. Done when: the console target configures on both platforms with the right sources listed. Done on 2026-09-25: `WIN32_LEAN_AND_MEAN` and `NOMINMAX` are defined on Windows alone, and the console's keyboard and screen keep their platform's state in a `Terminal` of their own that each platform's source defines, so `console_keyboard.hpp` and `console_screen.hpp` serve both. Windows keeps its implementation, unchanged in behaviour, in `console_keyboard_windows.cpp` and `console_screen_windows.cpp`; the Mac gets `console_keyboard_macos.cpp` and `console_screen_posix.cpp`, which report no keyboard and no screen until X.7, so a Mac console prints its status line once a second. On the Mac the compile commands list the Mac's sources alone and both build under `-Werror`; the Windows half waits for the owner's check.
 
 ### X.4 The floating-point environment on ARM64
 - [ ] X.4.1 `core/include/unison/core/fp_control_word.hpp`: `readFpControlWord()`, `writeFpControlWord()`, and the named bits per architecture: the deterministic word (`0x1F80` on x64, `0` on AArch64), flush-to-zero (`FTZ | DAZ` on x64, `FZ`, bit 24, on AArch64), the rounding field and its round-toward-zero value (bits 13–14 on x64, bits 22–23 on AArch64). AArch64 reads and writes `fpcr` the way Jolt's `FPControlWord` does. Test: `"the control word reads back what was written"` for the rounding field and the flush bits, host state restored.

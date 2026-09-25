@@ -13,29 +13,47 @@ namespace
 
 constexpr DWORD kRecordsPerRead = 16;
 
-}
-
-ConsoleKeyboard::ConsoleKeyboard() : input{GetStdHandle(STD_INPUT_HANDLE)}
+bool isConsoleInput(HANDLE input)
 {
     DWORD mode = 0;
-    available = input != nullptr && input != INVALID_HANDLE_VALUE && GetConsoleMode(input, &mode) != 0;
+
+    return input != nullptr && input != INVALID_HANDLE_VALUE && GetConsoleMode(input, &mode) != 0;
 }
+
+}
+
+struct ConsoleKeyboard::Terminal
+{
+    HANDLE input = nullptr;
+};
+
+ConsoleKeyboard::ConsoleKeyboard()
+{
+    const HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
+
+    if (isConsoleInput(input))
+    {
+        terminal = std::make_unique<Terminal>(Terminal{input});
+    }
+}
+
+ConsoleKeyboard::~ConsoleKeyboard() = default;
 
 bool ConsoleKeyboard::isAvailable() const
 {
-    return available;
+    return terminal != nullptr;
 }
 
 void ConsoleKeyboard::readInto(HeldKeys& keys)
 {
-    if (!available)
+    if (terminal == nullptr)
     {
         return;
     }
 
     DWORD waiting = 0;
 
-    if (GetNumberOfConsoleInputEvents(input, &waiting) == 0)
+    if (GetNumberOfConsoleInputEvents(terminal->input, &waiting) == 0)
     {
         return;
     }
@@ -46,7 +64,8 @@ void ConsoleKeyboard::readInto(HeldKeys& keys)
     {
         DWORD read = 0;
 
-        if (ReadConsoleInputW(input, records.data(), std::min(waiting, kRecordsPerRead), &read) == 0 || read == 0)
+        if (ReadConsoleInputW(terminal->input, records.data(), std::min(waiting, kRecordsPerRead), &read) == 0 ||
+            read == 0)
         {
             return;
         }

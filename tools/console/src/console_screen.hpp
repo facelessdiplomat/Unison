@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string_view>
 
 namespace unison::console
@@ -21,9 +22,9 @@ public:
     void show(std::string_view screen);
 
 private:
-    void* output = nullptr;
-    unsigned long originalMode = 0;
-    bool available = false;
+    struct Terminal;
+
+    std::unique_ptr<Terminal> terminal;
 };
 
 }
