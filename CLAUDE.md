@@ -125,7 +125,12 @@ failure is fixed in the same micro-task. Every report says which of the two its 
 ## Environment, build and test
 - Development machine: Windows 11, Visual Studio 18 Community (MSVC toolset 14.51) at
   `C:\Program Files\Microsoft Visual Studio\18\Community`. CMake, Ninja and clang-format are the VS-bundled copies
-  and are not on `PATH`; `tools/env.ps1` (task 0.1.8) locates them through `vswhere`.
+  and are not on `PATH`; `tools/env.ps1` (task 0.1.8) locates them through `vswhere`. Visual Studio 2026 bundles
+  clang-format 20.1.8 (LLVM 20).
+- Mac, the second development machine and the one Claude works on from Phase X: MacBook Pro with Apple M4 Pro,
+  macOS 27.0, arm64. Apple clang 21.0.0 from the Command Line Tools, with Xcode 27.0 beside them; CMake 4.4.3 and
+  Ninja 1.13.2 from Homebrew, on `PATH`; clang-format 20.1.8 from Homebrew's keg-only `llvm@20`, the major Visual
+  Studio bundles, which `source tools/env.sh` (task X.1.1) exports as `UNISON_CLANG_FORMAT`.
 - Unreal Engine 5.8 is installed at `C:\Program Files\Epic Games\UE_5.8` (target for Phase 5).
 - A second Windows machine on the same LAN is available for the Phase 3 network test.
 - CMake presets and test commands arrive in Phase 0; update this section when they exist.
