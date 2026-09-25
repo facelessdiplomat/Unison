@@ -18,10 +18,9 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.3.2**, ENet's Windows libraries and warning switches kept to Windows and MSVC. Last finished:
-  X.3.1. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs
-  before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is
-  deferred until WSL is installed.
+- Next up: **X.3.3**, Jolt on arm64 configured and verified. Last finished: X.3.2. On the owner's word of
+  2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the
+  LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +42,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 15 |
+| X Cross-platform: macOS | 10 | 54 | 16 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **151** |
+| **Total** | **41** | **246** | **152** |
 
 ## Charter amendments made while planning
 
@@ -378,7 +377,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### X.3 Dependencies and targets on macOS
 - [x] X.3.1 Catch2 and the test executables declare exceptions per compiler: `/EHsc` on MSVC, nothing on clang, where exceptions are the default. On clang the test executables also take `-ffp-contract=off`: the scenes the goldens are recorded from are set up in test code, which clang would otherwise contract and MSVC, on its SSE2 baseline, cannot. The `module_determinism` walk of X.2.7 asserts both. Test: the CTest case passes; `unison_tests_fast` links on the Mac once X.5 is through. Done on 2026-09-25: Catch2 takes `/EHsc` on MSVC alone, and `unison_apply_test_flags` in `tests/CMakeLists.txt` gives the three test executables `/EHsc` on MSVC and `-ffp-contract=off` on clang. The module walk requires `-ffp-contract=off` of a clang test line and forbids `/EHsc` there, and fails on the build before the change and on a copy of its commands with `/EHsc` put into a test line. No `/EHsc` is left in the Mac's compile commands, and Catch2 builds on the Mac.
-- [ ] X.3.2 ENet's `winmm ws2_32`, `/wd5287` and `_WINSOCK_DEPRECATED_NO_WARNINGS` under `if(WIN32)` and `if(MSVC)`. Test: `enet` compiles on the Mac; `tests/net/enet_smoke_test.cpp` passes there.
+- [x] X.3.2 ENet's `winmm ws2_32`, `/wd5287` and `_WINSOCK_DEPRECATED_NO_WARNINGS` under `if(WIN32)` and `if(MSVC)`. Test: `enet` compiles on the Mac; `tests/net/enet_smoke_test.cpp` passes there. Done on 2026-09-25: ENet links `winmm` and `ws2_32` and defines `_WINSOCK_DEPRECATED_NO_WARNINGS` on Windows alone, and takes `/wd5287` from MSVC alone. Before the change ENet failed to build on the Mac, clang reading `/wd5287` as a missing input file; after it ENet builds, and `tests/net/enet_smoke_test.cpp`, built on its own against Catch2 and ENet, passes there. It runs inside `unison_tests_fast` once X.5 builds that.
 - [ ] X.3.3 Jolt on arm64 configured and verified: `CROSS_PLATFORM_DETERMINISTIC ON`, exceptions and RTTI off, `-ffp-contract=off`, no `-mfma`; the `-faligned-allocation` Jolt adds for Apple clang noted. Test: X.2.7's case; `tests/sim/jolt_smoke_test.cpp` passes on the Mac.
 - [ ] X.3.4 The console's `WIN32_LEAN_AND_MEAN NOMINMAX` under `if(WIN32)`; its keyboard and screen sources chosen per platform (`console_keyboard_windows.cpp` / `console_keyboard_macos.cpp`, `console_screen_windows.cpp` / `console_screen_posix.cpp`) behind the same headers. Done when: the console target configures on both platforms with the right sources listed.
 

@@ -67,11 +67,15 @@ unset(CMAKE_POLICY_VERSION_MINIMUM)
 
 target_include_directories(enet PUBLIC "${enet_SOURCE_DIR}/include")
 
-target_link_libraries(enet PUBLIC winmm ws2_32)
+if(WIN32)
+    target_link_libraries(enet PUBLIC winmm ws2_32)
 
-target_compile_options(enet PRIVATE /wd5287)
+    target_compile_definitions(enet PRIVATE _WINSOCK_DEPRECATED_NO_WARNINGS)
+endif()
 
-target_compile_definitions(enet PRIVATE _WINSOCK_DEPRECATED_NO_WARNINGS)
+if(MSVC)
+    target_compile_options(enet PRIVATE /wd5287)
+endif()
 
 CPMAddPackage(NAME xxHash GITHUB_REPOSITORY Cyan4973/xxHash VERSION 0.8.4 DOWNLOAD_ONLY YES)
 
