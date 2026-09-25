@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.1.2**, `.gitattributes` with `* text=auto eol=lf` and `.DS_Store` in `.gitignore`. Last finished:
-  X.1.1, the tools on the Mac and `tools/env.sh`. On the owner's word of 2026-09-25 Phase X, the port to macOS and
-  play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it
-  between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.1.3**, formatting parity: the Mac's clang-format 20 over the tree as Windows' formats it. Last
+  finished: X.1.2, `.gitattributes` with LF line endings and `.DS_Store` ignored. On the owner's word of
+  2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the
+  LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 3 |
+| X Cross-platform: macOS | 10 | 54 | 4 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **139** |
+| **Total** | **41** | **246** | **140** |
 
 ## Charter amendments made while planning
 
@@ -358,7 +358,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### X.1 Toolchain and repository hygiene
 - [x] X.1.1 Tools on the Mac: `brew install ninja llvm@<major>`, the major being the VS-bundled clang-format's, which the owner reads on Windows with `& $env:UNISON_CLANG_FORMAT --version` and records in `CLAUDE.md`'s environment section together with the Mac's toolchain of `docs/CROSS_PLATFORM.md` §2.1. `tools/env.sh` exports `UNISON_CLANG_FORMAT` (and nothing else: CMake and Ninja are on `PATH` from Homebrew). Done when: `source tools/env.sh` then `"$UNISON_CLANG_FORMAT" --version` prints the recorded major. Done on 2026-09-25: the major is 20, since Visual Studio 2026 bundles LLVM 20.1.8; Ninja 1.13.2 and `llvm@20` come from Homebrew, and `tools/env.sh` also refuses to go on without `c++`, `cmake`, `ninja` and `brew` on `PATH`. clang-format 20 and 23 both accept all 329 tracked sources as they stand.
-- [ ] X.1.2 `.gitattributes` with `* text=auto eol=lf`, `.gitignore` with `.DS_Store`; the renormalising commit is the owner's call (Q-F). Done when: `git ls-files --eol` shows `i/lf` for every tracked text file on both machines.
+- [x] X.1.2 `.gitattributes` with `* text=auto eol=lf`, `.gitignore` with `.DS_Store`; the renormalising commit is the owner's call (Q-F). Done when: `git ls-files --eol` shows `i/lf` for every tracked text file on both machines. Done on 2026-09-25: the index already held every text file with LF, so `git add --renormalize .` changed nothing and no renormalising commit is needed. The one other entry in the listing is the empty `sim/include/unison/sim/.gitkeep`, which has no line to end and reads `i/none`.
 - [ ] X.1.3 Formatting parity: the Mac's clang-format passes `--dry-run --Werror` over the tracked sources exactly as Windows' does. Done when: the check passes on the tree at HEAD without a single change; any file the two versions disagree on is reported to the owner before anything is touched.
 
 ### X.2 The compiler contract on clang

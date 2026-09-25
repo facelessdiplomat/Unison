@@ -5,6 +5,7 @@ out/
 .vs/
 .vscode/
 .idea/
+.DS_Store
 CMakeUserPresets.json
 *.VC.db
 *.sln
