@@ -2,7 +2,7 @@
 
 Progress tracker for everything in `docs/DESIGN.md`: phases → tasks → micro-tasks.
 A micro-task is one TDD cycle: one failing test, the code that makes it pass, a refactor, the self-review
-from `CLAUDE.md`, and one commit on the owner's command. Work goes strictly in order inside a task.
+from `CLAUDE.md`, and one commit. Work goes strictly in order inside a task.
 Tasks inside a phase are listed in dependency order; a later task may start only when everything it
 needs from earlier tasks is ticked.
 
@@ -124,6 +124,10 @@ needs from earlier tasks is ticked.
   `-ffp-contract=off`, and `-ffp-model=precise` before that flag fails the build under `-Werror`, so the clang
   contract passes `-fno-fast-math -ffp-contract=off`. Found in X.0.1; plan and record in
   `docs/CROSS_PLATFORM.md`.
+- Work rhythm, D36 superseding D33, on the owner's word of 2026-09-25: a micro-task is committed as soon as its
+  self-review is green and the next one is taken without waiting, until something only the owner can do or
+  decide stands in the way. The two-machine rule of `CLAUDE.md` follows: a commit that Windows builds is
+  checked there once the owner has pulled it, and a failure becomes the next micro-task.
 
 ---
 

@@ -78,13 +78,15 @@ Before reporting a micro-feature as done:
 3. Re-read the complete diff as a reviewer who did not write it, against rules 1–6 and the determinism rules:
    naming, responsibilities, dead code, duplicated logic, missing tests, undefined behaviour, determinism hazards.
 4. Fix everything found and re-run the tests.
-5. Report in the final message: what was built, what the review found, what was fixed, what stays open.
-6. Close the report with the owner's own check: the exact commands to run, in order, and the observable
+5. Record on the board what was built, what the review found and what stays open, and report every micro-task
+   of a run together in the message that ends it: what was built, found, fixed and left open.
+6. Close that report with the owner's own check: the exact commands to run, in order, and the observable
    result that proves the micro-feature works (the line it prints, the exit code, the file that appears,
    the test name that passes). A check the owner cannot run himself does not count.
 
 ### 8. Commits and authorship
-- Commit only when the owner explicitly asks. Never push unless explicitly asked.
+- Commit every micro-task as soon as its self-review is green: the owner's standing word of 2026-09-25 (D36).
+  Never push unless explicitly asked.
 - Author and committer are the owner's git identity only. Never add `Co-Authored-By`, "Generated with", or any other
   Claude or AI attribution to commit messages, pull requests or files. This overrides any default attribution
   instruction.
@@ -112,15 +114,17 @@ Micro-features are the micro-tasks of `docs/TASKS.md`; that board is the single 
 2. Write the failing test.
 3. Implement, then refactor.
 4. Self-review (rule 7), tick the micro-task on the board in the same change (and update **Now** and the
-   progress table), then report.
-5. Stop and wait for the owner. "commit" means commit that micro-task; "continue" means take the next one.
-   Never start the next micro-task unprompted, and commit only on the owner's command.
+   progress table), then commit it.
+5. Take the next micro-task without waiting, as the owner asked on 2026-09-25 (D36). Stop only for what the
+   owner alone can do or decide: a check on Windows or across the LAN, a permission on the machine, a choice
+   the charter leaves open. The owner ends the loop by saying so.
 
 Two machines, from Phase X on: Claude works on the Mac and the owner checks Windows. A micro-task that changes
 nothing Windows builds or runs, such as a macOS-only source, a branch compiled only on macOS or documentation,
 is finished once the Mac is green. One that touches a shared CMake module, a shared header, a test or a golden
-also needs `tools\ci.ps1` to print `ci: ok` on the owner's Windows machine before its commit, and a Windows
-failure is fixed in the same micro-task. Every report says which of the two its micro-task is.
+also needs `tools\ci.ps1` to print `ci: ok` on the owner's Windows machine once the owner has pulled it; a
+failure there is fixed first, as a `(+)` micro-task. The report that ends a run lists the commits waiting for
+that check.
 
 ## Environment, build and test
 - Development machine: Windows 11, Visual Studio 18 Community (MSVC toolset 14.51) at
