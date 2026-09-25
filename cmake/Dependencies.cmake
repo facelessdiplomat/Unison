@@ -17,7 +17,9 @@ CPMAddPackage(
     OPTIONS "CATCH_INSTALL_DOCS OFF" "CATCH_INSTALL_EXTRAS OFF" "CATCH_BUILD_TESTING OFF"
 )
 
-target_compile_options(Catch2 PUBLIC /EHsc)
+if(MSVC)
+    target_compile_options(Catch2 PUBLIC /EHsc)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/extras")
 

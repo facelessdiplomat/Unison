@@ -98,6 +98,9 @@ foreach(entryIndex RANGE ${lastEntry})
 
         if(UNISON_CXX_COMPILER_ID STREQUAL "MSVC")
             unison_require("the test executable" "${entryCommand}" "/EHsc")
+        else()
+            unison_require("the test executable" "${entryCommand}" "-ffp-contract=off")
+            unison_forbid("the test executable" "${entryCommand}" "/EHsc")
         endif()
 
         unison_forbid("the test executable" "${entryCommand}" ${exceptionFreeFlag})

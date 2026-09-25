@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.3.1**, Catch2 and the test executables declare exceptions per compiler, and on clang the tests take
-  `-ffp-contract=off`. Last finished: X.2.9. On the owner's word of 2026-09-25 Phase X, the port to macOS and play
-  between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between
-  Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.3.2**, ENet's Windows libraries and warning switches kept to Windows and MSVC. Last finished:
+  X.3.1. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs
+  before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is
+  deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 14 |
+| X Cross-platform: macOS | 10 | 54 | 15 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **150** |
+| **Total** | **41** | **246** | **151** |
 
 ## Charter amendments made while planning
 
@@ -377,7 +377,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.2.9 `CMakePresets.json`: `clang-base` (hidden, host `Darwin`, Ninja, `cc`/`c++`, compile commands), `clang-debug`, `clang-release`; build, test and workflow presets for all four configurations (Q-B), tests with output on failure and parallelism from `CTEST_PARALLEL_LEVEL`. Done when: `cmake --preset clang-debug` configures on the Mac and fetches every dependency; `cmake --list-presets` on Windows still shows only the `msvc-*` configure presets. Done on 2026-09-25: `clang-base` holds the Mac's half, conditioned on a Darwin host as the MSVC half is on a Windows one, and every configuration has a build, a test and a workflow preset; the test presets print a failure's output and leave parallelism to `CTEST_PARALLEL_LEVEL`. `cmake --preset clang-debug` configures from an empty directory with all eight dependencies and NEON as the instruction set, and `clang-release` alike. `cmake --list-presets` shows the clang presets alone on the Mac, and the same condition leaves the MSVC ones alone on Windows. A clang workflow stops at the build until X.3 and X.5.
 
 ### X.3 Dependencies and targets on macOS
-- [ ] X.3.1 Catch2 and the test executables declare exceptions per compiler: `/EHsc` on MSVC, nothing on clang, where exceptions are the default. On clang the test executables also take `-ffp-contract=off`: the scenes the goldens are recorded from are set up in test code, which clang would otherwise contract and MSVC, on its SSE2 baseline, cannot. The `module_determinism` walk of X.2.7 asserts both. Test: the CTest case passes; `unison_tests_fast` links on the Mac once X.5 is through.
+- [x] X.3.1 Catch2 and the test executables declare exceptions per compiler: `/EHsc` on MSVC, nothing on clang, where exceptions are the default. On clang the test executables also take `-ffp-contract=off`: the scenes the goldens are recorded from are set up in test code, which clang would otherwise contract and MSVC, on its SSE2 baseline, cannot. The `module_determinism` walk of X.2.7 asserts both. Test: the CTest case passes; `unison_tests_fast` links on the Mac once X.5 is through. Done on 2026-09-25: Catch2 takes `/EHsc` on MSVC alone, and `unison_apply_test_flags` in `tests/CMakeLists.txt` gives the three test executables `/EHsc` on MSVC and `-ffp-contract=off` on clang. The module walk requires `-ffp-contract=off` of a clang test line and forbids `/EHsc` there, and fails on the build before the change and on a copy of its commands with `/EHsc` put into a test line. No `/EHsc` is left in the Mac's compile commands, and Catch2 builds on the Mac.
 - [ ] X.3.2 ENet's `winmm ws2_32`, `/wd5287` and `_WINSOCK_DEPRECATED_NO_WARNINGS` under `if(WIN32)` and `if(MSVC)`. Test: `enet` compiles on the Mac; `tests/net/enet_smoke_test.cpp` passes there.
 - [ ] X.3.3 Jolt on arm64 configured and verified: `CROSS_PLATFORM_DETERMINISTIC ON`, exceptions and RTTI off, `-ffp-contract=off`, no `-mfma`; the `-faligned-allocation` Jolt adds for Apple clang noted. Test: X.2.7's case; `tests/sim/jolt_smoke_test.cpp` passes on the Mac.
 - [ ] X.3.4 The console's `WIN32_LEAN_AND_MEAN NOMINMAX` under `if(WIN32)`; its keyboard and screen sources chosen per platform (`console_keyboard_windows.cpp` / `console_keyboard_macos.cpp`, `console_screen_windows.cpp` / `console_screen_posix.cpp`) behind the same headers. Done when: the console target configures on both platforms with the right sources listed.

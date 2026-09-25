@@ -76,6 +76,14 @@ set_tests_properties(module_determinism PROPERTIES LABELS slow)
 
 include(Catch)
 
+function(unison_apply_test_flags target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /EHsc)
+    else()
+        target_compile_options(${target} PRIVATE -ffp-contract=off)
+    endif()
+endfunction()
+
 add_library(unison_determinism_canary STATIC support/multiply_then_add.cpp)
 
 target_include_directories(unison_determinism_canary PUBLIC "${CMAKE_CURRENT_LIST_DIR}")
@@ -196,7 +204,7 @@ target_link_libraries(
     Catch2::Catch2WithMain
 )
 
-target_compile_options(unison_tests_fast PRIVATE /EHsc)
+unison_apply_test_flags(unison_tests_fast)
 
 catch_discover_tests(unison_tests_fast PROPERTIES LABELS fast)
 
@@ -253,7 +261,7 @@ target_link_libraries(
     Catch2::Catch2WithMain
 )
 
-target_compile_options(unison_tests_arena PRIVATE /EHsc)
+unison_apply_test_flags(unison_tests_arena)
 
 target_compile_definitions(
     unison_tests_arena PRIVATE "UNISON_GOLDEN_DIR=\"${CMAKE_CURRENT_LIST_DIR}/golden\""
@@ -267,4 +275,4 @@ target_include_directories(unison_benchmarks PRIVATE "${CMAKE_CURRENT_LIST_DIR}"
 
 target_link_libraries(unison_benchmarks PRIVATE arena_sim Catch2::Catch2WithMain)
 
-target_compile_options(unison_benchmarks PRIVATE /EHsc)
+unison_apply_test_flags(unison_benchmarks)
