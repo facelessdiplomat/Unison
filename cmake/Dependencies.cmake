@@ -54,6 +54,10 @@ CPMAddPackage(
             "INTERPROCEDURAL_OPTIMIZATION OFF"
             "FLOATING_POINT_EXCEPTIONS_ENABLED OFF"
             "USE_STATIC_MSVC_RUNTIME_LIBRARY OFF"
+            "JPH_USE_DX12 OFF"
+            "JPH_USE_VK OFF"
+            "JPH_USE_MTL OFF"
+            "JPH_USE_CPU_COMPUTE OFF"
             ${joltInstructionSet}
 )
 

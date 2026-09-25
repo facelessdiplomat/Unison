@@ -72,8 +72,11 @@ foreach(entryIndex RANGE ${lastEntry})
     if(entryFile MATCHES "joltphysics")
         set(joltSeen TRUE)
 
-        unison_require(jolt "${entryCommand}" ${determinismFlags} ${instructionSetFlags})
-        unison_forbid(jolt "${entryCommand}" ${exceptionsOnFlag} ${forbiddenFlags})
+        unison_require(jolt "${entryCommand}" ${determinismFlags} ${instructionSetFlags} "JPH_CROSS_PLATFORM_DETERMINISTIC")
+        unison_forbid(
+            jolt "${entryCommand}" ${exceptionsOnFlag} ${forbiddenFlags} "JPH_USE_DX12" "JPH_USE_VK" "JPH_USE_MTL"
+            "JPH_USE_CPU_COMPUTE"
+        )
     endif()
 
     if(entryFile MATCHES "/tests/compile/")
