@@ -20,6 +20,26 @@ set_tests_properties(
     determinism_flags PROPERTIES FIXTURES_REQUIRED determinismFlagsProject LABELS slow
 )
 
+if(UNISON_INSTRUCTION_SET STREQUAL "NEON")
+    set(foreignInstructionSet SSE2)
+else()
+    set(foreignInstructionSet NEON)
+endif()
+
+add_test(
+    NAME determinism_refuses_a_foreign_instruction_set
+    COMMAND
+        ${CMAKE_COMMAND} -S "${CMAKE_CURRENT_LIST_DIR}/cmake/determinism_flags" -B
+        "${CMAKE_CURRENT_BINARY_DIR}/determinism_foreign_instruction_set" -G "${CMAKE_GENERATOR}" -D
+        "UNISON_INSTRUCTION_SET=${foreignInstructionSet}"
+)
+
+set_tests_properties(
+    determinism_refuses_a_foreign_instruction_set
+    PROPERTIES PASS_REGULAR_EXPRESSION "UNISON_INSTRUCTION_SET must be [^\n]+ on [^\n]+, not ${foreignInstructionSet}"
+               LABELS slow
+)
+
 add_test(
     NAME determinism_guard
     COMMAND ${CMAKE_COMMAND} -S "${CMAKE_CURRENT_LIST_DIR}/cmake/determinism_guard" -B

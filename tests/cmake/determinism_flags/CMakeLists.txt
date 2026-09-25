@@ -16,3 +16,5 @@ include(UnisonDeterminism)
 add_library(unison_determinism_probe STATIC probe.cpp)
 
 unison_apply_determinism(unison_determinism_probe)
+
+file(WRITE "${PROJECT_BINARY_DIR}/compiler_id.txt" "${CMAKE_CXX_COMPILER_ID}")
