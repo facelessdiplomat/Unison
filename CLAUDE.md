@@ -135,6 +135,37 @@ that check.
   macOS 27.0, arm64. Apple clang 21.0.0 from the Command Line Tools, with Xcode 27.0 beside them; CMake 4.4.3 and
   Ninja 1.13.2 from Homebrew, on `PATH`; clang-format 20.1.8 from Homebrew's keg-only `llvm@20`, the major Visual
   Studio bundles, which `source tools/env.sh` (task X.1.1) exports as `UNISON_CLANG_FORMAT`.
-- Unreal Engine 5.8 is installed at `C:\Program Files\Epic Games\UE_5.8` (target for Phase 5).
-- A second Windows machine on the same LAN is available for the Phase 3 network test.
-- CMake presets and test commands arrive in Phase 0; update this section when they exist.
+- Unreal Engine 5.8 is installed at `C:\Program Files\Epic Games\UE_5.8` (target for Phase 5); the Mac gets its
+  copy before Phase 5, as `docs/CROSS_PLATFORM.md` §8.2 prepares.
+- The LAN test of `docs/LAN_TEST.md` runs between the Windows machine and the Mac; a second Windows machine on the
+  same LAN is available as well.
+- Presets: `msvc-debug` and `msvc-release` on Windows, `clang-debug` and `clang-release` on the Mac, each a
+  configure, build, test and workflow preset that builds into `build/<preset>`.
+- The whole check, `tools\ci.ps1` on Windows and `tools/ci.sh` on the Mac, runs the Debug and the Release workflow,
+  configure, build with warnings as errors and every test, then checks the formatting of every tracked source,
+  and ends with `ci: ok`. One configuration is one workflow, and `ctest --preset <preset>` runs its tests again
+  after a build: `-L fast` the unit tests and the tools' quick checks, `-L slow` the CMake probe projects,
+  `-L profile` the runner's profiles, `-R "<name>"` the tests whose names match. Each line below is a command
+  of its own, run from the repository root, in PowerShell on Windows:
+
+  ```powershell
+  .\tools\ci.ps1
+  .\tools\env.ps1
+  cmake --workflow --preset msvc-debug
+  ctest --preset msvc-debug -R "snapshot ring"
+  & $env:UNISON_CLANG_FORMAT -i session/src/snapshot_ring.cpp
+  ```
+
+  and in zsh on the Mac:
+
+  ```sh
+  tools/ci.sh
+  source tools/env.sh
+  cmake --workflow --preset clang-debug
+  ctest --preset clang-debug -R "snapshot ring"
+  "$UNISON_CLANG_FORMAT" -i session/src/snapshot_ring.cpp
+  ```
+
+- The binaries sit in `build/<preset>/tools/relay`, `tools/console` and `tools/runner`. The benchmarks are run on
+  purpose, `build/<preset>/tests/unison_benchmarks "[.benchmark]"` in Release, and recorded in
+  `tests/benchmarks/baseline.md`.
