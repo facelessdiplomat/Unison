@@ -18,11 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.8.1**, `docs/LAN_TEST.md` extended so the owner can follow it on the Mac: building there, the
-  binaries' paths, the firewall's prompt, Input Monitoring, `echo $?` and `--from`. Last finished: X.7.6. On the
-  owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4,
-  and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL
-  is installed.
+- Next up: **X.9.1**, `CLAUDE.md`'s environment, build and test section with the real commands for both platforms,
+  while X.8.2 and X.8.3, the LAN runs between Windows and the Mac, wait for the owner. Last finished: X.8.1. On
+  the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase
+  4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until
+  WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,11 +44,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 44 |
+| X Cross-platform: macOS | 10 | 55 | 45 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **180** |
+| **Total** | **41** | **247** | **181** |
 
 ## Charter amendments made while planning
 
@@ -420,7 +420,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.7.6 A relay and two consoles on localhost on the Mac for a minute, round trips of a few milliseconds, the verified frame a frame behind the predicted one, as 3.4.7 recorded on Windows. Recorded in `docs/CROSS_PLATFORM.md` §9. Done on 2026-09-25: a relay and two consoles of the Release build at `ae55410` played a minute on localhost with round trips of 1 to 3 ms, the verified frame one behind the predicted one in 58 of 59 seconds and level in the other, one rollback for each console in its first second, zero desyncs and exit codes 0, as 3.4.7 recorded on Windows; `docs/CROSS_PLATFORM.md` §9.2 holds the run and its commands. The consoles read no keys and drew no screen, their standard input from `/dev/null` and their output in files; keys held together are the owner's hand check of X.7.3.
 
 ### X.8 The cross-platform LAN run
-- [ ] X.8.1 `docs/LAN_TEST.md` extended: either machine may be the Mac; building there (`cmake --workflow --preset clang-release`), the binaries' paths, the macOS application firewall's prompt for a relay that accepts connections, the Input Monitoring permission of X.7.2, `echo $?` for the exit code, `--from` for a console next to its relay. Done when: the owner can follow it on the Mac without asking.
+- [x] X.8.1 `docs/LAN_TEST.md` extended: either machine may be the Mac; building there (`cmake --workflow --preset clang-release`), the binaries' paths, the macOS application firewall's prompt for a relay that accepts connections, the Input Monitoring permission of X.7.2, `echo $?` for the exit code, `--from` for a console next to its relay. Done when: the owner can follow it on the Mac without asking. Done on 2026-09-25: machine A and machine B are named by their roles, either of them Windows or a Mac, and the test runs twice between the two, Windows as machine A first. Beside every Windows step stands the Mac's: `tools/ci.sh` or the `clang-release` workflow to build, `ipconfig getifaddr en0` for the address, the binaries under `build/clang-release/tools`, the firewall's question for the relay, Input Monitoring, a Terminal window of at least 120 columns and 30 rows for the screen's 27, keys read whichever window is in front, and `echo $?` for the exit code; both machines play one commit, and `route -n get` shows whether a VPN takes the other machine off the LAN. On the Mac a console sending `--from 127.0.0.1` played five seconds beside one that did not, both exiting 0. Whether the owner follows it without asking shows in X.8.2.
 - [ ] X.8.2 Run one: the relay on Windows, one console on Windows, one on the Mac, `--run-for 660`, zero desyncs, both exit codes 0, recorded in `docs/LAN_TEST.md`. 3.4.5 is ticked from this run (Q-I).
 - [ ] X.8.3 Run two: the relay on the Mac, the same consoles, the same criteria, recorded.
 - [ ] X.8.4 The consoles' half of Definition of Done item 10 recorded as met in the exit criteria of Phase X from the two records; the Unreal half follows in 5.2.13.
