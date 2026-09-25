@@ -18,17 +18,20 @@ Unison is a deterministic, rollback-based multiplayer simulation engine written 
 C++20, in the spirit of **Photon Quantum**, but engine-agnostic and built from proven
 open-source components.
 
-The simulation is fully isolated from any host engine. The same gameplay code runs:
+The simulation is fully isolated from any host engine. The same gameplay code runs, on Windows x64 and on
+macOS arm64 alike:
 
 - **headless in a terminal** (development runner, tests, CI, replay tools, console client), and
 - **inside Unreal Engine 5** as a plugin (first host engine; others later).
 
-Every client runs an identical copy of the simulation. Only player inputs travel over
+Every client runs an identical copy of the simulation, whichever of the two platforms it runs on, so a client
+on Windows and a client on macOS play one match together. Only player inputs travel over
 the network. A lightweight relay server orders inputs and never simulates anything.
 
 ### 1.1 Goals
 
-1. **Bit-exact determinism** across all clients in a session, verified continuously by checksums.
+1. **Bit-exact determinism** across all clients in a session, on Windows and macOS alike, verified continuously
+   by checksums.
 2. **Responsive play** via input prediction and rollback (no input delay by default).
 3. **Isolation**: the simulation has no rendering, no I/O, no wall clock, no host-engine types.
 4. **One gameplay codebase, many hosts**: terminal runner and UE plugin consume the same static libraries.
@@ -37,7 +40,8 @@ the network. A lightweight relay server orders inputs and never simulates anythi
 ### 1.2 Non-goals for v1
 
 - Authoritative-server or peer-to-peer topologies (relay only).
-- Platforms other than Windows x64 / MSVC for the *simulation* (the relay is portable).
+- Platforms other than Windows x64 with MSVC and macOS arm64 with Apple clang (D35): Linux, x86-64 macOS and
+  ARM64 Windows are backlog, while the relay, which never simulates, stays portable.
 - A DSL / code generator for components (Quantum's `.qtn`).
 - A stable C ABI for non-C++ hosts (Unity, Godot).
 - Navigation / pathfinding, 2D-specific physics, lobbies, matchmaking, authentication, encryption.
@@ -61,13 +65,18 @@ v1 is complete when **all** of the following hold:
 5. A spectator client follows a match without an input slot.
 6. A replay recorded from a network session verifies with `unison_replay verify`; a
    deliberately corrupted replay reports the first divergent frame and a state diff.
-7. The Unreal sample project plays the Arena with two or more clients through the relay:
-   entity actors spawn/despawn from simulation events, rendering interpolates smoothly at
+7. On Windows and on macOS, the Unreal sample project plays the Arena with two or more clients through the
+   relay: entity actors spawn/despawn from simulation events, rendering interpolates smoothly at
    60 / 120 / 144 FPS while the simulation ticks at 60 Hz.
-8. Debug and Release builds (MSVC, Windows x64) produce identical checksums over the
-   committed golden replay. This is the cheapest cross-optimization determinism check.
+8. Debug and Release builds on both platforms, MSVC on Windows x64 and Apple clang on macOS arm64, produce
+   identical checksums over the committed golden replay: four builds, one set of checksums. This is the
+   cheapest cross-optimization and cross-compiler determinism check.
 9. Documentation exists for: this charter, the session/view-bridge API, and a
    "how to add a component and a system" guide.
+10. Clients on Windows and on macOS play the Arena together at 60 Hz for 10 minutes with rollback and zero
+    desyncs: a `unison_console` on each platform through a `unison_relay` on Windows and again through one on
+    macOS; then the Unreal sample on the two platforms together, and the Unreal sample on macOS with a
+    console on Windows.
 
 ---
 
@@ -89,14 +98,14 @@ they explain why the architecture looks the way it does.
 | D9 | Math + physics route | **Jolt Physics + deterministic float** | Fixed-point + own physics; hybrid fixed-point gameplay + Jolt | No mature open-source fixed-point 3D physics exists. Jolt (MIT) ships a `CROSS_PLATFORM_DETERMINISTIC` build option, `SaveState`/`RestoreState` for rollback, a character controller, and a deterministic math library. The cost is strict floating-point discipline (Section 7). |
 | D10 | ECS | **EnTT** (MIT, header-only) | flecs; custom arena ECS | Most widely used C++ ECS, deterministic iteration order given deterministic operations. Snapshot is a per-pool bulk copy rather than one memcpy; acceptable and benchmarked early. flecs v4 dropped built-in snapshots. |
 | D11 | Transport | **ENet** (MIT) | GameNetworkingSockets; custom UDP | Small, mature, reliable + unreliable channels over UDP, builds everywhere. Encryption / Steam relay is a backlog item. |
-| D12 | Determinism platforms (v1) | **Windows x64, MSVC only** | Windows + Linux; + macOS/ARM64 | Smallest scope. The relay does not simulate, so it can still be hosted on Linux. Wider matrix is backlog. |
+| D12 | Determinism platforms (v1) | ~~**Windows x64, MSVC only**~~ → **Windows x64 with MSVC and macOS arm64 with Apple clang** (superseded by D35) | Windows + Linux; + macOS/ARM64 | Smallest scope at the start; the relay does not simulate, so it could still be hosted on Linux. See D35. |
 | D13 | Host API | **C++ API, core as static libraries** | C++ + C ABI; C++ now, C ABI later | UE links ThirdParty static libs natively. The public API avoids templates and inline logic at the boundary so a C wrapper can be added later. |
 | D14 | View layer | **Events + direct state reads with interpolation** | Polling only | Quantum model. Events split into verified-only and predicted (cancellable on rollback). |
 | D15 | Tick rate | **60 Hz default**, configurable | 30 Hz; undecided | Action-game standard; tests must also pass at 30 Hz. |
 | D16 | C++ standard | **C++20** | C++17; C++23 | Matches UE 5.3+; fully supported by MSVC. |
 | D17 | Build | **CMake + CPM.cmake** | vcpkg manifest; git submodules | Single build system, pinned dependency versions, Jolt built from source with our determinism flags. |
 | D18 | Tests | **Catch2 v3** | GoogleTest; doctest | Sections, generators, built-in benchmarks, CTest integration. |
-| D19 | UE version | **UE 5.8** (installed on the development machine; re-check at the start of Phase 5) | 5.6; 5.7; latest at Phase 5 | Plugin phase comes after the terminal phases; the installed version is the natural target. |
+| D19 | UE version | **UE 5.8**, on Windows and on macOS (installed on the Windows machine; re-check at the start of Phase 5) | 5.6; 5.7; latest at Phase 5 | Plugin phase comes after the terminal phases; the installed version is the natural target. On macOS Epic lists Xcode 26.0 to 26.1.1 for UE 5.8, while the Mac has Xcode 27.0 on macOS 27.0, so task 5.1.6 checks that pair first (Q10). |
 | D20 | Sample game | **3D Arena** | Physics sandbox; 1v1 fighter | Exercises input, prediction, rollback, events, character kinematics and rigid-body dynamics at once. |
 | D21 | Players | **2–4 in MVP, protocol designed for 8** | Strictly 2; 16+ | Typical rollback range. |
 | D22 | v1 session features | **Replay, desync detection, late-join, reconnect, spectators, network simulator** | subsets | All selected. |
@@ -112,6 +121,7 @@ they explain why the architecture looks the way it does.
 | D32 | Errors | **Three tiers: Debug-only `UNISON_ASSERT`, always-on `UNISON_VERIFY` with a fatal handler, `tl::expected` for recoverable boundary errors** | Asserts always on; error-code enums | Debug and Release stay behaviourally identical; no exceptions; recoverable errors are explicit in signatures. |
 | D33 | Work rhythm | **Stop after every micro-task**: self-review, report, wait for the owner's "commit" or "continue" | Stop at task boundaries; standing commit authorisation | Maximum control for the owner; one commit per micro-task falls out naturally. Single branch `main`. |
 | D34 | Units and axes | **Jolt-native: metres, seconds, kilograms, radians, Y-up, right-handed**; conversion only in host adapters | Z-up right-handed; Unreal-native | Zero conversions in the heaviest consumer (physics, character controller); one tested conversion at the Unreal boundary. |
+| D35 | Platforms | **Windows x64 with MSVC and macOS arm64 with Apple clang; clients on the two play one match; the Unreal plugin runs on both** | Windows only (D12); macOS through Rosetta 2, running the SSE2 code of Windows; Linux as well | The owner's word of 2026-09-25. Jolt verifies its `CROSS_PLATFORM_DETERMINISTIC` build across MSVC on x64 and clang on ARM64 with NEON, among others, so what is left to prove is our own: the compiler contract on clang (§7.1), the floating-point environment on arm64 (§7.2), the rules that keep two compilers and two standard libraries alike (§7.3), and goldens and a mixed LAN run across the two (§7.4). Planned and recorded in `docs/CROSS_PLATFORM.md`; Rosetta 2 stays a fallback. |
 
 ---
 
@@ -173,13 +183,13 @@ state freely; they never mutate it except through `Session` inputs.
 | `unison_session` | static lib | `Session` (rollback state machine), `InputBuffer`, `SnapshotRing`, `Checksum`, `ReplayWriter/Reader`, `SnapshotSerializer` (late-join), `TimeSync` | sim, net |
 | `unison_net` | static lib | `ITransport`, `LoopbackHub` + `NetworkSimulator`, `EnetTransport`, `SessionConfig`, relay protocol messages, `RelayCore` (reusable by in-process and standalone relay) | ENet, core |
 | `unison_view` | static lib | Event dispatch with raise/cancel semantics, `EntityViewMap`, `TransformInterpolator`, read-only frame accessors | session |
-| `unison_relay` | executable | Standalone relay server over ENet, portable (Windows/Linux) | net |
+| `unison_relay` | executable | Standalone relay server over ENet, portable (Windows and macOS; Linux untried) | net |
 | `unison_runner` | executable | N clients + in-process relay + network simulator; checksum comparison; exit code for CI | session, view, game sim |
 | `unison_replay` | executable | record / play / verify / diff | session, game sim |
 | `unison_console` | executable | Console client with text visualisation and keyboard input | view, net, game sim, its console view |
 | `arena_sim` | static lib | The sample game's deterministic code | sim |
 | `arena_view_console` | static lib | Text renderer for Arena: the top-down map the console draws | arena_sim |
-| `Unison` (UE plugin) | UE plugin | `UnisonRuntime` module linking the libs above; subsystem, input, entity views, events, debug HUD | UE, all libs |
+| `Unison` (UE plugin) | UE plugin | `UnisonRuntime` module linking the libs above on Win64 and Mac; subsystem, input, entity views, events, debug HUD | UE, all libs |
 
 ### 5.3 Engine-wide conventions
 
@@ -193,8 +203,8 @@ state freely; they never mutate it except through `Session` inputs.
     `LogSink` and calls the installed fatal handler (default: abort; the Unreal adapter installs its own).
   - Recoverable failures at boundaries (network parsing, joining a session, file formats) return
     `tl::expected<T, Error>`. Simulation code never returns errors: an invalid state is a contract violation.
-- **Encoding**: little-endian byte order (v1 targets x64 only), `uint32_t` frame numbers, `uint8_t` slot ids,
-  `uint32_t` entity ids at the host boundary.
+- **Encoding**: little-endian byte order, which both platforms share and `BinaryWriter` and `BinaryReader`
+  assert, `uint32_t` frame numbers, `uint8_t` slot ids, `uint32_t` entity ids at the host boundary.
 - **Logging**: `LogSink` is a process-wide callback and is one of the three pieces of global mutable state the
   engine allows. It exists because `UNISON_VERIFY` is a macro and cannot take an injected dependency, and
   because a host installs one sink for the whole process. The exception is bounded: the sink is write-only
@@ -372,30 +382,56 @@ These rules apply to every deterministic library (`unison_core`, `unison_sim`, `
 They are enforced by compiler flags in `cmake/UnisonDeterminism.cmake`, by code review
 checklists, and by the tests in Section 11.
 
-### 7.1 Compiler flags (MSVC, v1)
+### 7.1 Compiler flags (MSVC and clang)
 
-- `/fp:precise` — never `/fp:fast`. Do not pass `/fp:contract`; fused multiply-add
-  contraction must stay off.
-  `/fp:precise` is always passed explicitly: MSVC defines no `_M_FP_*` macro when no `/fp:` flag is
+Every deterministic library and Jolt compute alike on both platforms: IEEE single and double precision,
+evaluated as written, rounded to nearest, never fused into a multiply-add and never reassociated. Each compiler
+is held to that by flags of its own, which `unison_apply_determinism` applies:
+
+| Contract | MSVC, Windows x64 | Apple clang, macOS arm64 |
+|----------|-------------------|--------------------------|
+| Value-safe floating point | `/fp:precise`, never `/fp:fast` or `/fp:strict` | `-fno-fast-math` |
+| No fused multiply-add | no `/fp:contract` | `-ffp-contract=off` |
+| No excess precision | none exists on SSE2 | `-fexcess-precision=standard` |
+| Instruction set | one `/arch:` baseline for every deterministic library and Jolt: SSE2, or AVX2 for all of them together should a benchmark ever prove it needed (Q2) | the arm64 baseline with NEON and nothing added, `UNISON_INSTRUCTION_SET` reading `NEON`; never `-mfma` or `-march=native` |
+| Determinism guard | `determinism_guard.hpp` force-included with `/FI`: rejects the build unless `_M_FP_PRECISE` is defined and `_M_FP_CONTRACT` is not | the same header force-included with `-include`: rejects `__FAST_MATH__` and `__FINITE_MATH_ONLY__` and turns contraction off with `#pragma STDC FP_CONTRACT OFF`; any other compiler is rejected |
+| Exceptions and RTTI off | `/EHs-c- /GR-` and `_HAS_EXCEPTIONS=0` | `-fno-exceptions -fno-rtti` |
+| Warnings as errors, for our own code | `/permissive- /W4 /WX` | `-Wall -Wextra -Wpedantic -Wshadow -Werror` |
+
+- `/fp:precise` is always passed explicitly: MSVC defines no `_M_FP_*` macro when no `/fp:` flag is
   given, so `determinism_guard.hpp` rejects that case too and no library rests on a compiler default.
-- A single, fixed `/arch:` baseline for all deterministic libraries and for Jolt (default: SSE2;
-  AVX2 only if a benchmark proves it is needed, in which case all libraries move together).
+- The clang flags are always passed as well, after anything a toolchain puts before them. Clang contracts by
+  default, `a * b + c` becoming one `fmadd` on arm64, and `-fno-fast-math -ffp-contract=off` placed last takes
+  back `-ffast-math` and `-ffp-model=fast` alike. `-ffp-model=precise` is not passed: it is clang's default
+  model, and followed by `-ffp-contract=off` it trips `-Woverriding-option`, which `-Werror` turns into a failed
+  build. All three were measured with Apple clang 21 on 2026-09-25.
+- The guard sees less on clang. Clang defines no macro for its default model, so there is nothing to require,
+  and neither `-ffp-model=fast` nor `-ffp-contract=fast` defines a macro or yields to the pragma. The command
+  lines are read instead: `tests/cmake/determinism_flags` and `tests/cmake/module_determinism` forbid
+  `-ffast-math`, `-Ofast`, `-ffp-model=fast`, `-ffp-model=aggressive`, `-funsafe-math-optimizations`,
+  `-fassociative-math`, `-freciprocal-math`, `-ffp-contract=on`, `-ffp-contract=fast`, `-mfma` and
+  `-march=native`, and a canary built under `unison_apply_determinism` shows in every build that a multiply
+  followed by an add rounds twice.
 - Exceptions off, RTTI off (matches Unreal's defaults; EnTT and Jolt support both), applied to every Unison
   target by `unison_apply_language_subset`, not only to the deterministic ones. `/EHs-c-` alone is not
   enough on MSVC: the STL keeps emitting `try`/`catch` that cannot unwind unless `_HAS_EXCEPTIONS=0` is
-  defined as well, and Jolt defines it for itself, so a target without it also disagrees with Jolt.
+  defined as well, and Jolt defines it for itself, so a target without it also disagrees with Jolt. libc++
+  needs no such macro: it follows `-fno-exceptions` by itself.
   `unison_apply_determinism` adds the floating-point half on top. EnTT needs `ENTT_NOEXCEPTION` for the same
   reason and polices it itself with `detect_mismatch`, so it is defined on its interface target and reaches
-  every consumer, tests included. The test executable is the one target that
-  declares exceptions on, because Catch2 needs them; `tests/cmake/module_determinism` asserts each choice.
-- `/W4 /WX` for our own code.
-- Future Clang/GCC ports: `-ffp-model=precise -ffp-contract=off`, no `-ffast-math`,
-  `-fexcess-precision=standard`.
+  every consumer, tests included.
+- The test executables are the targets that keep exceptions, because Catch2 needs them: MSVC's declare
+  `/EHsc`, clang's keep its default. They set up the scenes the goldens are recorded from in their own code,
+  so on clang they take `-ffp-contract=off` too, which MSVC needs no flag for: its SSE2 baseline has no fused
+  instruction to contract into. `tests/cmake/module_determinism` asserts each choice for each compiler.
+- Linux and GCC are backlog; a port there adds a column.
 
 ### 7.2 Runtime environment
 
-- `FpEnvGuard` saves the MXCSR control word at the start of every tick, sets round-to-nearest with
-  denormals enabled, and restores the host's state afterwards. Host engines and audio libraries
+- `FpEnvGuard` saves the thread's floating-point control register at the start of every tick, MXCSR on x64
+  and FPCR on arm64, sets the architecture's default, and restores the host's state afterwards. The default
+  rounds to nearest, keeps denormals rather than flushing them and masks every exception: `0x1F80` in MXCSR,
+  `0` in FPCR, which is also what a macOS process starts with. Host engines and audio libraries
   are free to change flush-to-zero on their threads; the simulation is not affected.
 - The simulation never reads the wall clock, thread ids, addresses, environment variables, or files.
 
@@ -406,13 +442,17 @@ checklists, and by the tests in Section 11.
 | No `std::sin/cos/tan/atan2/exp/log/pow` — use `JPH::Sin`, `JPH::Cos`, `JPH::ATan2`, etc. | libm results differ between platforms and CRT versions. `std::sqrt`, `floor`, `ceil`, `fmod`, `abs` are IEEE-exact and allowed. |
 | No `std::lerp`, `std::hypot`, `std::fma` | May use FMA or extended precision internally. |
 | No iteration over `std::unordered_*` | Bucket order depends on hash and allocation history. |
-| `std::sort` only with a total order (no ties); otherwise `std::stable_sort` | Order of equal elements in `std::sort` is implementation-defined. |
+| `std::sort`, `std::partial_sort`, `std::nth_element`, `std::partition` and heaps only with a total order (no ties); otherwise `std::stable_sort` or `std::stable_partition` | Where equal elements end up is left to the standard library, and the MSVC STL and libc++ leave them in different places. |
 | No pointer values in logic, hashes, or comparisons | Addresses differ between processes. |
 | No uninitialised memory; components use `= {}` | Padding and garbage would poison checksums. |
 | Simulation code lives only in deterministic libraries; host modules never instantiate simulation templates or call the simulation's inline functions | Host compilers (e.g. UE's toolchain flags) would compile the same code with different floating-point semantics, and the linker keeps one copy of an inline function for every caller. |
 | Public boundary headers expose POD data and non-inline functions | Same reason; also keeps a future C ABI feasible. |
 | Randomness only from `Frame::rng` (xoshiro256** seeded from the session config) | `std::rand`, `std::random_device` are not part of state. |
 | Jolt query results, active-body lists and contact callbacks are sorted before use | Jolt documents these as non-deterministic in order. |
+| No value derived from a type's name or from the compiler in state, hashes or on the wire: `entt::type_hash`, `typeid`, `std::hash`, `__FUNCSIG__`, `__PRETTY_FUNCTION__` | Each compiler and standard library spells and hashes them its own way; inside one process they may still find a table or a listener. |
+| Components, inputs, assets and messages hold fixed-width scalars only: no `long`, `wchar_t`, `long double` or bit-fields, and every enumeration has a fixed underlying type | `long` is 32 bits on Windows and 64 on macOS and `wchar_t` 16 and 32, `long double` differs on platforms beyond these two, and MSVC and clang may lay bit-fields out differently. |
+| No NaN in frame state | An invalid operation yields a NaN whose bits differ, `0.0F / 0.0F` being `0xFFC00000` on x64 and `0x7FC00000` on arm64, so a NaN reads as a desync even where both machines computed alike, besides being a bug. |
+| A float converted to an integer lies in the integer's range | Outside it the conversion is undefined, and x64 yields the lowest integer where arm64 saturates; a NaN becomes the lowest integer on x64 and 0 on arm64. |
 
 ### 7.4 Determinism verification
 
@@ -421,10 +461,14 @@ checklists, and by the tests in Section 11.
 3. Snapshot/restore exactness: run A→B, hash; restore A, run to B, hash; equal.
 4. Multi-client runner under simulated latency, jitter, loss and reordering → identical verified checksums on every frame.
 5. Replay round-trip: record over the network, verify offline.
+6. Windows against macOS: every golden recorded on Windows verifies on macOS in Debug and Release: the physics
+   pile, the scripted arena, the session config's hashes and the protocol's bytes.
+7. A Windows client and a macOS client play through one relay without a desync (§2 item 10).
 
 A golden checksum is re-recorded only deliberately: when the physics build, the scene it covers or the
 content of the state buffer changes. A golden that changes for any other reason is a determinism bug,
-not a stale number.
+not a stale number. Goldens are recorded on Windows and verified on macOS; none is ever re-recorded on one
+platform alone.
 
 ---
 
@@ -639,7 +683,8 @@ connections, as the loopback hub, never reports one.
   the next poll, a message for a peer that has gone is dropped, and a transport that goes away says goodbye
   to every peer, so the other side hears of it at once rather than at a timeout. A peer silent for longer
   than the peer timeout (five seconds unless the transport is told otherwise) is reported gone too. ENet's
-  headers, which bring in `winsock2.h`, stay inside the transport's source file.
+  headers, which bring in `winsock2.h` on Windows and the system's socket headers elsewhere, stay inside the
+  transport's source file.
 
 ### 9.2 Relay protocol (v1)
 
@@ -685,6 +730,8 @@ confirm the frames whose deadline has passed and sleeps a millisecond, on a `Ste
 start-up. While it runs, a `MillisecondTimer` asks Windows for a timer of a millisecond, as the console's loop
 does too: a sleep otherwise lasts a tick of Windows' default 15.6 ms timer, which held both loops to 64 Hz,
 kept every message waiting up to 16 ms at either end and read round trips of 16 to 32 ms on localhost.
+On macOS the timer asks for nothing, as a thread there sleeps a millisecond in about 1.3: twenty such sleeps
+took 25 to 26 ms on the Mac on 2026-09-25.
 `--input-deadline`, `--resend-interval` and `--peer-timeout` set the room's `RelaySettings` and the
 transport, and `--run-for` stops it after that many seconds. It logs through `LogSink` to standard output. Bytes that decode to no message go unanswered, and so
 does a `Ping` from a peer that is not in the match; a member's ping is answered at once on the unreliable
@@ -763,8 +810,13 @@ the session's event changes are.
   blocking from Windows' console input, which reports keys going down and up while the window has focus, and
   a lost focus lets every key go: W and S move forward and back, A and D to the sides, Space jumps, F fires,
   and Q and E turn the aim half a turn a second for as long as they are held, by the time held rather than by
-  how often the loop asks. A console without a console window, its input redirected, stands still. Its map
-  comes from `arena_view_console`: the arena from above, +X to the right and +Z down, half a metre a column
+  how often the loop asks. A console without a console window, its input redirected, stands still. On macOS
+  (X.7), where no terminal reports a key going up, the console takes the terminal into raw mode, so keys neither echo
+  nor wait for a line, and on every read asks the window server which game keys are down
+  (`CGEventSourceKeyState`), so keys held together work as on Windows; the answer is the whole login
+  session's, so a Mac console reads the keys whichever window is in front, and macOS may ask for the
+  Terminal's Input Monitoring permission (Q8). Its map comes from `arena_view_console`: the arena from above,
+  +X to the right and +Z down, half a metre a column
   and a metre a row, `#` for walls, `=` for ramps, `C` for crates, `*` for shots and every player by the
   number of their slot with an arrow for the quarter turn they look along, and below it a line for every
   player with their health, or that they wait to come back, and their kills. The map reads the arena's
@@ -777,6 +829,10 @@ the session's event changes are.
 - `tools/build_unreal_thirdparty.ps1` builds all deterministic libraries and Jolt/ENet with CMake and copies
   `.lib` + headers into `integrations/unreal/Unison/Source/ThirdParty/`. `Unison.Build.cs` links them.
   Toolchain, CRT (`/MD`), C++20, exceptions-off and RTTI-off settings match UE's build.
+- On macOS the same CMake build, run by a shell twin of that script, makes arm64 `.a` archives with the clang
+  flags of §7.1 and copies them into `ThirdParty/lib/Mac/` beside `lib/Win64/`; `Unison.uplugin` allows `Win64`
+  and `Mac`, and `Unison.Build.cs` links the archives of its platform. Universal arm64 and x86-64 binaries are
+  backlog.
 - `UUnisonSessionSubsystem` (`UGameInstanceSubsystem`): owns `SessionRunner`, ticks it on the game thread
   before physics, exposes connection state and statistics.
 - `UUnisonInputComponent`: converts Enhanced Input actions into the game's quantised `Input`.
@@ -793,15 +849,17 @@ the session's event changes are.
 | Level | Tool | What |
 |-------|------|------|
 | Unit | Catch2 | fixed containers, hashing, serialization round-trips, input buffer, snapshot ring, relay state machine |
-| Determinism | Catch2 + golden files | items 1–5 of Section 7.4 |
+| Determinism | Catch2 + golden files | items 1–6 of Section 7.4 |
 | Integration | `unison_runner` via CTest | 2/4/8 clients at 30 and 60 Hz losing 0, 5 or 20 % of the unreliable messages, over a one-way latency of 120 ms with 30 ms of jitter: eighteen profiles of five seconds of play each, labelled `profile` |
 | Integration over UDP | Catch2 | the relay's rooms and two arena clients over `EnetTransport` on 127.0.0.1, a thousand frames, every checksum alike, on a manual clock so the test runs as fast as the machine does |
 | Benchmarks | Catch2 `BENCHMARK` | tick, snapshot, restore, resimulate k frames, checksum |
-| Manual | LAN session, UE sample | Definition of Done items 2 and 7 |
+| Manual | LAN sessions and the UE sample, on both platforms | Definition of Done items 2, 7 and 10 |
 
-CI is a local script in v1 (`tools/ci.ps1`) that configures, builds Debug and Release,
-runs all tests and the golden replay. CTest runs on half the logical processors, since the eight-player
-profiles take half a minute each in Debug. A hosted CI matrix is a backlog item.
+CI is a local script per platform in v1, `tools/ci.ps1` on Windows and `tools/ci.sh` on macOS, over the same
+workflow presets of `CMakePresets.json`: configure, build Debug and Release, run all tests and the golden
+replay, then check formatting. CTest runs on half the logical processors, since the eight-player
+profiles take half a minute each in Debug. A change to code both platforms share is finished once both
+machines are green. A hosted CI matrix is a backlog item.
 
 Development follows TDD: every micro-feature starts with a failing Catch2 test, ends with a
 self-review of the full diff against the rules in `CLAUDE.md` and the determinism rules of
@@ -821,7 +879,8 @@ deterministic-multiplayer-ecs-engine/
   net/                    # unison_net
   view/                   # unison_view
   relay/                  # unison_relay executable
-  tools/                  # unison_runner, unison_replay, unison_console, scripts (ci.ps1, build_unreal_thirdparty.ps1)
+  tools/                  # unison_runner, unison_replay, unison_console, and scripts: env, ci and
+                          # build_unreal_thirdparty, as .ps1 on Windows and .sh on macOS
   samples/arena/          # arena_sim, arena_view_console, assets/
   integrations/unreal/    # Unison plugin + sample UE project (Phase 5)
   tests/                  # Catch2 tests, golden replays, benchmarks
@@ -894,16 +953,23 @@ raise/cancel diffing, `RelayCore`, loopback transport + network simulator, `unis
 **Phase 3 — Real networking.** ENet transport, `unison_relay`, time sync, input deadline policy,
 `unison_console` with text visualisation. *Exit*: Definition of Done item 2.
 
+**Phase X — Cross-platform: macOS**, between Phases 3 and 4 on the owner's word of 2026-09-25. The compiler
+contract on clang, the floating-point environment on arm64, every target and test on macOS, goldens recorded on
+Windows verified on macOS, the console on macOS, a LAN run between the two platforms; planned and recorded in
+`docs/CROSS_PLATFORM.md`. *Exit*: its exit criteria there, and Definition of Done item 10 for the consoles.
+
 **Phase 4 — Session features.** Replay files and `unison_replay`, snapshot serialisation, late-join,
 reconnect, spectators, state diff tool. *Exit*: Definition of Done items 3–6.
 
 **Phase 5 — Unreal plugin.** ThirdParty build script, `UnisonRuntime`, subsystem, input, entity views,
-events, interpolation, debug HUD, Arena UE sample. *Exit*: Definition of Done item 7.
+events, interpolation, debug HUD, Arena UE sample, on Windows and on macOS. *Exit*: Definition of Done item 7
+on both platforms, and item 10 for the Unreal hosts.
 
 **Phase 6 — Hardening.** Profiling, Jolt multithreading evaluation, memory budgets, API polish, docs.
 *Exit*: Definition of Done items 8–9.
 
-**Backlog (post-v1).** C ABI + Unity/Godot bindings; Linux/macOS/ARM64 determinism matrix and hosted CI;
+**Backlog (post-v1).** C ABI + Unity/Godot bindings; Linux (x64 and ARM64) determinism and a hosted CI
+matrix; universal arm64 and x86-64 macOS binaries of the plugin;
 navigation (Recast for baking, Detour at runtime with deterministic math shims); authoritative-server mode;
 DSL/codegen; 2D physics module (Box2D v3, cross-platform deterministic); encryption / Steam relay via
 GameNetworkingSockets; lobbies and matchmaking; multiple local players per client; delta-compressed inputs
@@ -917,6 +983,7 @@ player's spawn point faces.
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | Float determinism breaks with a future compiler or platform | Desyncs | Flags module shared by all deterministic libs, no libm trig, FP-environment guard, Debug-vs-Release and cross-compiler checks; fallback: fixed-point gameplay math behind the same API (Jolt would stay float). |
+| Two compilers, two standard libraries and two instruction sets disagree: MSVC with SSE2 on x64, Apple clang with NEON on arm64 | Desyncs between Windows and macOS clients | Jolt's `CROSS_PLATFORM_DETERMINISTIC` build, which Jolt verifies across both; the clang contract of §7.1 read off every command line and proven by a canary; FPCR held like MXCSR (§7.2); the rules of §7.3 on order, type names, widths, NaN and conversions; goldens recorded on Windows verified on macOS (§7.4); fallback: an x86-64 build under Rosetta 2, which runs the SSE2 code of Windows. |
 | Snapshot cost too high at 60 Hz (EnTT pools + Jolt `SaveState`) | Frame budget | Benchmark in Phase 1; `EStateRecorderState` subsets; body count budget; two-frame layout as alternative; custom arena storage as last resort. |
 | Jolt `RestoreState` not bit-exact after body reconciliation | Rollback desync | Deterministic body ids via `CreateBodyWithID`, reconcile before restore, dedicated exactness test in Phase 1. |
 | Non-deterministic order in Jolt queries and callbacks | Desyncs | Wrapper sorts every result set; contact events buffered and sorted. |
@@ -932,11 +999,14 @@ player's spawn point faces.
 |---|----------|-----------|
 | Q1 | Snapshot ring (single live frame) vs Quantum-style verified + predicted frames | Answered 2026-09-23 from the Phase 1 numbers and the Definition of Done's run (§8.2): the ring stays. It is 13 % cheaper while every guess is right, the two frames 32 % cheaper under 26 rollbacks a second 16 frames deep, and the difference is at most 1.4 ms a second of play, 0.14 % of a core, not worth a second simulation path and a rewrite of the session. |
 | Q2 | SSE2 vs AVX2 baseline for deterministic libraries | Answered 2026-09-22 from measured numbers: SSE2 stays. Building everything for AVX2, our libraries and Jolt together, settles on the same golden checksums for the physics pile and for the scripted arena, so the determinism contract does not rest on the instruction set. It buys 6 % on a tick and nothing on snapshots or restores, while a binary that needs AVX2 cannot run on a machine without it, so shipping it would mean shipping two. Re-run the comparison with `-DUNISON_INSTRUCTION_SET=AVX2`. |
-| Q3 | FTXUI vs plain console output for `unison_console` | Answered 2026-09-23 by the owner: plain console. A game needs to know which keys are held, and a terminal, FTXUI's included, reports only presses and their auto-repeat, never a release; Windows' console input reports both. Output is plain text and VT sequences, which Windows 10 and later understand, and no dependency is added. |
+| Q3 | FTXUI vs plain console output for `unison_console` | Answered 2026-09-23 by the owner: plain console. A game needs to know which keys are held, and a terminal, FTXUI's included, reports only presses and their auto-repeat, never a release; Windows' console input reports both. Output is plain text and VT sequences, which Windows 10 and later understand, and no dependency is added. On macOS, which has no such input, see Q8. |
 | Q4 | Jolt multithreaded stepping inside the simulation | Phase 6 |
 | Q5 | UE version and whether to support UE's Linux server target | Version answered 2026-09-21: UE 5.8 is installed (Visual Studio 18, MSVC 14.51); toolchain compatibility is confirmed in task 5.1.4. The Linux server target stays open until Phase 5. |
 | Q6 | Input deadline and reconnect grace defaults | Phase 3 LAN tests |
 | Q7 | Checksum interval default for production sessions | Phase 3 |
+| Q8 | How the console reads held keys on macOS | Answered 2026-09-25 with the plan of `docs/CROSS_PLATFORM.md` (Q-A): the terminal in raw mode and `CGEventSourceKeyState` for the game keys; whether macOS 27 asks for the Terminal's Input Monitoring permission is settled by its spike, X.7.2. |
+| Q9 | Which clang-format both machines format with | Open until X.1.1: the major of the clang-format Visual Studio bundles, installed on the Mac from Homebrew. |
+| Q10 | Whether UE 5.8 builds on the Mac's Xcode 27.0 and macOS 27.0, which Epic's requirements do not list | Phase 5, task 5.1.6; Xcode 26.1.1 beside 27.0 if not. |
 
 ---
 

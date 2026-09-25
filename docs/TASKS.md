@@ -18,9 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **3.4.5**, the owner's LAN run on two machines by `docs/LAN_TEST.md`, which ends Phase 3. Last
-  finished: 3.4.8, a console that tells of a desync. 3.2.3 is deferred until WSL is installed. On the
-  owner's word of 2026-09-23, work stops here until Phase 3 is closed.
+- Next up: **X.0.2**, which puts Phase X of `docs/CROSS_PLATFORM.md` on this board: the port to macOS, play
+  between Windows and macOS, and the Unreal plugin on both. Last finished: X.0.1, the charter amended for two
+  platforms (D35). On the owner's word of 2026-09-25 Phase X runs before Phase 4, and 3.4.5, the LAN run,
+  stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -114,6 +115,14 @@ needs from earlier tasks is ticked.
   positions, so under jitter it stood ahead of everyone and the clients ran faster than the host's clock. The
   relay now keeps a `MatchClock` started by the first input to arrive, the pong carries the frame it has due
   instead of the frontier, and the protocol moved to version 4. `DESIGN.md` §8.3 and §9.2 updated.
+- Two platforms, D35 superseding D12, on the owner's word of 2026-09-25: Windows x64 with MSVC and macOS arm64
+  with Apple clang, clients on the two playing one match, the Unreal plugin on both. Definition of Done items 7
+  and 8 cover both platforms and item 10 is the mixed run; §7 gained the compiler contract on clang, FPCR beside
+  MXCSR, and rules on sort order, type names, scalar widths, NaN and float-to-integer conversion; §15 gained
+  Phase X. Measured with Apple clang 21 on 2026-09-25: clang turns `a * b + c` into one `fmadd` unless told
+  `-ffp-contract=off`, and `-ffp-model=precise` before that flag fails the build under `-Werror`, so the clang
+  contract passes `-fno-fast-math -ffp-contract=off`. Found in X.0.1; plan and record in
+  `docs/CROSS_PLATFORM.md`.
 
 ---
 
@@ -423,7 +432,8 @@ needs from earlier tasks is ticked.
 
 ## Backlog (unscheduled)
 
-From `DESIGN.md` §15: C ABI and Unity/Godot bindings; Linux/macOS/ARM64 determinism matrix and hosted CI;
+From `DESIGN.md` §15: C ABI and Unity/Godot bindings; Linux (x64 and ARM64) determinism and a hosted CI matrix;
+universal arm64 and x86-64 macOS binaries of the plugin;
 navigation (Recast for baking, Detour at runtime with deterministic math shims); authoritative-server mode;
 DSL/codegen; 2D physics module (Box2D v3); encryption / Steam relay (GameNetworkingSockets); lobbies and
 matchmaking; multiple local players per client; delta-compressed inputs for 16+ players; frame-local heap

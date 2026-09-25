@@ -104,15 +104,17 @@ listed with what was found on 2026-09-25 and what the plan does about it.
 
 | # | Risk | What the tree shows | What the plan does |
 |---|---|---|---|
-| R1 | **Fused multiply-add.** AArch64 has `FMLA`, and clang's default `-ffp-contract=on` fuses `a * b + c` inside one expression; MSVC's `/fp:precise` never does. One fused operation anywhere in a deterministic library or in Jolt parts the platforms for good. | The charter already names the flags for a clang port (§7.1): `-ffp-model=precise -ffp-contract=off`. Nothing enforces them yet. Jolt's own CMake adds `-ffp-contract=off` for itself under `CROSS_PLATFORM_DETERMINISTIC`, and `JPH_USE_FMADD` stays off on ARM under that option. | `unison_apply_determinism` passes the flags to every deterministic library and to Jolt (X.2.3); `determinism_guard.hpp` rejects `-ffast-math` and turns contraction off by pragma (X.2.4); the flags test asserts `-ffp-contract=off` on the command line (X.2.6, X.2.7); a behavioural canary compiled inside `unison_core` proves a multiply followed by an add rounds twice (X.2.8). |
+| R1 | **Fused multiply-add.** AArch64 has fused multiply-add instructions (`fmadd`, `fmla`), and clang's default `-ffp-contract=on` fuses `a * b + c` inside one expression; MSVC on its SSE2 baseline has nothing to fuse into. One fused operation anywhere in a deterministic library or in Jolt parts the platforms for good. | Measured with Apple clang 21 on 2026-09-25: `a * b + c` compiles to `fmadd` by default and under `-ffp-model=precise`, and to `fmul` and `fadd` under `-ffp-contract=off`. `-ffp-model=precise -ffp-contract=off` works but trips `-Woverriding-option`, a failed build under `-Werror`, while `-fno-fast-math -ffp-contract=off` is silent and, placed last, takes back `-ffast-math` and `-ffp-model=fast`. `#pragma STDC FP_CONTRACT OFF` from a force-included header stops fusion under the default but not under `-ffp-contract=fast` or `-ffp-model=fast`, and `-ffp-model=fast` defines no macro a header could test. Jolt keeps `JPH_USE_FMADD` off under `CROSS_PLATFORM_DETERMINISTIC`. | `unison_apply_determinism` passes `-fno-fast-math -ffp-contract=off` to every deterministic library and to Jolt (X.2.3); the guard rejects fast-math and turns contraction off by pragma (X.2.4); the flags tests read every command line (X.2.6, X.2.7); a canary built under the determinism flags proves a multiply followed by an add rounds twice (X.2.8); the test executables take `-ffp-contract=off` as well, since they set up the goldens' scenes (X.3.1). |
 | R2 | **libm.** `sin`, `cos`, `atan2`, `exp`, `pow` differ between CRTs. | Banned by §7.3; `unison::math` wraps Jolt's polynomials; `sqrt`, `floor`, `ceil`, `fmod`, `abs` are exact everywhere. | Nothing new; the goldens prove it (X.6). |
-| R3 | **Floating-point environment.** Denormals and rounding are per-thread state: MXCSR on x64, FPCR on AArch64. Jolt's docs ask for FTZ/DAZ set alike on every platform. | `FpEnvGuard` sets MXCSR to `0x1F80` (round to nearest, denormals kept, exceptions masked) around every tick. AArch64 has no MXCSR. | A `FpControlWord` abstraction reads and writes MXCSR or FPCR and names the bits per architecture; the deterministic word on FPCR is `0` (FZ off, RMode nearest, FZ16 off, AH/FIZ/NEP off); the guard and its tests move onto it (X.4). |
+| R3 | **Floating-point environment.** Denormals and rounding are per-thread state: MXCSR on x64, FPCR on AArch64. Jolt's docs ask for FTZ/DAZ set alike on every platform. | `FpEnvGuard` sets MXCSR to `0x1F80` (round to nearest, denormals kept, exceptions masked) around every tick. AArch64 has no MXCSR; a macOS process starts with FPCR at `0`, read on 2026-09-25. | A `FpControlWord` abstraction reads and writes MXCSR or FPCR and names the bits per architecture; the deterministic word on FPCR is `0` (FZ off, RMode nearest, FZ16 off, AH/FIZ/NEP off); the guard and its tests move onto it (X.4). |
 | R4 | **Standard-library order.** `std::sort` orders equal elements differently in the MSVC STL and libc++; `std::unordered_*` iterates differently; heaps order ties differently. | Every `std::sort` in the deterministic libraries has a total order: contacts by body pair then sub-shapes, hits by fraction then body, bodies by id, assets by id. No `unordered_*` inside them. The runner's `NetworkSimulator` keeps a heap with ties, which only affects the order two simulated messages due at the same instant are delivered in, a host-side matter. | The rule enters §7.3 in words that cover heaps and partitions too (X.0.1). The runner's heap gets a sequence number so a runner run reads the same on both machines (X.9.5, optional). |
 | R5 | **Compiler-derived values in state, hashes or on the wire.** `entt::type_hash<T>` is a hash of the compiler's pretty-function string and differs between MSVC and clang; `typeid`, `__FUNCSIG__`, `std::hash` likewise. A value like that in the session config would put the two clients in different rooms. | `entt::type_hash` is used only to find an asset table, a signal listener or the input type inside one process. Assets are keyed by `AssetId`, an xxHash of a name, and `hashOf(AssetRegistry)` sorts by that id; the pipeline hash folds the systems' literal names; components are registered from one translation unit in source order. `SessionConfig` therefore carries the same `assetHash` and `pipelineHash` on both platforms. | The rule enters §7.3 (X.0.1); a golden of the arena's `assetHash`, `pipelineHash` and config hash, recorded on Windows, is checked on the Mac (X.6.5). |
 | R6 | **Layout.** `long` is 32 bits on Windows and 64 on macOS; bit-fields are laid out differently by MSVC and the Itanium ABI; an `enum` without a fixed type may differ; `std::optional` and other library types are laid out differently. A component or a message with any of these hashes or encodes differently. | No `long`, `wchar_t`, `long double` or `int_fast*` in libraries or samples; every `enum class` has a fixed underlying type; components are aggregates of fixed-width scalars checked padding-free by `UNISON_COMPONENT`; the protocol writes fields one by one, little-endian, through `BinaryWriter`. | The rule enters §7.3 (X.0.1); a golden of every message's bytes is checked on the Mac (X.6.6). |
-| R7 | **Our checksum covers more than Jolt guarantees.** `FrameChecksum` hashes the raw bytes of `PhysicsSystem::SaveState(All)` plus the characters' state: positions, rotations, velocities, sleep-test spheres, the contact cache with its warm-start impulses. Jolt verifies positions and rotations across platforms, not this buffer. | Jolt's `StreamOut::Write(const Vec3&)` writes three floats and skips the SIMD lane that SSE and NEON could fill differently, and the cached impulses feed the next step, so a buffer that differed would also make positions differ. The buffer is expected to match, but that is an inference, not a test. | The physics golden (X.6.2) is the test. If positions match and the buffer does not, the checksum moves to a canonical hash of the physics state (X.6.8, a charter change to §8.5) rather than to a per-platform golden. |
+| R7 | **Our checksum covers more than Jolt guarantees.** `FrameChecksum` hashes the raw bytes of `PhysicsSystem::SaveState(All)` plus the characters' state: positions, rotations, velocities, sleep-test spheres, the contact cache with its warm-start impulses. Jolt verifies positions and rotations across platforms, not this buffer. | Jolt's `StreamOut::Write(const Vec3&)` writes three floats and skips the SIMD lane that SSE and NEON could fill differently, and the cached impulses feed the next step, so most differences in the buffer would soon show in positions too. The exception is the sign of a zero: SSE's and NEON's minimum and maximum instructions return different zeros for +0 and −0, and a velocity of −0 moves a body no differently from +0. The buffer is expected to match, but that is an inference, not a test. | The physics golden (X.6.2) is the test. If positions match and the buffer does not, the checksum moves to a canonical hash of the physics state (X.6.8, a charter change to §8.5) rather than to a per-platform golden. |
 | R8 | **Hashing itself.** XXH3 has SSE2, AVX2 and NEON code paths. | XXH3 is specified to give the same digest on every path; `tests/core/xxhash_vectors_test.cpp` checks published vectors. | Runs on the Mac as part of X.5.7; named in X.6.1. |
 | R9 | **The compilers' own arithmetic.** With contraction off and no fast-math, clang and MSVC both evaluate `float` in single precision on SSE2 and NEON, both round to nearest, and neither reassociates. Auto-vectorisation keeps IEEE semantics without fast-math. | — | The goldens and the LAN run are the proof (X.6, X.8). |
+| R10 | **NaN bits.** An invalid operation yields a different NaN on each platform: `0.0F / 0.0F` is `0xFFC00000` on x64 and `0x7FC00000` on arm64, the latter read on 2026-09-25. | Nothing in the tree is known to produce a NaN, and one in state would be a bug on its own. | The rule enters §7.3 of the charter (X.0.1); a golden that parts ways is diagnosed by X.6.8, which names the part. |
+| R11 | **Float-to-integer conversion out of range.** It is undefined, and the hardware answers differently: x64 gives the lowest integer where arm64 saturates, and a NaN becomes the lowest integer on x64 and 0 on arm64. | No float is converted to an integer in `unison_core`, `unison_sim` or `arena_sim` on 2026-09-25; inputs reach the simulation as integers already (§6.4 of the charter). | The rule enters §7.3 of the charter (X.0.1). |
 
 What need not match: how long a sleep of a millisecond takes, when the relay's clock ticks, how the console
 reads keys or draws its screen. Those are host matters and are allowed to differ.
@@ -123,6 +125,9 @@ reads keys or draws its screen. Those are host matters and are allowed to differ
 
 Each question has a recommendation. Where the owner chooses otherwise, the micro-tasks of §5 change
 accordingly and X.0.1 records the choice in the charter.
+
+The owner accepted the plan with these recommendations on 2026-09-25. Q-A still waits on its spike (X.7.2),
+Q-C on the version X.1.1 records, and Q-H is taken up only if X.6 locates a difference.
 
 - **Q-A. The keyboard on macOS.** No terminal reports a key going up; Windows' console input does, which is
   why Q3 chose plain console input. On macOS the choices are (1) the terminal in raw mode plus
@@ -179,7 +184,7 @@ ends with the observable check that defines "done"; a micro-task that has a test
 
 ### X.0 Charter and board
 
-- [ ] X.0.1 Amend `docs/DESIGN.md`: D12 superseded by a new decision (v1 platforms are Windows x64 MSVC and macOS arm64
+- [x] X.0.1 Amend `docs/DESIGN.md`: D12 superseded by a new decision (v1 platforms are Windows x64 MSVC and macOS arm64
       Apple clang, and they play together); §1.2 loses the single-platform non-goal; §2 items 7 and 8 cover both
       platforms and a new item 10 states the cross-platform run, terminal and Unreal hosts alike; §7.1 becomes "Compiler
       flags (MSVC and clang)" with a column per compiler; §7.2 names FPCR next to MXCSR; §7.3 gains the rules of R4, R5
@@ -220,35 +225,37 @@ Until X.2.9 brings the presets, the Mac is configured by hand:
       `compile_commands.json`; `throw` in a probe source fails to compile.
 - [ ] X.2.2 `unison_apply_warnings` on clang: the set of Q-D. Test: a deliberate shadowed variable in a
       probe fails the build.
-- [ ] X.2.3 `unison_apply_determinism` on clang: `-ffp-model=precise -ffp-contract=off
-      -fexcess-precision=standard`, in that order, and `-include` of `determinism_guard.hpp`;
-      `UNISON_INSTRUCTION_SET` gains `NEON`, the only value on arm64 and its default there, while `SSE2` and
-      `AVX2` stay x86-64 values (SSE2 is clang's x86-64 baseline and adds no flag; `AVX2` adds `-mavx2` and
-      never `-mfma`); Jolt's `USE_SSE*`/`USE_AVX*` options are passed on x86-64 only. Test: the flags
-      appear on the probe's command line; `-DUNISON_INSTRUCTION_SET=SSE2` on arm64 fails at configure with
-      a message naming the architecture.
+- [ ] X.2.3 `unison_apply_determinism` on clang: `-fno-fast-math -ffp-contract=off -fexcess-precision=standard` and
+      `-include` of `determinism_guard.hpp`, after every flag a toolchain puts before them; not `-ffp-model=precise`,
+      which followed by `-ffp-contract=off` trips `-Woverriding-option` under `-Werror` (R1). `UNISON_INSTRUCTION_SET`
+      gains `NEON`, the only value on arm64 and its default there, while `SSE2` and `AVX2` stay x86-64 values (SSE2 is
+      clang's x86-64 baseline and adds no flag; `AVX2` adds `-mavx2` and never `-mfma`); Jolt's `USE_SSE*`/`USE_AVX*`
+      options are passed on x86-64 only. Test: the flags appear on the probe's command line;
+      `-DUNISON_INSTRUCTION_SET=SSE2` on arm64 fails at configure with a message naming the architecture.
 - [ ] X.2.4 `determinism_guard.hpp` on clang: rejects `__FAST_MATH__` and `__FINITE_MATH_ONLY__`, turns
       contraction off with `#pragma STDC FP_CONTRACT OFF`, and rejects any other compiler with a message.
       The MSVC branch stays as it is. Done when: `guard_probe.cpp` compiles under the flags of X.2.3 and
       fails under `-ffast-math` with the guard's own message.
-- [ ] X.2.5 `tests/cmake/determinism_guard` on clang: `-ffast-math` and `-ffinite-math-only` are
-      rejected; `-ffp-model=precise -ffp-contract=off` is accepted. Recorded difference from MSVC: no flag at
-      all is accepted on clang, because clang defines no macro for its precise mode; `-ffp-contract=fast`
-      cannot be caught by a header either, since that mode ignores the pragma. Both are caught by X.2.6 and
+- [ ] X.2.5 `tests/cmake/determinism_guard` on clang: `-ffast-math`, `-ffinite-math-only` and `-ffp-model=aggressive`
+      are rejected; the contract of X.2.3 is accepted. Recorded difference from MSVC: no flag at all is accepted on
+      clang, because clang defines no macro for its default model; `-ffp-contract=fast` and `-ffp-model=fast` cannot be
+      caught by a header either, since they define no macro and ignore the pragma (R1). Those are caught by X.2.6 and
       X.2.8 instead. Test: the CTest case `determinism_guard` passes on the Mac.
-- [ ] X.2.6 `tests/cmake/determinism_flags` per compiler: required on clang `-ffp-model=precise`,
-      `-ffp-contract=off`, `-fno-exceptions`, `-fno-rtti`, the `-include` of the guard; forbidden
-      `-ffast-math`, `-Ofast`, `-ffp-contract=on`, `-ffp-contract=fast`, `-fexceptions`, `-frtti`, `-mfma`,
-      `-march=native`. Test: the CTest case passes on the Mac and still on Windows.
+- [ ] X.2.6 `tests/cmake/determinism_flags` per compiler: required on clang `-fno-fast-math`, `-ffp-contract=off`,
+      `-fno-exceptions`, `-fno-rtti`, the `-include` of the guard; forbidden `-ffast-math`, `-Ofast`, `-ffp-model=fast`,
+      `-ffp-model=aggressive`, `-funsafe-math-optimizations`, `-fassociative-math`, `-freciprocal-math`,
+      `-ffp-contract=on`, `-ffp-contract=fast`, `-fexceptions`, `-frtti`, `-mfma`, `-march=native`. Test: the CTest case
+      passes on the Mac and still on Windows.
 - [ ] X.2.7 `tests/cmake/module_determinism` per compiler: the same walk over `compile_commands.json` with
       clang spellings, Jolt included (`-ffp-contract=off` present, `-mfma` and `-ffast-math` absent, no
       `-fexceptions`); the test executables carry no `-fno-exceptions`. Test: the CTest case passes on the
       Mac and still on Windows.
-- [ ] X.2.8 A behavioural canary in `unison_core`: a non-inline `multiplyThenAdd(float, float, float)`
-      compiled under the determinism flags, and the same for `double`. Test:
-      `"a multiply followed by an add rounds twice"`: with `a = b = 1 + 2^-23` and `c = -(1 + 2^-22)` the
-      result is `0`, where a fused evaluation gives `2^-46`. It runs on both platforms and guards against a
-      future compiler default as much as against a wrong flag.
+- [ ] X.2.8 A behavioural canary: a non-inline `multiplyThenAdd(float, float, float)` and its `double` twin in a
+      test-side library built under `unison_apply_determinism`, as `unison_core_header_check` is, so no test-only code
+      enters the engine. Test: `"a multiply followed by an add rounds twice"`: with `a = b = 1 + 2^-23` and
+      `c = -(1 + 2^-22)` the result is `0`, where a fused evaluation gives `2^-46`, and likewise in `double` with
+      `2^-52` and `2^-51`, where fusing gives `2^-104`. It runs on both platforms and guards against a future compiler
+      default as much as against a wrong flag.
 - [ ] X.2.9 `CMakePresets.json`: `clang-base` (hidden, host `Darwin`, Ninja, `cc`/`c++`, compile
       commands), `clang-debug`, `clang-release`; build, test and workflow presets for all four
       configurations (Q-B), tests with output on failure and parallelism from `CTEST_PARALLEL_LEVEL`. Done
@@ -257,9 +264,11 @@ Until X.2.9 brings the presets, the Mac is configured by hand:
 
 ### X.3 Dependencies and targets on macOS
 
-- [ ] X.3.1 Catch2 and the test executables declare exceptions per compiler: `/EHsc` on MSVC, nothing on
-      clang, where exceptions are the default; the `module_determinism` walk of X.2.7 asserts it. Test: the
-      CTest case passes; `unison_tests_fast` links on the Mac once X.5 is through.
+- [ ] X.3.1 Catch2 and the test executables declare exceptions per compiler: `/EHsc` on MSVC, nothing on clang, where
+      exceptions are the default. On clang the test executables also take `-ffp-contract=off`: the scenes the goldens
+      are recorded from are set up in test code, which clang would otherwise contract and MSVC, on its SSE2 baseline,
+      cannot. The `module_determinism` walk of X.2.7 asserts both. Test: the CTest case passes; `unison_tests_fast`
+      links on the Mac once X.5 is through.
 - [ ] X.3.2 ENet's `winmm ws2_32`, `/wd5287` and `_WINSOCK_DEPRECATED_NO_WARNINGS` under `if(WIN32)` and
       `if(MSVC)`. Test: `enet` compiles on the Mac; `tests/net/enet_smoke_test.cpp` passes there.
 - [ ] X.3.3 Jolt on arm64 configured and verified: `CROSS_PLATFORM_DETERMINISTIC ON`, exceptions and RTTI
@@ -290,7 +299,8 @@ One micro-task per group of targets; each fixes what Apple clang rejects or warn
 `-Werror`, and nothing else. A change that alters behaviour on Windows is a `(+)` micro-task of its own,
 never a side effect.
 
-- [ ] X.5.1 `unison_core` and `unison_core_header_check` build with `-Werror`. Done when:
+- [ ] X.5.1 `unison_core` and `unison_core_header_check` build with `-Werror`; the byte-order assertions of
+      `BinaryWriter` and `BinaryReader` stop saying that Unison targets x64. Done when:
       `cmake --build build/clang-debug --target unison_core unison_core_header_check` exits 0.
 - [ ] X.5.2 `unison_sim` builds. Done when: `--target unison_sim` exits 0.
 - [ ] X.5.3 `unison_net` builds, ENet included. Done when: `--target unison_net` exits 0.
@@ -381,7 +391,8 @@ Mac in Debug and Release, or locates the first difference and stops for the owne
       desyncs, both exit codes 0, recorded in `docs/LAN_TEST.md`. If Q-I stands, 3.4.5 is ticked from this
       run.
 - [ ] X.8.3 Run two: the relay on the Mac, the same consoles, the same criteria, recorded.
-- [ ] X.8.4 Definition of Done item 10 (X.0.1) ticked in the charter from the two records.
+- [ ] X.8.4 The consoles' half of Definition of Done item 10 recorded as met in the exit criteria of Phase X from the
+      two records; the Unreal half follows in 5.2.13.
 
 ### X.9 Closing
 
@@ -421,7 +432,7 @@ Mac in Debug and Release, or locates the first difference and stops for the owne
 | Apple clang rejects code MSVC accepted | X.5 build errors | Fixed in place; anything that changes behaviour on Windows becomes a `(+)` micro-task with its own test. |
 | The two clang-format versions disagree | X.1.3 reports files | The owner picks the major both machines use; the tree is formatted once by that version in a commit of its own. |
 | `CGEventSourceKeyState` needs Input Monitoring or reads nothing from a terminal | X.7.2 | The permission documented and granted once; if it reads nothing even so, option (2) of Q-A is built and its limits (one key at a time, late releases) are recorded in the charter's §10.2. |
-| `MillisecondTimer` has no macOS half and sleeps drift | X.5.3's timer test, X.7.6's round trips | macOS sleeps a millisecond in about a millisecond, so the no-op is expected to hold; if the round trips show otherwise, a `mach_wait_until`-based sleep goes behind the same class. |
+| `MillisecondTimer` has no macOS half and sleeps drift | X.5.3's timer test, X.7.6's round trips | Measured on 2026-09-25: twenty sleeps of a millisecond took 25 to 26 ms on the Mac, well inside the test's 100 ms, so the no-op holds; if the round trips of X.7.6 show otherwise, a `mach_wait_until`-based sleep goes behind the same class. |
 | Old third-party CMake under CMake 4 | configure errors on the Mac | `CMAKE_POLICY_VERSION_MINIMUM` already covers ENet; the same line covers another dependency if one needs it. |
 | The Mac's firewall or Input Monitoring blocks the LAN run | X.8 | Documented in `docs/LAN_TEST.md`; neither is a verdict on determinism. |
 
