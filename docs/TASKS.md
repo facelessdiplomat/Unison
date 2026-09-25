@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.5.10**, `tools/ci.sh` and `tools/ci.ps1` over the workflow presets. Last finished: X.5.9. On the
-  owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4,
-  and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL
-  is installed.
+- Next up: **X.5.11**, the Mac's link lines free of the duplicate-library warning of Apple's linker. Last
+  finished: X.5.10. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and
+  macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS.
+  3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 30 |
+| X Cross-platform: macOS | 10 | 54 | 31 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **166** |
+| **Total** | **41** | **246** | **167** |
 
 ## Charter amendments made while planning
 
@@ -397,7 +397,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.5.7 `ctest -L fast` green in `clang-debug`: every Catch2 case of both test executables, the goldens included (their verdict is X.6's business; here they merely run and any failure is noted there), the relay listening then stopping, the runner playing 600 frames, the console listing its options, and `millisecond_timer_test` holding on macOS' own sleep granularity with the timer a no-op. Done when: `ctest --test-dir build/clang-debug -L fast` exits 0. Done on 2026-09-25: all 727 cases labelled `fast` pass on the Mac in `clang-debug`, in 9.5 seconds on seven jobs, the relay over ENet, the runner's 600 frames, the console's options and `millisecond_timer_test` among them. So do the goldens recorded on Windows: the pile of fifty boxes reproduces `0x214BC6AEDC1EFBB3`, a hash of Jolt's raw state buffer, the scripted match agrees on all sixty frames it records, and the text map and the XXH3 vectors hold; X.6 takes their verdict in Release too.
 - [x] X.5.8 `ctest` green in `clang-debug` in full: the eighteen `profile` runs of the runner and the `slow` CMake cases of X.2. Done when: `ctest --test-dir build/clang-debug` exits 0. Done on 2026-09-25: all 752 cases pass on the Mac in `clang-debug`, in 18 seconds on seven jobs: the 727 fast ones, the runner's eighteen profiles, the eight-player ones in about ten seconds each, and the seven CMake checks of the contract.
 - [x] X.5.9 `ctest` green in `clang-release` in full. Done when: `ctest --test-dir build/clang-release` exits 0. Done on 2026-09-25: `clang-release` builds on the Mac without a compiler warning, and all 752 cases pass there in 3 seconds, the goldens recorded on Windows among them.
-- [ ] X.5.10 `tools/ci.sh` (Q-B): `source tools/env.sh`, `CTEST_PARALLEL_LEVEL` at half the cores, the two workflow presets, the formatting check, `ci: ok`; `tools/ci.ps1` reduced to the same shape over the `msvc-*` workflow presets. Done when: `tools/ci.sh` prints `ci: ok` on the Mac and `tools\ci.ps1` prints `ci: ok` on Windows.
+- [x] X.5.10 `tools/ci.sh` (Q-B): `source tools/env.sh`, `CTEST_PARALLEL_LEVEL` at half the cores, the two workflow presets, the formatting check, `ci: ok`; `tools/ci.ps1` reduced to the same shape over the `msvc-*` workflow presets. Done when: `tools/ci.sh` prints `ci: ok` on the Mac and `tools\ci.ps1` prints `ci: ok` on Windows. Done on 2026-09-25: `tools/ci.sh` sources `tools/env.sh`, sets `CTEST_PARALLEL_LEVEL` to half the logical processors, runs the `clang-debug` and `clang-release` workflows and the formatting check, and prints `ci: ok`. On the Mac it does so in 17 seconds, all 752 cases passing in both configurations, and without the tools on `PATH` it says the environment is not ready and exits 1. `tools/ci.ps1` runs the `msvc-*` workflows the same way; its `ci: ok` on Windows is the owner's check.
 
 ### X.6 Cross-platform goldens
 - [ ] X.6.1 XXH3 on NEON: `xxhash_vectors_test` and `hasher_test` pass on the Mac (part of X.5.7; ticked here so the record is explicit).
