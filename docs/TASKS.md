@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.9.2**, `README.md` builds on both platforms in two short blocks. Last finished: X.9.1. On the
-  owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4,
-  and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL
-  is installed.
+- Next up: **X.9.3**, `tests/benchmarks/baseline.md` gains a section recorded on the Mac, informative only. Last
+  finished: X.9.2. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and
+  macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS.
+  3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 46 |
+| X Cross-platform: macOS | 10 | 55 | 47 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **182** |
+| **Total** | **41** | **247** | **183** |
 
 ## Charter amendments made while planning
 
@@ -426,7 +426,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### X.9 Closing
 - [x] X.9.1 `CLAUDE.md`'s environment, build and test section holds the real commands for both platforms. Done on 2026-09-25: the section names the presets of both platforms and what the whole check, `tools\ci.ps1` or `tools/ci.sh`, runs, and gives the commands of each side: the whole check, the environment, one workflow, `ctest --preset` with a label or a name, formatting a file, where the binaries sit and how the benchmarks are run. The LAN test runs between the Windows machine and the Mac, and the Mac's Unreal is prepared before Phase 5. On the Mac every command of its block ran as written, the formatting one as a dry run.
-- [ ] X.9.2 `README.md` builds on both platforms in two short blocks.
+- [x] X.9.2 `README.md` builds on both platforms in two short blocks. Done on 2026-09-25: one block for Windows and one for macOS, each the environment and a Debug workflow, with Homebrew's `cmake`, `ninja` and `llvm@20` on the Mac; below them the four presets, what `tools/env.ps1` and `tools/env.sh` export and what the two CI scripts run. The Mac's block, but for the Homebrew installation already in place, ran as written for X.9.1.
 - [ ] X.9.3 `tests/benchmarks/baseline.md` gains a section recorded on the Mac (Apple M4 Pro, Release), informative only; the Windows numbers stay the baseline the budget is read against.
 - [ ] X.9.4 Final pass over the charter: the plan's questions answered in the charter's §17, the backlog line rewritten (Linux, ARM64 Linux, the hosted CI matrix and universal plugin binaries stay there).
 - [ ] X.9.5 (optional) The runner's `NetworkSimulator` orders messages due at the same instant by a sequence number, so a runner run reads the same on both machines. Test: two messages due together are delivered in the order they were sent.

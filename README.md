@@ -12,17 +12,27 @@ simulation runs headless in a terminal and inside Unreal Engine 5 as a plugin.
 
 ## Build
 
-Windows x64 with Visual Studio 18 (MSVC 14.51). From a plain PowerShell in the repository root:
+Windows x64 with Visual Studio 18 (MSVC 14.51), from a plain PowerShell in the repository root:
 
 ```powershell
 .\tools\env.ps1
-cmake --preset msvc-debug
-cmake --build build/msvc-debug
+cmake --workflow --preset msvc-debug
 ```
 
+macOS arm64 with Apple clang from Xcode or its Command Line Tools, from Terminal in the repository root:
+
+```sh
+brew install cmake ninja llvm@20
+cmake --workflow --preset clang-debug
+```
+
+A workflow configures, builds with warnings as errors and runs every test; the presets are `msvc-debug` and
+`msvc-release` on Windows, `clang-debug` and `clang-release` on macOS, each building into `build/<preset>`.
 `tools/env.ps1` locates Visual Studio through `vswhere`, enters the x64 developer environment for the
 current session, and exports the bundled CMake, Ninja and clang-format as `UNISON_CMAKE`, `UNISON_NINJA`
-and `UNISON_CLANG_FORMAT`. The configure presets are `msvc-debug` and `msvc-release`.
+and `UNISON_CLANG_FORMAT`; on macOS, `source tools/env.sh` exports Homebrew's clang-format 20, the version
+Visual Studio bundles. `.\tools\ci.ps1` and `tools/ci.sh` run both configurations and the formatting check and
+end with `ci: ok`.
 
 ## License
 
