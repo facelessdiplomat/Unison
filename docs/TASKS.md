@@ -18,9 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.6.6**, a golden of every protocol message's bytes. Last finished: X.6.5. On the owner's word of
-  2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the
-  LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.6.7**, the matrix of goldens by platform and configuration in `docs/CROSS_PLATFORM.md` §9. Last
+  finished: X.6.6. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and
+  macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS.
+  3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -42,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 37 |
+| X Cross-platform: macOS | 10 | 55 | 38 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **173** |
+| **Total** | **41** | **247** | **174** |
 
 ## Charter amendments made while planning
 
@@ -405,7 +406,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.6.3 The scripted arena: `tests/golden/arena_scripted.checksums` verifies on the Mac in Debug and Release, all sixty frames. Done on 2026-09-25: `tests/golden/arena_scripted.checksums`, recorded on Windows, verifies on the Mac in Debug and in Release on all sixty frames it records: four players, six hundred frames of scripted play, deaths and respawns included.
 - [x] X.6.4 The text map: `"the map of a new match of two looks as it did when it was recorded"` passes on the Mac. Done on 2026-09-25: `the map of a new match of two looks as it did when it was recorded` passes on the Mac in Debug and in Release.
 - [x] X.6.5 The arena's session config: a new golden `tests/golden/arena_config.hashes` with `assetHash`, `pipelineHash` and `hashOf(SessionConfig)` for 2, 4 and 8 players, recorded on Windows by a `[.record]` case as `arena_scripted.checksums` is, verified on the Mac. This is the R5 test: two clients whose configs hash alike land in the same relay room. Done on 2026-09-25: `tests/arena/session_config_golden_test.cpp` builds the arena's config as the console does for 2, 4 and 8 players and compares its asset, pipeline and config hashes with `tests/golden/arena_config.hashes`; `buildId`, which would part the platforms if it ever named a compiler, is set by no host and stays 0. The golden is new and was recorded on the Mac rather than on Windows, which Q-G asked, since the loop of D36 does not wait for the Windows machine; the plan's Q-G now says so, the owner's `tools\ci.ps1` is the golden's Windows check, and a disagreement there goes to X.6.8, never to recording again. It failed before the file existed and passes on the Mac in Debug and Release.
-- [ ] X.6.6 The protocol bytes: a new golden `tests/golden/protocol.bytes`, one hex line per message kind (`Hello`, `Welcome`, `Input`, `Confirmed`, `Checksum`, `Desync`, `Ping`, `Pong`, `Leave` and the rest of the charter's §9.2) encoded from fixed values, recorded on Windows, verified on the Mac. This is the R6 test.
+- [x] X.6.6 The protocol bytes: a new golden `tests/golden/protocol.bytes`, one hex line per message kind (`Hello`, `Welcome`, `Input`, `Confirmed`, `Checksum`, `Desync`, `Ping`, `Pong`, `Leave` and the rest of the charter's §9.2) encoded from fixed values, recorded on Windows, verified on the Mac. This is the R6 test. Done on 2026-09-25: `tests/net/protocol_golden_test.cpp` encodes one of each of the twelve messages from fixed values, every byte of a field distinct so that a wrong width or byte order shows, and compares the bytes with `tests/golden/protocol.bytes`; `unison_tests_fast` knows `UNISON_GOLDEN_DIR` now as well. The golden is new and was recorded on the Mac, as X.6.5's was, with the owner's run on Windows as its check. It failed before the file existed and passes on the Mac in Debug and Release.
 - [ ] X.6.7 The matrix recorded in `docs/CROSS_PLATFORM.md` §9: Windows Debug, Windows Release, macOS Debug, macOS Release, one row per golden, with the commit it was taken at.
 - [ ] X.6.8 (+, only if X.6.2 or X.6.3 fails) Locate the difference: the checksum split into its parts (globals, identifiers, each pool, physics, characters) printed per frame by a `[.diagnose]` case on both machines, the first differing part and frame recorded in `docs/CROSS_PLATFORM.md`. If positions and rotations agree while the state buffer does not (R7), the checksum moves to a canonical hash of the physics state and §8.5 of the charter changes with it; if a position differs, the cause is found in our code or reported to Jolt before anything else moves.
 

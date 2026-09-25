@@ -126,6 +126,7 @@ add_executable(
     net/millisecond_timer_test.cpp
     net/network_simulator_test.cpp
     net/outbox_test.cpp
+    net/protocol_golden_test.cpp
     net/relay_core_test.cpp
     net/roster_test.cpp
     net/session_config_test.cpp
@@ -193,6 +194,8 @@ add_executable(
 )
 
 target_include_directories(unison_tests_fast PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
+
+target_compile_definitions(unison_tests_fast PRIVATE "UNISON_GOLDEN_DIR=\"${CMAKE_CURRENT_LIST_DIR}/golden\"")
 
 target_link_libraries(
     unison_tests_fast
