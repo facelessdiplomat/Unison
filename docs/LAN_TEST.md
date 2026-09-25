@@ -14,6 +14,11 @@ The binaries link the Microsoft C++ runtime as DLLs. If `unison_console.exe` doe
 names `VCRUNTIME140.dll` or `MSVCP140.dll`, install the latest x64 package from Microsoft's page "Latest
 supported Visual C++ Redistributable downloads", then try again.
 
+On a Mac, the console reads the keys through `CGEventSourceKeyState`, which macOS may keep behind the Input
+Monitoring permission of the terminal app. The console says at start whether its terminal holds it; if the keys
+do nothing, allow the terminal app, Terminal or another, in System Settings, Privacy & Security, Input Monitoring,
+and start the console again.
+
 ## Before the run
 
 1. On machine A, build and test everything; the last line reads `ci: ok`.

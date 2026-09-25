@@ -300,7 +300,16 @@ across the two platforms.
 | Date | Commit | Round trip | Verified vs predicted | Keys held together | Result |
 |---|---|---|---|---|---|
 
-### 9.3 Cross-platform LAN runs
+### 9.3 The keyboard on the Mac (X.7.2)
+
+Read on 2026-09-25. `CGPreflightListenEventAccess()`, which asks without prompting, answers that the shell Claude
+works in holds no Input Monitoring. The game keys are `kVK_ANSI_W` `0x0D`, `kVK_ANSI_S` `0x01`, `kVK_ANSI_A`
+`0x00`, `kVK_ANSI_D` `0x02`, `kVK_Space` `0x31`, `kVK_ANSI_F` `0x03`, `kVK_ANSI_Q` `0x0C` and `kVK_ANSI_E` `0x0E`
+in HIToolbox's `Events.h`. Claude cannot hold a key down, and posting one would type into the owner's session,
+so the Terminal.app half, whether a key held there reads as down with and without the permission, is read off the
+console of X.7.3 by hand: it says at start whether its terminal holds Input Monitoring.
+
+### 9.4 Cross-platform LAN runs
 
 Recorded in `docs/LAN_TEST.md`; this table points at them.
 

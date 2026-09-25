@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.7.2**, the spike: `CGEventSourceKeyState` from Terminal.app on macOS 27, with and without Input
-  Monitoring. Last finished: X.7.1. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between
-  Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows
-  and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.7.3**, the Mac's `ConsoleKeyboard`: the terminal in raw mode and the game keys read from
+  `CGEventSourceKeyState`. Last finished: X.7.2. On the owner's word of 2026-09-25 Phase X, the port to macOS and
+  play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it
+  between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 39 |
+| X Cross-platform: macOS | 10 | 55 | 40 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **175** |
+| **Total** | **41** | **247** | **176** |
 
 ## Charter amendments made while planning
 
@@ -412,7 +412,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### X.7 The console on macOS
 - [x] X.7.1 `noteKey` takes a platform-neutral `GameKey` instead of a Windows virtual-key code; the Windows reader maps `VK_*` to it. Test: `arena_controls_test` cases rewritten onto `GameKey` pass on both platforms; the Windows console reads keys as before (checked by hand, as 3.4.2 was). Done on 2026-09-25: `GameKey` names the eight keys beside `HeldKeys`, `noteKey` takes one, and `gameKeyOfWindowsKey` in `key_codes.hpp` turns a Windows virtual-key code into one or into nothing, which the Windows reader now asks before it notes a key. The two rewritten cases, one for noting every game key and one for the Windows codes, failed to build before the change, and all nine controls cases pass on the Mac. The Windows reader waits for the owner's build and a hand check of the keyboard, as 3.4.2 had.
-- [ ] X.7.2 Spike (Q-A): a throwaway probe under `tools/console` asks `CGEventSourceKeyState` for W from Terminal.app on macOS 27, with and without Input Monitoring granted. Recorded in `docs/CROSS_PLATFORM.md` and `docs/LAN_TEST.md`: whether the permission is asked for, and how it is granted. Nothing of the probe is committed.
+- [x] X.7.2 Spike (Q-A): a throwaway probe under `tools/console` asks `CGEventSourceKeyState` for W from Terminal.app on macOS 27, with and without Input Monitoring granted. Recorded in `docs/CROSS_PLATFORM.md` and `docs/LAN_TEST.md`: whether the permission is asked for, and how it is granted. Nothing of the probe is committed. Done on 2026-09-25 as far as Claude can take it: `CGPreflightListenEventAccess()` says the shell Claude works in holds no Input Monitoring, and the game keys' macOS codes are read from HIToolbox's `Events.h`; both are in `docs/CROSS_PLATFORM.md` §9.3, and `docs/LAN_TEST.md` tells how to grant the permission. Claude cannot hold a key down, and posting one would type into the owner's session, so the Terminal.app half is read off X.7.3's console by hand, which says at start whether its terminal holds the permission. No probe is committed.
 - [ ] X.7.3 macOS `ConsoleKeyboard`: the terminal in raw mode (echo and canonical input off, `ISIG` kept so Ctrl+C still stops the console), stdin drained, the eight keys read from `CGEventSourceKeyState` by their `kVK_ANSI_*` codes on every `readInto`. Done when: on the Mac, two consoles and a relay on localhost, a player walks, turns and fires from the keyboard, two keys held at once included.
 - [ ] X.7.4 The terminal is given back: raw mode and the cursor restored on every ending, Ctrl+C, `--run-for` and a disconnect alike. Done when: the shell prompt after each ending echoes typed text again.
 - [ ] X.7.5 POSIX `ConsoleScreen`: available when standard output is a terminal, VT sequences as on Windows, the cursor hidden and shown as before. Done when: the screen of 3.4.4 redraws in place in Terminal.app and the status line prints once a second when output is redirected to a file.
