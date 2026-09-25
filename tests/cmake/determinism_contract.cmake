@@ -1,0 +1,22 @@
+include_guard(GLOBAL)
+
+set(unisonClangForbiddenFlags
+    -ffast-math
+    -Ofast
+    -ffp-model=fast
+    -ffp-model=aggressive
+    -funsafe-math-optimizations
+    -fassociative-math
+    -freciprocal-math
+    -ffinite-math-only
+    -fno-signed-zeros
+    -fno-honor-nans
+    -fno-honor-infinities
+    -fapprox-func
+    -ffp-contract=on
+    -ffp-contract=fast
+    -fexceptions
+    -frtti
+    -mfma
+    -march=native
+)

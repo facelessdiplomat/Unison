@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.2.7**, `module_determinism` per compiler: every module's command line in the main build read with
-  clang's spellings. Last finished: X.2.6. On the owner's word of 2026-09-25 Phase X, the port to macOS and play
-  between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between
-  Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.2.8**, the behavioural canary: a multiply followed by an add rounds twice under the determinism
+  flags. Last finished: X.2.7. On the owner's word of 2026-09-25 Phase X, the port to macOS and play between
+  Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows
+  and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 11 |
+| X Cross-platform: macOS | 10 | 54 | 12 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **147** |
+| **Total** | **41** | **246** | **148** |
 
 ## Charter amendments made while planning
 
@@ -372,7 +372,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.2.4 `determinism_guard.hpp` on clang: rejects `__FAST_MATH__` and `__FINITE_MATH_ONLY__`, turns contraction off with `#pragma STDC FP_CONTRACT OFF`, and rejects any other compiler with a message. The MSVC branch stays as it is. Done when: `guard_probe.cpp` compiles under the flags of X.2.3 and fails under `-ffast-math` with the guard's own message. Done on 2026-09-25: the MSVC branch reads as before; the clang branch refuses `__FAST_MATH__` and a `__FINITE_MATH_ONLY__` of 1, which clang always defines, 0 or 1, and turns contraction off by pragma; any other compiler is refused. `determinism_guard` expects per compiler now: on clang it accepts the contract of X.2.3, rejects `-ffast-math` with the guard's own message, and runs a probe that fuses a multiply and an add under `-ffp-contract=on` without the guard and rounds twice with it. It fails on a guard without the pragma and on one without the fast-math check.
 - [x] X.2.5 `tests/cmake/determinism_guard` on clang: `-ffast-math`, `-ffinite-math-only` and `-ffp-model=aggressive` are rejected; the contract of X.2.3 is accepted. Recorded difference from MSVC: no flag at all is accepted on clang, because clang defines no macro for its default model; `-ffp-contract=fast` and `-ffp-model=fast` cannot be caught by a header either, since they define no macro and ignore the pragma (R1). Those are caught by X.2.6 and X.2.8 instead. Test: the CTest case `determinism_guard` passes on the Mac. Done on 2026-09-25: the test also sees the guard refuse `-ffinite-math-only`, `-ffp-model=aggressive` and `-Ofast`, which clang deprecates but still takes, and accept no flag at all, since clang's default model is value-safe but for contraction, which the pragma turns off; its messages name an empty flag set. It fails on a guard that watches `__FAST_MATH__` alone. `-ffp-contract=fast` and `-ffp-model=fast` stay out of a header's sight, as `DESIGN.md` §7.1 records, and are left to X.2.6 and X.2.8.
 - [x] X.2.6 `tests/cmake/determinism_flags` per compiler: required on clang `-fno-fast-math`, `-ffp-contract=off`, `-fno-exceptions`, `-fno-rtti`, the `-include` of the guard; forbidden `-ffast-math`, `-Ofast`, `-ffp-model=fast`, `-ffp-model=aggressive`, `-funsafe-math-optimizations`, `-fassociative-math`, `-freciprocal-math`, `-ffp-contract=on`, `-ffp-contract=fast`, `-fexceptions`, `-frtti`, `-mfma`, `-march=native`. Test: the CTest case passes on the Mac and still on Windows. Done on 2026-09-25: the forbidden list also holds `-ffinite-math-only`, `-fno-signed-zeros`, `-fno-honor-nans`, `-fno-honor-infinities` and `-fapprox-func`, which change values as the others do, and `DESIGN.md` §7.1 lists the same. A flag is forbidden anywhere on the line, even where ours come later and take it back. The check fails with `-ffast-math`, `-ffp-contract=fast`, `-fno-signed-zeros`, `-march=native` or `-frtti` put into `CMAKE_CXX_FLAGS`. `-mfma` cannot reach a line on arm64, where clang refuses it, and stays forbidden for x86-64.
-- [ ] X.2.7 `tests/cmake/module_determinism` per compiler: the same walk over `compile_commands.json` with clang spellings, Jolt included (`-ffp-contract=off` present, `-mfma` and `-ffast-math` absent, no `-fexceptions`); the test executables carry no `-fno-exceptions`. Test: the CTest case passes on the Mac and still on Windows.
+- [x] X.2.7 `tests/cmake/module_determinism` per compiler: the same walk over `compile_commands.json` with clang spellings, Jolt included (`-ffp-contract=off` present, `-mfma` and `-ffast-math` absent, no `-fexceptions`); the test executables carry no `-fno-exceptions`. Test: the CTest case passes on the Mac and still on Windows. Done on 2026-09-25: the walk takes the main build's compiler from `tests/CMakeLists.txt` and reads every group with that compiler's spellings; the MSVC checks are the ones it held before, and on both compilers a plain module may no longer carry the guard. The forbidden list lives in `tests/cmake/determinism_contract.cmake`, shared with `determinism_flags`. The main project has configured on the Mac by hand since X.2.3, and the walk passes over its compile commands; it fails on copies of them with `-ffp-contract=off` taken from core or Jolt, `-ffast-math` given to the arena, `-Wshadow` taken from net, `-fno-fast-math` given to view and `-fno-exceptions` given to a test.
 - [ ] X.2.8 A behavioural canary: a non-inline `multiplyThenAdd(float, float, float)` and its `double` twin in a test-side library built under `unison_apply_determinism`, as `unison_core_header_check` is, so no test-only code enters the engine. Test: `"a multiply followed by an add rounds twice"`: with `a = b = 1 + 2^-23` and `c = -(1 + 2^-22)` the result is `0`, where a fused evaluation gives `2^-46`, and likewise in `double` with `2^-52` and `2^-51`, where fusing gives `2^-104`. It runs on both platforms and guards against a future compiler default as much as against a wrong flag.
 - [ ] X.2.9 `CMakePresets.json`: `clang-base` (hidden, host `Darwin`, Ninja, `cc`/`c++`, compile commands), `clang-debug`, `clang-release`; build, test and workflow presets for all four configurations (Q-B), tests with output on failure and parallelism from `CTEST_PARALLEL_LEVEL`. Done when: `cmake --preset clang-debug` configures on the Mac and fetches every dependency; `cmake --list-presets` on Windows still shows only the `msvc-*` configure presets.
 

@@ -68,7 +68,7 @@ add_test(
     NAME module_determinism
     COMMAND
         ${CMAKE_COMMAND} -D "UNISON_BUILD_DIR=${CMAKE_BINARY_DIR}" -D
-        "UNISON_INSTRUCTION_SET=${UNISON_INSTRUCTION_SET}" -P
+        "UNISON_INSTRUCTION_SET=${UNISON_INSTRUCTION_SET}" -D "UNISON_CXX_COMPILER_ID=${CMAKE_CXX_COMPILER_ID}" -P
         "${CMAKE_CURRENT_LIST_DIR}/cmake/module_determinism/verify.cmake"
 )
 
