@@ -2,9 +2,13 @@
 
 #include <Jolt/Jolt.h>
 
+#include <algorithm>
 #include <cstdlib>
-#include <malloc.h>
 #include <new>
+
+#ifdef _WIN32
+    #include <malloc.h>
+#endif
 
 namespace
 {
@@ -38,6 +42,26 @@ void* countedJoltAlignedAllocate(std::size_t size, std::size_t alignment)
     return joltAlignedAllocate(size, alignment);
 }
 
+void* allocateAlignedBlock(std::size_t size, std::size_t alignment)
+{
+#ifdef _WIN32
+    return _aligned_malloc(size, alignment);
+#else
+    void* block = nullptr;
+
+    return posix_memalign(&block, std::max(alignment, sizeof(void*)), size) == 0 ? block : nullptr;
+#endif
+}
+
+void freeAlignedBlock(void* block)
+{
+#ifdef _WIN32
+    _aligned_free(block);
+#else
+    std::free(block);
+#endif
+}
+
 void countCppAllocation()
 {
     if (isCounting)
@@ -64,7 +88,7 @@ void* allocateAlignedOrThrow(std::size_t size, std::align_val_t alignment)
 {
     countCppAllocation();
 
-    void* block = _aligned_malloc(size == 0 ? 1 : size, static_cast<std::size_t>(alignment));
+    void* block = allocateAlignedBlock(size == 0 ? 1 : size, static_cast<std::size_t>(alignment));
 
     if (block == nullptr)
     {
@@ -118,22 +142,22 @@ void operator delete[](void* block, std::size_t) noexcept
 
 void operator delete(void* block, std::align_val_t) noexcept
 {
-    _aligned_free(block);
+    freeAlignedBlock(block);
 }
 
 void operator delete[](void* block, std::align_val_t) noexcept
 {
-    _aligned_free(block);
+    freeAlignedBlock(block);
 }
 
 void operator delete(void* block, std::size_t, std::align_val_t) noexcept
 {
-    _aligned_free(block);
+    freeAlignedBlock(block);
 }
 
 void operator delete[](void* block, std::size_t, std::align_val_t) noexcept
 {
-    _aligned_free(block);
+    freeAlignedBlock(block);
 }
 
 namespace unison::test

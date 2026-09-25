@@ -18,10 +18,9 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.5.6**, the executables build and link on the Mac: the relay, the runner, the console, both test
-  executables and the benchmarks. Last finished: X.5.5. On the owner's word of 2026-09-25 Phase X, the port to
-  macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2
-  plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.5.7**, `ctest -L fast` green in `clang-debug`. Last finished: X.5.6. On the owner's word of
+  2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the
+  LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +42,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 26 |
+| X Cross-platform: macOS | 10 | 54 | 27 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **162** |
+| **Total** | **41** | **246** | **163** |
 
 ## Charter amendments made while planning
 
@@ -393,7 +392,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.5.3 `unison_net` builds, ENet included. Done when: `--target unison_net` exits 0. Done on 2026-09-25: `unison_net` builds on the Mac without a warning and without a change; ENet has built there since X.3.2, and `MillisecondTimer` compiles its no-op half.
 - [x] X.5.4 `unison_session` and `unison_view` build. Done when: `--target unison_session unison_view` exits 0. Done on 2026-09-25: `unison_session` and `unison_view` build on the Mac without a warning and without a change.
 - [x] X.5.5 `arena_sim`, `arena_view_console`, `unison_console_arena`, `unison_console_core`, `unison_relay_core`, `unison_runner_core` and `unison_runner_match` build. Done when: the build of those targets exits 0. Done on 2026-09-25: `arena_sim`, `arena_view_console`, `unison_console_arena`, `unison_console_core`, `unison_relay_core`, `unison_runner_core` and `unison_runner_match` build on the Mac without a warning and without a change.
-- [ ] X.5.6 The executables build and link: `unison_relay`, `unison_runner`, `unison_console` (its macOS keyboard a stub that reads nothing until X.7, so the player stands still, as the log line already says), `unison_tests_fast`, `unison_tests_arena` and `unison_benchmarks`. The test executables link only once every library builds, which is why X.5.1 to X.5.5 stop at building. Done when: `cmake --build build/clang-debug` exits 0 and `unison_benchmarks "[.benchmark]"` prints its table.
+- [x] X.5.6 The executables build and link: `unison_relay`, `unison_runner`, `unison_console` (its macOS keyboard a stub that reads nothing until X.7, so the player stands still, as the log line already says), `unison_tests_fast`, `unison_tests_arena` and `unison_benchmarks`. The test executables link only once every library builds, which is why X.5.1 to X.5.5 stop at building. Done when: `cmake --build build/clang-debug` exits 0 and `unison_benchmarks "[.benchmark]"` prints its table. Done on 2026-09-25: two tests stood in the way. `contract_test.cpp` tied active asserts to `_DEBUG`, which only MSVC's debug runtime defines, and now reads the configuration from `UNISON_DEBUG_CONFIGURATION`, which `unison_apply_test_flags` sets from `$<CONFIG:Debug>` on both compilers; the allocation probe took aligned blocks from MSVC's `_aligned_malloc` and takes them from `posix_memalign` elsewhere. `cmake --build build/clang-debug` exits 0 with every target built, and `unison_benchmarks "[.benchmark]"` prints its table on the Mac. Apple's linker warns of static libraries CMake lists twice on a link line; the warning fails nothing.
 - [ ] X.5.7 `ctest -L fast` green in `clang-debug`: every Catch2 case of both test executables, the goldens included (their verdict is X.6's business; here they merely run and any failure is noted there), the relay listening then stopping, the runner playing 600 frames, the console listing its options, and `millisecond_timer_test` holding on macOS' own sleep granularity with the timer a no-op. Done when: `ctest --test-dir build/clang-debug -L fast` exits 0.
 - [ ] X.5.8 `ctest` green in `clang-debug` in full: the eighteen `profile` runs of the runner and the `slow` CMake cases of X.2. Done when: `ctest --test-dir build/clang-debug` exits 0.
 - [ ] X.5.9 `ctest` green in `clang-release` in full. Done when: `ctest --test-dir build/clang-release` exits 0.

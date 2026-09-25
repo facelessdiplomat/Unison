@@ -96,11 +96,7 @@ TEST_CASE("an assert does not evaluate its condition in a release build")
     REQUIRE(evaluations == (kAssertsAreActive ? 1U : 0U));
 }
 
-TEST_CASE("assert is active in exactly the configuration that uses the debug runtime")
+TEST_CASE("assert is active in exactly the debug configuration")
 {
-#ifdef _DEBUG
-    STATIC_REQUIRE(kAssertsAreActive);
-#else
-    STATIC_REQUIRE_FALSE(kAssertsAreActive);
-#endif
+    STATIC_REQUIRE(kAssertsAreActive == (UNISON_DEBUG_CONFIGURATION == 1));
 }

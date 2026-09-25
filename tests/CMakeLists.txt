@@ -77,6 +77,8 @@ set_tests_properties(module_determinism PROPERTIES LABELS slow)
 include(Catch)
 
 function(unison_apply_test_flags target)
+    target_compile_definitions(${target} PRIVATE "UNISON_DEBUG_CONFIGURATION=$<CONFIG:Debug>")
+
     if(MSVC)
         target_compile_options(${target} PRIVATE /EHsc)
     else()
