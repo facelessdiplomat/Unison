@@ -410,9 +410,11 @@ is held to that by flags of its own, which `unison_apply_determinism` applies:
   and neither `-ffp-model=fast` nor `-ffp-contract=fast` defines a macro or yields to the pragma. The command
   lines are read instead: `tests/cmake/determinism_flags` and `tests/cmake/module_determinism` forbid
   `-ffast-math`, `-Ofast`, `-ffp-model=fast`, `-ffp-model=aggressive`, `-funsafe-math-optimizations`,
-  `-fassociative-math`, `-freciprocal-math`, `-ffp-contract=on`, `-ffp-contract=fast`, `-mfma` and
-  `-march=native`, and a canary built under `unison_apply_determinism` shows in every build that a multiply
-  followed by an add rounds twice.
+  `-fassociative-math`, `-freciprocal-math`, `-ffinite-math-only`, `-fno-signed-zeros`, `-fno-honor-nans`,
+  `-fno-honor-infinities`, `-fapprox-func`, `-ffp-contract=on`, `-ffp-contract=fast`, `-mfma` and
+  `-march=native` anywhere on the command line, even where our own flags come later and take them back, and a
+  canary built under `unison_apply_determinism` shows in every build that a multiply followed by an add rounds
+  twice.
 - Exceptions off, RTTI off (matches Unreal's defaults; EnTT and Jolt support both), applied to every Unison
   target by `unison_apply_language_subset`, not only to the deterministic ones. `/EHs-c-` alone is not
   enough on MSVC: the STL keeps emitting `try`/`catch` that cannot unwind unless `_HAS_EXCEPTIONS=0` is

@@ -31,7 +31,26 @@ if(compilerId STREQUAL "MSVC")
     set(guardInclusion "/FI[^\"]*determinism_guard\.hpp")
 else()
     set(requiredFlags -fno-fast-math -ffp-contract=off -fexcess-precision=standard -fno-exceptions -fno-rtti)
-    set(forbiddenFlags "")
+    set(forbiddenFlags
+        -ffast-math
+        -Ofast
+        -ffp-model=fast
+        -ffp-model=aggressive
+        -funsafe-math-optimizations
+        -fassociative-math
+        -freciprocal-math
+        -ffinite-math-only
+        -fno-signed-zeros
+        -fno-honor-nans
+        -fno-honor-infinities
+        -fapprox-func
+        -ffp-contract=on
+        -ffp-contract=fast
+        -fexceptions
+        -frtti
+        -mfma
+        -march=native
+    )
     set(guardInclusion "-include[^ ]*determinism_guard\\.hpp")
 endif()
 
