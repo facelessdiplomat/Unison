@@ -808,9 +808,10 @@ the session's event changes are.
   predicted frames, the rollbacks of the last second, the round trip and the lead, and below it the map of the
   frame it predicts. Stalled is where it stands while its prediction window is full. The lead is how far
   ahead of the relay's clock it played when the last pong came back (§8.3), about half a round trip while it
-  keeps pace. The screen needs a console that understands the terminal's escape sequences; with its output
-  redirected the console prints the status line once a second instead. The screen is drawn in the window's
-  own buffer, so when the console ends, its last screen and its last status line stay in view.
+  keeps pace. The screen needs a console that understands the terminal's escape sequences, on macOS any terminal on
+  standard output; with its output redirected the console prints the status line once a second instead. The screen
+  is drawn in the window's own buffer, so when the console ends, its last screen and its last status line stay in
+  view.
   It runs on the real clock until Ctrl+C, `--run-for` seconds, a disconnect, which ends it with exit code 1,
   or a desync the relay reports, which ends it with exit code 2 whatever else happened and puts the frame and
   the slots out of step at the end of the status line. `--spectate` comes with spectators (4.5.3). The keyboard is read without
@@ -822,9 +823,10 @@ the session's event changes are.
   nor wait for a line, and on every read asks the window server which game keys are down
   (`CGEventSourceKeyState`), so keys held together work as on Windows; the answer is the whole login
   session's, so a Mac console reads the keys whichever window is in front, and macOS may ask for the
-  Terminal's Input Monitoring permission (Q8). Its map comes from `arena_view_console`: the arena from above,
-  +X to the right and +Z down, half a metre a column
-  and a metre a row, `#` for walls, `=` for ramps, `C` for crates, `*` for shots and every player by the
+  Terminal's Input Monitoring permission (Q8); a console whose terminal lacks it says so when it stops, below its
+  last screen, since the first screen draws over whatever was printed before it. Its map comes from
+  `arena_view_console`: the arena from above, +X to the right and +Z down, half a metre a column and a metre a row,
+  `#` for walls, `=` for ramps, `C` for crates, `*` for shots and every player by the
   number of their slot with an arrow for the quarter turn they look along, and below it a line for every
   player with their health, or that they wait to come back, and their kills. The map reads the arena's
   components and runs none of its code (§7.3).

@@ -307,7 +307,7 @@ works in holds no Input Monitoring. The game keys are `kVK_ANSI_W` `0x0D`, `kVK_
 `0x00`, `kVK_ANSI_D` `0x02`, `kVK_Space` `0x31`, `kVK_ANSI_F` `0x03`, `kVK_ANSI_Q` `0x0C` and `kVK_ANSI_E` `0x0E`
 in HIToolbox's `Events.h`. Claude cannot hold a key down, and posting one would type into the owner's session,
 so the Terminal.app half, whether a key held there reads as down with and without the permission, is read off the
-console of X.7.3 by hand: it says at start whether its terminal holds Input Monitoring.
+console of X.7.3 by hand: when it stops, it says if its terminal lacks Input Monitoring.
 
 ### 9.4 Cross-platform LAN runs
 

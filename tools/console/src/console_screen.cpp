@@ -2,8 +2,6 @@
 
 #include <unison/console/screen.hpp>
 
-#include <windows.h>
-
 #include <cstdio>
 
 namespace unison::console
@@ -23,42 +21,30 @@ void write(std::string_view text)
 
 }
 
-struct ConsoleScreen::Terminal
-{
-    HANDLE output = nullptr;
-    DWORD originalMode = 0;
-};
-
 ConsoleScreen::ConsoleScreen()
 {
-    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD mode = 0;
-
-    if (output != nullptr && output != INVALID_HANDLE_VALUE && GetConsoleMode(output, &mode) != 0 &&
-        SetConsoleMode(output, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0)
+    if (terminal.isAvailable())
     {
-        terminal = std::make_unique<Terminal>(Terminal{output, mode});
         write(kHideCursor);
     }
 }
 
 ConsoleScreen::~ConsoleScreen()
 {
-    if (terminal != nullptr)
+    if (terminal.isAvailable())
     {
         write(kBelowTheScreenWithTheCursorShown);
-        static_cast<void>(SetConsoleMode(terminal->output, terminal->originalMode));
     }
 }
 
 bool ConsoleScreen::isAvailable() const
 {
-    return terminal != nullptr;
+    return terminal.isAvailable();
 }
 
 void ConsoleScreen::show(std::string_view screen)
 {
-    if (terminal != nullptr)
+    if (terminal.isAvailable())
     {
         write(redrawnInPlace(screen));
     }

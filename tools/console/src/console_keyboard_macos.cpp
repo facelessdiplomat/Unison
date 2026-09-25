@@ -54,13 +54,6 @@ ConsoleKeyboard::ConsoleKeyboard()
     }
 
     terminal = std::make_unique<Terminal>(Terminal{original});
-
-    if (!CGPreflightListenEventAccess())
-    {
-        logMessage(LogLevel::Info,
-                   "unison_console: this terminal holds no Input Monitoring; if the keys do nothing, allow it in "
-                   "System Settings, Privacy & Security, Input Monitoring");
-    }
 }
 
 ConsoleKeyboard::~ConsoleKeyboard()
@@ -69,6 +62,13 @@ ConsoleKeyboard::~ConsoleKeyboard()
     {
         static_cast<void>(tcflush(STDIN_FILENO, TCIFLUSH));
         static_cast<void>(tcsetattr(STDIN_FILENO, TCSANOW, &terminal->original));
+
+        if (!CGPreflightListenEventAccess())
+        {
+            logMessage(LogLevel::Info,
+                       "unison_console: this terminal holds no Input Monitoring; if the keys did nothing, allow it in "
+                       "System Settings, Privacy & Security, Input Monitoring, then reopen the terminal");
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <memory>
+#include "terminal_output.hpp"
+
 #include <string_view>
 
 namespace unison::console
@@ -22,9 +23,7 @@ public:
     void show(std::string_view screen);
 
 private:
-    struct Terminal;
-
-    std::unique_ptr<Terminal> terminal;
+    TerminalOutput terminal;
 };
 
 }

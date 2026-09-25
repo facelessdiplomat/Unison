@@ -15,9 +15,9 @@ names `VCRUNTIME140.dll` or `MSVCP140.dll`, install the latest x64 package from 
 supported Visual C++ Redistributable downloads", then try again.
 
 On a Mac, the console reads the keys through `CGEventSourceKeyState`, which macOS may keep behind the Input
-Monitoring permission of the terminal app. The console says at start whether its terminal holds it; if the keys
-do nothing, allow the terminal app, Terminal or another, in System Settings, Privacy & Security, Input Monitoring,
-and start the console again.
+Monitoring permission of the terminal app. When it stops, the console says if its terminal lacks it; if the keys
+did nothing, allow the terminal app, Terminal or another, in System Settings, Privacy & Security, Input
+Monitoring, reopen it and start the console again.
 
 ## Before the run
 

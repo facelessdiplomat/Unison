@@ -21,12 +21,12 @@ unison_apply_language_subset(unison_console_arena)
 unison_apply_warnings(unison_console_arena)
 
 if(WIN32)
-    set(consolePlatformSources src/console_keyboard_windows.cpp src/console_screen_windows.cpp)
+    set(consolePlatformSources src/console_keyboard_windows.cpp src/terminal_output_windows.cpp)
 else()
-    set(consolePlatformSources src/console_keyboard_macos.cpp src/console_screen_posix.cpp)
+    set(consolePlatformSources src/console_keyboard_macos.cpp src/terminal_output_posix.cpp)
 endif()
 
-add_executable(unison_console ${consolePlatformSources} src/main.cpp)
+add_executable(unison_console ${consolePlatformSources} src/console_screen.cpp src/main.cpp)
 
 target_link_libraries(
     unison_console PRIVATE arena_view_console unison_console_arena unison_console_core unison_view arena_sim
