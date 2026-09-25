@@ -19,7 +19,7 @@ namespace unison
 /// Every write reports whether it fit, and a write that does not fit leaves the buffer untouched.
 class BinaryWriter
 {
-    static_assert(std::endian::native == std::endian::little, "Unison encodes little-endian and targets x64");
+    static_assert(std::endian::native == std::endian::little, "Unison encodes little-endian, as x86-64 and arm64 are");
 
 public:
     explicit BinaryWriter(std::span<std::byte> destination) : destination{destination}

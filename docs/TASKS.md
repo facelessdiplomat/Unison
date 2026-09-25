@@ -18,10 +18,9 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.5.1**, `unison_core` and `unison_core_header_check` build with `-Werror` on the Mac, and the
-  byte-order assertions stop naming x64. Last finished: X.4.3. On the owner's word of 2026-09-25 Phase X, the port
-  to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2
-  plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.5.2**, `unison_sim` builds with `-Werror` on the Mac. Last finished: X.5.1. On the owner's word of
+  2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the
+  LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +42,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 21 |
+| X Cross-platform: macOS | 10 | 54 | 22 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **157** |
+| **Total** | **41** | **246** | **158** |
 
 ## Charter amendments made while planning
 
@@ -388,7 +387,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.4.3 `tests/sim/advance_frame_test.cpp` onto the named bits: a tick under a host that set flush-to-zero runs with denormals kept and gives the host its word back. Test: the existing cases pass on both platforms. Done on 2026-09-25: the tick's tests set and read the control word through `fp_control_word.hpp`, and the host's flush bits are FTZ and DAZ on x86-64 now, as FZ on arm64 flushes inputs as well as results. `unison_core` and `unison_sim` build on the Mac without a warning, and all five cases pass there, built from their own compile command against those libraries.
 
 ### X.5 The port proper: every target builds and every test passes on the Mac
-- [ ] X.5.1 `unison_core` and `unison_core_header_check` build with `-Werror`; the byte-order assertions of `BinaryWriter` and `BinaryReader` stop saying that Unison targets x64. Done when: `cmake --build build/clang-debug --target unison_core unison_core_header_check` exits 0.
+- [x] X.5.1 `unison_core` and `unison_core_header_check` build with `-Werror`; the byte-order assertions of `BinaryWriter` and `BinaryReader` stop saying that Unison targets x64. Done when: `cmake --build build/clang-debug --target unison_core unison_core_header_check` exits 0. Done on 2026-09-25: both build on the Mac without a warning, the header check since X.4.2 took `FpEnvGuard` off `<xmmintrin.h>`, and the assertions of `BinaryWriter` and `BinaryReader` say that x86-64 and arm64 are both little-endian.
 - [ ] X.5.2 `unison_sim` builds. Done when: `--target unison_sim` exits 0.
 - [ ] X.5.3 `unison_net` builds, ENet included. Done when: `--target unison_net` exits 0.
 - [ ] X.5.4 `unison_session` and `unison_view` build. Done when: `--target unison_session unison_view` exits 0.

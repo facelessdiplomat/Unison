@@ -18,7 +18,7 @@ namespace unison
 /// decode instead of yielding stale bytes. Bytes and strings are views into the source buffer.
 class BinaryReader
 {
-    static_assert(std::endian::native == std::endian::little, "Unison encodes little-endian and targets x64");
+    static_assert(std::endian::native == std::endian::little, "Unison encodes little-endian, as x86-64 and arm64 are");
 
 public:
     explicit BinaryReader(std::span<const std::byte> source) : source{source}
