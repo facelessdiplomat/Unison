@@ -1,7 +1,8 @@
 # Unison — project instructions
 
 Unison is a deterministic, rollback-based multiplayer ECS engine in C++20 (Photon Quantum in spirit),
-built on EnTT, Jolt Physics and ENet, hosted headless in a terminal and as an Unreal Engine 5 plugin.
+built on EnTT, Jolt Physics and ENet, hosted headless in a terminal and as an Unreal Engine 5 plugin, on Windows
+and macOS alike.
 The design charter is `docs/DESIGN.md`; read it before touching architecture. The determinism rules in
 `docs/DESIGN.md` §7 apply to every deterministic library and are not repeated here.
 
@@ -114,6 +115,12 @@ Micro-features are the micro-tasks of `docs/TASKS.md`; that board is the single 
    progress table), then report.
 5. Stop and wait for the owner. "commit" means commit that micro-task; "continue" means take the next one.
    Never start the next micro-task unprompted, and commit only on the owner's command.
+
+Two machines, from Phase X on: Claude works on the Mac and the owner checks Windows. A micro-task that changes
+nothing Windows builds or runs, such as a macOS-only source, a branch compiled only on macOS or documentation,
+is finished once the Mac is green. One that touches a shared CMake module, a shared header, a test or a golden
+also needs `tools\ci.ps1` to print `ci: ok` on the owner's Windows machine before its commit, and a Windows
+failure is fixed in the same micro-task. Every report says which of the two its micro-task is.
 
 ## Environment, build and test
 - Development machine: Windows 11, Visual Studio 18 Community (MSVC toolset 14.51) at
