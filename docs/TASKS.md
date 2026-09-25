@@ -18,10 +18,9 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.6.3**, the scripted arena's golden in Debug and Release on the Mac. Last finished: X.6.2. On the
-  owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4,
-  and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL
-  is installed.
+- Next up: **X.6.4**, the text map's golden on the Mac. Last finished: X.6.3. On the owner's word of 2026-09-25
+  Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run,
+  stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +42,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 55 | 34 |
+| X Cross-platform: macOS | 10 | 55 | 35 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **247** | **170** |
+| **Total** | **41** | **247** | **171** |
 
 ## Charter amendments made while planning
 
@@ -403,7 +402,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 ### X.6 Cross-platform goldens
 - [x] X.6.1 XXH3 on NEON: `xxhash_vectors_test` and `hasher_test` pass on the Mac (part of X.5.7; ticked here so the record is explicit). Done on 2026-09-25: on the Mac `xxh3 reproduces the xxhash sanity vectors` and every hasher case pass in Debug and in Release, XXH3 taking its NEON path there.
 - [x] X.6.2 The physics pile: `"fifty falling boxes come to rest where they always have"` reproduces `0x214BC6AEDC1EFBB3` on the Mac in Debug and Release. This is the R7 test: it hashes the raw state buffer. Done on 2026-09-25: `fifty falling boxes come to rest where they always have` reproduces `0x214BC6AEDC1EFBB3`, recorded on Windows, on the Mac in Debug and in Release. The golden hashes Jolt's raw state buffer, velocities, sleep state and the contact cache with its impulses included, so R7 did not come to pass: MSVC on x64 and clang on arm64 leave the same bytes.
-- [ ] X.6.3 The scripted arena: `tests/golden/arena_scripted.checksums` verifies on the Mac in Debug and Release, all sixty frames.
+- [x] X.6.3 The scripted arena: `tests/golden/arena_scripted.checksums` verifies on the Mac in Debug and Release, all sixty frames. Done on 2026-09-25: `tests/golden/arena_scripted.checksums`, recorded on Windows, verifies on the Mac in Debug and in Release on all sixty frames it records: four players, six hundred frames of scripted play, deaths and respawns included.
 - [ ] X.6.4 The text map: `"the map of a new match of two looks as it did when it was recorded"` passes on the Mac.
 - [ ] X.6.5 The arena's session config: a new golden `tests/golden/arena_config.hashes` with `assetHash`, `pipelineHash` and `hashOf(SessionConfig)` for 2, 4 and 8 players, recorded on Windows by a `[.record]` case as `arena_scripted.checksums` is, verified on the Mac. This is the R5 test: two clients whose configs hash alike land in the same relay room.
 - [ ] X.6.6 The protocol bytes: a new golden `tests/golden/protocol.bytes`, one hex line per message kind (`Hello`, `Welcome`, `Input`, `Confirmed`, `Checksum`, `Desync`, `Ping`, `Pong`, `Leave` and the rest of the charter's §9.2) encoded from fixed values, recorded on Windows, verified on the Mac. This is the R6 test.
