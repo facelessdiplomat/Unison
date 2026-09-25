@@ -18,8 +18,8 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.9.5**, the optional ordering of the runner's `NetworkSimulator` by a sequence number, while X.8.2
-  and X.8.3, the LAN runs between Windows and the Mac, wait for the owner. Last finished: X.9.4. On the owner's
+- Next up: **X.8.2**, the first LAN run between Windows and the Mac, the relay on Windows, which only the owner
+  can play by `docs/LAN_TEST.md`; X.8.3 follows with the relay on the Mac. Last finished: X.9.5. On the owner's
   word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before Phase 4, and
   3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is
   installed.
@@ -44,11 +44,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 56 | 50 |
+| X Cross-platform: macOS | 10 | 56 | 51 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **248** | **186** |
+| **Total** | **41** | **248** | **187** |
 
 ## Charter amendments made while planning
 
@@ -431,7 +431,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.9.2 `README.md` builds on both platforms in two short blocks. Done on 2026-09-25: one block for Windows and one for macOS, each the environment and a Debug workflow, with Homebrew's `cmake`, `ninja` and `llvm@20` on the Mac; below them the four presets, what `tools/env.ps1` and `tools/env.sh` export and what the two CI scripts run. The Mac's block, but for the Homebrew installation already in place, ran as written for X.9.1.
 - [x] X.9.3 `tests/benchmarks/baseline.md` gains a section recorded on the Mac (Apple M4 Pro, Release), informative only; the Windows numbers stay the baseline the budget is read against. Done on 2026-09-25: the section holds the Mac's machine and build, its load, the median of three Release runs with their range, and the Windows baseline beside them. A tick costs 5.40 µs against Windows' 4.99, while a snapshot, a restore and a checksum take about half as long and ten resimulated frames 22.0 µs against 66.1; the gap between a tick and a resimulated frame, which Windows does not show, is recorded and not investigated. The Mac was not idle by the file's rule, the window server and one desktop app holding about half a core and a third of a core of fourteen before and after, so the tick and the checksum agreed within 7 % and the rest within 5 %.
 - [x] X.9.4 Final pass over the charter: the plan's questions answered in the charter's §17, the backlog line rewritten (Linux, ARM64 Linux, the hosted CI matrix and universal plugin binaries stay there). Done on 2026-09-26: §17 answers every question of the plan, Q-A and Q-C in Q8 and Q9 as they turned out and Q-B, Q-D to Q-I as Q11 to Q17, and the plan's §4 points there. §7.4 lets a new golden be recorded on the Mac with the next Windows run as its check, as Q-G was amended, and asks every golden to verify on the platform that did not record it. The backlog in the charter and on the board names determinism on Linux, x64 and ARM64, on x86-64 macOS and on ARM64 Windows, a hosted CI matrix over every platform and universal plugin binaries, and the board's copy gains the aim item it lacked. Phase X's exit criterion on the documents is ticked.
-- [ ] X.9.5 (optional) The runner's `NetworkSimulator` orders messages due at the same instant by a sequence number, so a runner run reads the same on both machines. Test: two messages due together are delivered in the order they were sent.
+- [x] X.9.5 (optional) The runner's `NetworkSimulator` orders messages due at the same instant by a sequence number, so a runner run reads the same on both machines. Test: two messages due together are delivered in the order they were sent. Done on 2026-09-26: the ordering was already there. Since 2.5.2 every message in the network carries a sequence number that breaks ties in the heap, so its order is total, as §7.3 asks, and the plan's R4 had misread it; R4 now says so. The micro-task adds the test the board names, a hundred unreliable messages due at the same instant arriving in the order they were sent. It passes, and with the tie-break taken out it fails, as the case for the reliable channel does.
 
 ---
 

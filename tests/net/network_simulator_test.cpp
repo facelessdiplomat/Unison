@@ -117,6 +117,15 @@ TEST_CASE("reliable messages are never lost and never overtake one another")
     REQUIRE(isInOrder(arrived));
 }
 
+TEST_CASE("messages due at the same instant arrive in the order they were sent")
+{
+    const std::vector<std::uint32_t> arrived =
+        numbersThrough(unison::net::NetworkConditions{20, 0, 0.0F}, unison::net::Channel::Unreliable, 100);
+
+    REQUIRE(arrived.size() == 100U);
+    REQUIRE(isInOrder(arrived));
+}
+
 TEST_CASE("jitter lets unreliable messages overtake one another")
 {
     const std::vector<std::uint32_t> arrived =
