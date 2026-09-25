@@ -102,6 +102,7 @@ add_executable(
     core/error_test.cpp
     core/fixed_string_test.cpp
     core/fixed_vector_test.cpp
+    core/fp_control_word_test.cpp
     core/fp_env_guard_test.cpp
     core/framework_test.cpp
     core/hasher_test.cpp

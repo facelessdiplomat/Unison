@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **X.4.1**, `fp_control_word.hpp`: the floating-point control register read and written with its bits
-  named, MXCSR on x64 and FPCR on arm64. Last finished: X.3.4. On the owner's word of 2026-09-25 Phase X, the port
-  to macOS and play between Windows and macOS, runs before Phase 4, and 3.4.5, the LAN run, stays open until X.8.2
-  plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **X.4.2**, `FpEnvGuard` over `fp_control_word.hpp`, its tests on the named bits. Last finished: X.4.1.
+  On the owner's word of 2026-09-25 Phase X, the port to macOS and play between Windows and macOS, runs before
+  Phase 4, and 3.4.5, the LAN run, stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred
+  until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -43,11 +43,11 @@ needs from earlier tasks is ticked.
 | 1 Deterministic simulation core | 7 | 57 | 57 |
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
-| X Cross-platform: macOS | 10 | 54 | 18 |
+| X Cross-platform: macOS | 10 | 54 | 19 |
 | 4 Session features | 5 | 20 | 0 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **246** | **154** |
+| **Total** | **41** | **246** | **155** |
 
 ## Charter amendments made while planning
 
@@ -383,7 +383,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] X.3.4 The console's `WIN32_LEAN_AND_MEAN NOMINMAX` under `if(WIN32)`; its keyboard and screen sources chosen per platform (`console_keyboard_windows.cpp` / `console_keyboard_macos.cpp`, `console_screen_windows.cpp` / `console_screen_posix.cpp`) behind the same headers. Done when: the console target configures on both platforms with the right sources listed. Done on 2026-09-25: `WIN32_LEAN_AND_MEAN` and `NOMINMAX` are defined on Windows alone, and the console's keyboard and screen keep their platform's state in a `Terminal` of their own that each platform's source defines, so `console_keyboard.hpp` and `console_screen.hpp` serve both. Windows keeps its implementation, unchanged in behaviour, in `console_keyboard_windows.cpp` and `console_screen_windows.cpp`; the Mac gets `console_keyboard_macos.cpp` and `console_screen_posix.cpp`, which report no keyboard and no screen until X.7, so a Mac console prints its status line once a second. On the Mac the compile commands list the Mac's sources alone and both build under `-Werror`; the Windows half waits for the owner's check.
 
 ### X.4 The floating-point environment on ARM64
-- [ ] X.4.1 `core/include/unison/core/fp_control_word.hpp`: `readFpControlWord()`, `writeFpControlWord()`, and the named bits per architecture: the deterministic word (`0x1F80` on x64, `0` on AArch64), flush-to-zero (`FTZ | DAZ` on x64, `FZ`, bit 24, on AArch64), the rounding field and its round-toward-zero value (bits 13–14 on x64, bits 22–23 on AArch64). AArch64 reads and writes `fpcr` the way Jolt's `FPControlWord` does. Test: `"the control word reads back what was written"` for the rounding field and the flush bits, host state restored.
+- [x] X.4.1 `core/include/unison/core/fp_control_word.hpp`: `readFpControlWord()`, `writeFpControlWord()`, and the named bits per architecture: the deterministic word (`0x1F80` on x64, `0` on AArch64), flush-to-zero (`FTZ | DAZ` on x64, `FZ`, bit 24, on AArch64), the rounding field and its round-toward-zero value (bits 13–14 on x64, bits 22–23 on AArch64). AArch64 reads and writes `fpcr` the way Jolt's `FPControlWord` does. Test: `"the control word reads back what was written"` for the rounding field and the flush bits, host state restored. Done on 2026-09-25: `FpControlWord`, `readFpControlWord` and `writeFpControlWord` come with `kDeterministicFpControlWord`, `kFlushToZeroBits`, `kRoundingModeBits` and `kRoundTowardZeroBits` for each architecture; FPCR goes through ACLE's `__arm_rsr64` and `__arm_wsr64`, and on x86-64 `kFlushToZeroBits` holds DAZ as well as FTZ, matching FPCR's FZ, which flushes inputs and results alike. The two tests failed to build before the header and pass on the Mac after it, built on their own against Catch2, and the header compiles alone under the determinism flags and the warnings. The core header check takes the header in as well and builds on arm64 once X.4.2 has taken `FpEnvGuard` off `<xmmintrin.h>`.
 - [ ] X.4.2 `FpEnvGuard` over `fp_control_word.hpp`, behaviour unchanged. Test: the existing `fp_env_guard_test.cpp` cases rewritten onto the named bits pass on both platforms.
 - [ ] X.4.3 `tests/sim/advance_frame_test.cpp` onto the named bits: a tick under a host that set flush-to-zero runs with denormals kept and gives the host its word back. Test: the existing cases pass on both platforms.
 

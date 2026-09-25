@@ -7,6 +7,7 @@
 #include <unison/core/fixed_string.hpp>
 #include <unison/core/fixed_vector.hpp>
 #include <unison/core/float3.hpp>
+#include <unison/core/fp_control_word.hpp>
 #include <unison/core/fp_env_guard.hpp>
 #include <unison/core/hasher.hpp>
 #include <unison/core/jolt_conversions.hpp>
@@ -124,6 +125,16 @@ std::uint64_t checkBinaryIo()
            reader.remaining() + writer.size();
 }
 
+std::uint64_t checkFpControlWord()
+{
+    const unison::FpControlWord hostWord = unison::readFpControlWord();
+
+    unison::writeFpControlWord(unison::kDeterministicFpControlWord);
+    unison::writeFpControlWord(hostWord);
+
+    return hostWord & (unison::kFlushToZeroBits | unison::kRoundingModeBits | unison::kRoundTowardZeroBits);
+}
+
 std::uint64_t checkFpEnvGuard()
 {
     const unison::FpEnvGuard guard;
@@ -173,6 +184,6 @@ std::uint64_t checkRng()
 std::uint64_t unisonCoreHeaderCheck()
 {
     return checkAssetId() ^ checkBinaryIo() ^ checkBodyId() ^ checkContract() ^ checkError() ^ checkFixedString() ^
-           checkFixedVector() ^ checkFpEnvGuard() ^ checkHasher() ^ checkLogSink() ^ checkMath() ^ checkMathTypes() ^
-           checkRng();
+           checkFixedVector() ^ checkFpControlWord() ^ checkFpEnvGuard() ^ checkHasher() ^ checkLogSink() ^
+           checkMath() ^ checkMathTypes() ^ checkRng();
 }
