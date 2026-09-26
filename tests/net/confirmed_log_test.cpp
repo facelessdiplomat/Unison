@@ -63,3 +63,15 @@ TEST_CASE("asking a confirmed log for a frame it does not hold breaks a contract
 
     REQUIRE(probe.failureCount() == 1U);
 }
+
+TEST_CASE("a confirmed log holds the frames from one to its last and no other")
+{
+    unison::net::ConfirmedLog log{kFrameSize};
+    log.append(frameOf(1));
+    log.append(frameOf(2));
+
+    REQUIRE_FALSE(log.holds(0));
+    REQUIRE(log.holds(1));
+    REQUIRE(log.holds(2));
+    REQUIRE_FALSE(log.holds(3));
+}

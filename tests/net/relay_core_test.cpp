@@ -6,6 +6,7 @@
 #include <unison/net/round_trip_meter.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <support/fatal_handler_probe.hpp>
 
@@ -14,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <utility>
 #include <variant>
@@ -77,7 +79,7 @@ struct Relay
 
 void sendMessage(unison::net::ITransport& from, unison::net::PeerId to, const unison::net::Message& message)
 {
-    std::array<std::byte, 256> buffer{};
+    std::array<std::byte, unison::net::kMaxDatagramSize> buffer{};
     const auto written = unison::net::encode(message, buffer);
 
     REQUIRE(written.has_value());
@@ -881,4 +883,248 @@ TEST_CASE("the relay asks the player in the lowest slot for a snapshot when no r
 
     REQUIRE(snapshotRequestsIn(Match::repliesOf(match.first)).size() == 1U);
     REQUIRE(snapshotRequestsIn(Match::repliesOf(match.second)).empty());
+}
+
+namespace
+{
+
+std::vector<std::byte> snapshotBytes(std::size_t size)
+{
+    std::vector<std::byte> bytes(size);
+
+    for (std::size_t index = 0; index < size; ++index)
+    {
+        bytes[index] = static_cast<std::byte>(index);
+    }
+
+    return bytes;
+}
+
+template <typename T>
+std::vector<T> allOf(const Replies& replies)
+{
+    std::vector<T> found;
+
+    for (const std::vector<std::byte>& reply : replies)
+    {
+        const auto decoded = unison::net::decode(reply);
+
+        if (decoded.has_value() && std::holds_alternative<T>(*decoded))
+        {
+            found.push_back(std::get<T>(*decoded));
+        }
+    }
+
+    return found;
+}
+
+std::vector<std::uint32_t> framesConfirmedIn(const Replies& replies)
+{
+    std::vector<std::uint32_t> frames;
+
+    for (const unison::net::Confirmed& confirmed : allOf<unison::net::Confirmed>(replies))
+    {
+        for (std::uint32_t frame = confirmed.firstFrame; frame < confirmed.firstFrame + confirmed.frameCount; ++frame)
+        {
+            frames.push_back(frame);
+        }
+    }
+
+    std::ranges::sort(frames);
+    const auto repeats = std::ranges::unique(frames);
+    frames.erase(repeats.begin(), repeats.end());
+
+    return frames;
+}
+
+}
+
+TEST_CASE("a player joining a running room holds its slot while frames are confirmed without it")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+
+    match.sendInputs(match.first, 2, inputOf(3));
+    match.sendInputs(match.second, 2, inputOf(4));
+
+    REQUIRE(framesConfirmedIn(Match::repliesOf(match.first)).back() == 2U);
+}
+
+TEST_CASE("the relay welcomes a joiner at the snapshot's frame before handing it the donor's chunks in order")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+    match.sendInputs(match.first, 2, inputOf(3));
+    match.sendInputs(match.second, 2, inputOf(4));
+    static_cast<void>(Match::repliesOf(match.joiner));
+    const std::vector<std::byte> snapshot = snapshotBytes(2 * unison::net::snapshotBytesPerChunk());
+    const unison::net::SnapshotChunk firstChunk{
+        2, 0, 2, std::span{snapshot}.first(unison::net::snapshotBytesPerChunk())};
+    const unison::net::SnapshotChunk secondChunk{
+        2, 1, 2, std::span{snapshot}.subspan(unison::net::snapshotBytesPerChunk())};
+
+    sendMessage(match.first, match.endpoint.id(), firstChunk);
+    sendMessage(match.first, match.endpoint.id(), secondChunk);
+    match.endpoint.poll(match.core);
+
+    const Replies atJoiner = Match::repliesOf(match.joiner);
+    const std::vector<unison::net::Welcome> welcomes = allOf<unison::net::Welcome>(atJoiner);
+    const std::vector<unison::net::SnapshotChunk> chunks = allOf<unison::net::SnapshotChunk>(atJoiner);
+    REQUIRE(welcomes.size() == 1U);
+    REQUIRE(welcomes.front().slot == 2U);
+    REQUIRE(welcomes.front().startFrame == 2U);
+    REQUIRE(chunks.size() == 2U);
+    REQUIRE(chunks[0].chunkIndex == 0U);
+    REQUIRE(chunks[1].chunkIndex == 1U);
+    REQUIRE(std::holds_alternative<unison::net::Welcome>(*unison::net::decode(atJoiner.front())));
+}
+
+TEST_CASE("a joiner hears of every frame after the snapshot's, those confirmed before the snapshot came included")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+    for (std::uint32_t frame = 2; frame <= 8; ++frame)
+    {
+        match.sendInputs(match.first, frame, inputOf(3));
+        match.sendInputs(match.second, frame, inputOf(4));
+    }
+    static_cast<void>(Match::repliesOf(match.joiner));
+    const std::vector<std::byte> snapshot = snapshotBytes(10);
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{2, 0, 1, snapshot});
+    match.endpoint.poll(match.core);
+    match.sendInputs(match.first, 9, inputOf(5));
+    match.sendInputs(match.second, 9, inputOf(6));
+
+    REQUIRE(std::ranges::includes(framesConfirmedIn(Match::repliesOf(match.joiner)), std::views::iota(3U, 10U)));
+}
+
+TEST_CASE("a joiner's slot is confirmed absent until the first frame it sends an input for, and present from then on")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+    match.sendInputs(match.first, 2, inputOf(3));
+    match.sendInputs(match.second, 2, inputOf(4));
+    static_cast<void>(Match::repliesOf(match.first));
+
+    match.sendInputs(match.joiner, 3, inputOf(7));
+    match.sendInputs(match.first, 3, inputOf(5));
+    match.sendInputs(match.second, 3, inputOf(6));
+
+    const Replies atFirst = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = allOf<unison::net::Confirmed>(atFirst);
+    REQUIRE_FALSE(confirmations.empty());
+    const unison::net::Confirmed& newest = confirmations.back();
+    const std::size_t frameSize = unison::net::confirmedFrameSize(newest.slotCount, newest.inputSize);
+    const auto flagsOf = [&newest, frameSize](std::uint32_t frame, std::size_t slot)
+    {
+        const std::size_t at = std::size_t{frame - newest.firstFrame} * frameSize + slot * (1U + newest.inputSize);
+        return std::to_integer<std::uint8_t>(newest.slots[at]);
+    };
+    REQUIRE(newest.firstFrame <= 2U);
+    REQUIRE(newest.firstFrame + newest.frameCount - 1U == 3U);
+    REQUIRE(flagsOf(2, 2) == 0U);
+    REQUIRE(flagsOf(3, 2) == static_cast<std::uint8_t>(unison::net::SlotFlags::Present));
+}
+
+TEST_CASE("the relay hands one snapshot to every player joining through the same donor")
+{
+    RunningMatch match;
+    unison::net::LoopbackEndpoint& lateComer = match.hub.join();
+    match.core.peerLeft(match.second.id());
+    match.hello(match.joiner);
+    match.hello(lateComer);
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    const Replies atJoiner = Match::repliesOf(match.joiner);
+    const Replies atLateComer = Match::repliesOf(lateComer);
+    REQUIRE(allOf<unison::net::Welcome>(atJoiner).size() == 1U);
+    REQUIRE(allOf<unison::net::SnapshotChunk>(atJoiner).size() == 1U);
+    REQUIRE(allOf<unison::net::Welcome>(atLateComer).size() == 1U);
+    REQUIRE(allOf<unison::net::SnapshotChunk>(atLateComer).size() == 1U);
+}
+
+TEST_CASE("a player joining while a snapshot is on its way is handed the next snapshot whole")
+{
+    RunningMatch match;
+    unison::net::LoopbackEndpoint& lateComer = match.hub.join();
+    match.core.peerLeft(match.second.id());
+    match.sendInputs(match.first, 2, inputOf(3));
+    match.sendInputs(match.first, 3, inputOf(4));
+    match.hello(match.joiner);
+    const std::vector<std::byte> snapshot = snapshotBytes(2 * unison::net::snapshotBytesPerChunk());
+    const auto chunkOf = [&snapshot](std::uint32_t frame, std::uint32_t index)
+    {
+        const std::size_t size = unison::net::snapshotBytesPerChunk();
+        return unison::net::SnapshotChunk{frame, index, 2, std::span{snapshot}.subspan(index * size, size)};
+    };
+    sendMessage(match.first, match.endpoint.id(), chunkOf(2, 0));
+    match.endpoint.poll(match.core);
+    match.hello(lateComer);
+
+    sendMessage(match.first, match.endpoint.id(), chunkOf(2, 1));
+    sendMessage(match.first, match.endpoint.id(), chunkOf(3, 0));
+    sendMessage(match.first, match.endpoint.id(), chunkOf(3, 1));
+    match.endpoint.poll(match.core);
+
+    const Replies atLateComer = Match::repliesOf(lateComer);
+    const std::vector<unison::net::Welcome> welcomes = allOf<unison::net::Welcome>(atLateComer);
+    const std::vector<unison::net::SnapshotChunk> chunks = allOf<unison::net::SnapshotChunk>(atLateComer);
+    REQUIRE(welcomes.size() == 1U);
+    REQUIRE(welcomes.front().startFrame == 3U);
+    REQUIRE(chunks.size() == 2U);
+    REQUIRE(std::ranges::all_of(chunks, [](const unison::net::SnapshotChunk& chunk) { return chunk.frame == 3U; }));
+}
+
+TEST_CASE("a snapshot of a frame the relay has not confirmed is not handed to a joiner")
+{
+    const std::uint32_t unconfirmed = GENERATE(0U, 2U, 0xFFFFFFFFU);
+    RunningMatch match;
+    match.hello(match.joiner);
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{unconfirmed, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    const Replies atJoiner = Match::repliesOf(match.joiner);
+    REQUIRE(allOf<unison::net::Welcome>(atJoiner).empty());
+    REQUIRE(allOf<unison::net::SnapshotChunk>(atJoiner).empty());
+}
+
+TEST_CASE("a player still joining is never asked for a snapshot")
+{
+    RunningMatch match;
+    unison::net::LoopbackEndpoint& lateComer = match.hub.join();
+    match.core.peerLeft(match.second.id());
+    match.roundTrips.set(match.first.id(), 40'000);
+    match.roundTrips.set(match.joiner.id(), 10'000);
+    match.hello(match.joiner);
+
+    match.hello(lateComer);
+
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(match.first)).size() == 2U);
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(match.joiner)).empty());
+}
+
+TEST_CASE("a joiner's first input naming frames confirmed without it puts its slot in play from the next frame only")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+    match.sendInputs(match.first, 2, inputOf(3));
+    match.sendInputs(match.second, 2, inputOf(4));
+    const std::array<std::byte, 4> framesTwoAndThree{};
+    sendMessage(match.joiner, match.endpoint.id(), unison::net::Input{2, 2, 2, framesTwoAndThree});
+    match.endpoint.poll(match.core);
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::Checksum{2, 77});
+    sendMessage(match.second, match.endpoint.id(), unison::net::Checksum{2, 77});
+    sendMessage(match.joiner, match.endpoint.id(), unison::net::Checksum{2, 78});
+    match.endpoint.poll(match.core);
+
+    REQUIRE(allOf<unison::net::Desync>(Match::repliesOf(match.first)).empty());
 }

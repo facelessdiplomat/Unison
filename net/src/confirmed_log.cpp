@@ -21,6 +21,11 @@ std::uint32_t ConfirmedLog::lastFrame() const
     return frameSize == 0 ? 0 : static_cast<std::uint32_t>(frames.size() / frameSize);
 }
 
+bool ConfirmedLog::holds(std::uint32_t frame) const
+{
+    return frame >= 1 && frame <= lastFrame();
+}
+
 std::span<const std::byte> ConfirmedLog::slotsOf(std::uint32_t firstFrame, std::uint32_t frameCount) const
 {
     const bool isHeld = firstFrame >= 1 && frameCount <= lastFrame() && firstFrame <= lastFrame() - frameCount + 1;
@@ -33,6 +38,16 @@ std::span<const std::byte> ConfirmedLog::slotsOf(std::uint32_t firstFrame, std::
     }
 
     return std::span{frames}.subspan(std::size_t{firstFrame - 1} * frameSize, std::size_t{frameCount} * frameSize);
+}
+
+Confirmed
+confirmationOf(const ConfirmedLog& log, const SessionConfig& config, std::uint32_t firstFrame, std::uint32_t frameCount)
+{
+    return Confirmed{firstFrame,
+                     config.slotCount,
+                     config.inputSize,
+                     static_cast<std::uint8_t>(frameCount),
+                     log.slotsOf(firstFrame, frameCount)};
 }
 
 }

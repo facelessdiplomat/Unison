@@ -18,11 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.3.3**, the relay forwards the donor's chunks to the joiner with the confirmed inputs since `F`,
-  holding the joiner's slot out of play until then: no gap between the snapshot's frame and the live ones. Last
-  finished: 4.3.2. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the
-  owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS.
-  3.2.3 is deferred until WSL is installed.
+- Next up: **4.3.5**, a runner scenario `--late-join-at <frame>`: a client joins the runner's match at a frame,
+  through a snapshot, and ends with the checksums of the others, in CTest. Last finished: 4.3.4. On the owner's
+  word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across
+  the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is
+  installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -45,10 +45,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 20 | 11 |
+| 4 Session features | 5 | 23 | 13 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **248** | **198** |
+| **Total** | **41** | **251** | **200** |
 
 ## Charter amendments made while planning
 
@@ -456,9 +456,12 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 ### 4.3 Late-join
 - [x] 4.3.1 Relay: `Hello` into a running room selects a donor (lowest RTT) and sends `SnapshotRequest(frame)`. Test: donor chosen, request issued. Done on 2026-09-26: a player's `Hello` into a room the relay has confirmed a frame of makes the relay send `SnapshotRequest` for the frame after the newest it confirmed to a donor: the player with the lowest round trip an `IRoundTripMeter` measures, the lowest slot among equals or where nothing is measured. `EnetTransport` is such a meter, giving ENet's smoothed round trip to a connected peer; the relay tool will hand it to the rooms with the rest of late-join. The joiner is still welcomed at once, as before: holding its slot out of play while it catches up and welcoming it with the snapshot come with 4.3.3, since a joiner that waited for a snapshot nobody sends yet would have broken joining a match a moment old, which the ENet match test does and which failed when tried. Tested: with round trips of 40 and 10 ms the second player is asked for frame 2, with none measured the first is, and a connected ENet peer has a round trip where an unknown one has none; ignoring the measure fails the first case.
 - [x] 4.3.2 Donor client: serialises verified frame `F` and streams `SnapshotChunk`s. Test: chunks reassemble to the serialised snapshot. Done on 2026-09-26: a `NetworkedSession` asked for a snapshot hands the frame to its `SnapshotDonor`, which hears of every frame the session verifies beside the host's own receiver and, at the first frame verified at or after the one asked for, serialises its snapshot and sends it to the relay reliably in `SnapshotChunk`s. `chunksOf` splits a snapshot into numbered chunks of as many bytes as a datagram carries, `snapshotBytesPerChunk` in the codec, and `SnapshotAssembler` gathers them in any order, refusing a chunk of another frame or count, a repeat, and a snapshot of more than 4096 chunks. Tested: a client asked for frame 2 and confirmed three frames sends chunks that assemble into a snapshot of frame 2 whose checksum is the one it reported for frame 2; a snapshot of three chunks reassembles in reverse; the refusals; a chunk of the full size fits a datagram and one byte more does not. Answering with the frame before the one asked for, or taking a chunk twice, fails their cases.
-- [ ] 4.3.3 Relay input log retention: confirmed inputs since `F` forwarded to the joiner. Test: no gap between the snapshot frame and live frames.
-- [ ] 4.3.4 Joiner: restore, fast-forward at up to 8× until inside the prediction window, then play. Test: joiner checksums equal the others from `F` onward.
+- [x] 4.3.3 Relay input log retention: confirmed inputs since `F` forwarded to the joiner. Test: no gap between the snapshot frame and live frames. Done on 2026-09-26 together with 4.3.4, since a joiner welcomed at the snapshot's frame needs a client that restores it. A player's `Hello` into a running room takes the lowest free slot as a member still joining, whose slot the relay confirms frames without, and `LateJoins` asks the donor for the snapshot. As the donor's chunks come, `LateJoins` hands every player waiting for that donor a `Welcome` whose start frame is the snapshot's, the chunks, then every frame confirmed since the snapshot's out of `ConfirmedLog`, over the reliable channel. A joiner takes a snapshot from its first chunk on, so players joining together share one and a player joining while one is on its way gets the next whole; a chunk of a frame the relay has not confirmed is dropped, which also keeps a chunk of frame 2^32 − 1 from breaking the log's contract. The slot comes into play from the first frame of the joiner's first input, or from the next frame to confirm when that one is later, and a player still joining is never a donor. Tested: frames confirmed without the joiner, the welcome before the chunks in order, every frame after the snapshot's with none missing, the slot absent and then present, two joiners sharing a snapshot, the next snapshot whole, chunks of frames 0, 2 and 2^32 − 1 dropped, a joiner never asked, a first input naming frames already confirmed, and the roster's contracts for a joiner. Skipping a frame after the snapshot's, the first-chunk rule, handing on to every joiner, the guard, the donor rule or the start of play fails its case.
+- [x] 4.3.4 Joiner: restore, fast-forward at up to 8× until inside the prediction window, then play. Test: joiner checksums equal the others from `F` onward. Done on 2026-09-26 with 4.3.3. A `NetworkedSession` welcomed at a start frame past zero waits for that frame's snapshot, deserialises it, restores it into its frame and plays on from there; a snapshot of another frame, or one the reader refuses, ends in `Disconnected`. While it is behind the newest frame it has heard confirmed, by its welcome or by any confirmation, it asks the host for up to `kCatchUpExtraTicks`, seven extra ticks a host frame, and sends no input, so its slot stays out of play until it has caught up. `Session::confirm` now turns away a frame already verified, as its contract says: the confirmation of the frame a joiner restored rolled its session back past the frame it started at. The ENet match test, whose second client now joins a match a few frames old through a snapshot, compares both clients' checksums over the frames both reported. Tested: a joiner plays on to the checksums of the scripted session, catches up at seven and then three extra ticks, sends no input while behind, keeps the newest confirmed frame across its welcome, and is disconnected by a snapshot of another frame or by bytes that are none. Skipping the restore, the catch-up, the input gate, the newest frame, the frame check or the disconnection fails its case.
 - [ ] 4.3.5 Runner scenario `--late-join-at <frame>` in CTest.
+- [ ] 4.3.6 (+) The relay tool hands its ENet transport to every room as the round-trip meter, so a joiner's donor is the player in play with the lowest round trip over the network rather than the lowest slot. Found in 4.3.1, whose note left it to the rest of late-join. Test: a room of `RelayRooms` given a meter asks the player it measures lowest for the snapshot.
+- [ ] 4.3.7 (+) A joiner whose donor leaves before the last chunk is asked of another player in play; today it waits for good. What a running room with no player in play left does with the players still joining it is settled in `DESIGN.md` §8.6 first: welcoming them from frame 0, as the charter says of a new player there, leaves them behind the frames the relay confirms. Found in 4.3.3. Test: the donor leaving mid-snapshot makes the relay ask the next player, and the joiner gets a whole snapshot.
+- [ ] 4.3.8 (+) A second `Hello` from a member changes nothing; today it seats the member again in a second slot. Found in 4.3.3. Test: a player's second hello leaves its slot, the free slots and the relay's replies as they were.
 
 ### 4.4 Reconnect
 - [ ] 4.4.1 Reconnect token in `Welcome`; the relay holds the slot for `reconnectGrace` with the drop policy applied. Test: the slot is preserved within grace and released after.

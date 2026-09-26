@@ -75,7 +75,7 @@ void Session::tick()
 
 bool Session::confirm(std::uint32_t frameNumber, const sim::FrameInputs& confirmed)
 {
-    if (!inputTimeline.holds(frameNumber))
+    if (frameNumber <= verified || !inputTimeline.holds(frameNumber))
     {
         return false;
     }

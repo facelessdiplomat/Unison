@@ -26,7 +26,7 @@ RelayCore::RelayCore(ITransport& transport,
     : clock{clock}, config{config}, settings{settings}, roundTrips{roundTrips}, configHash{hashOf(config)},
       roster{config.slotCount}, outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames},
       matchClock{config.tickRate}, confirmedLog{confirmedFrameSize(config.slotCount, config.inputSize)},
-      confirmedSlots(confirmedFrameSize(config.slotCount, config.inputSize)),
+      lateJoins{outbox, confirmedLog, config}, confirmedSlots(confirmedFrameSize(config.slotCount, config.inputSize)),
       framesPerDatagram{confirmedFramesPerDatagram(config.slotCount, config.inputSize)}
 {
     UNISON_VERIFY(settings.reliableResendInterval > 0);
@@ -48,7 +48,13 @@ void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message
 void RelayCore::peerLeft(PeerId peer)
 {
     roster.remove(peer);
+    lateJoins.forget(peer);
     confirmReadyFrames();
+}
+
+void RelayCore::handle(PeerId from, const SnapshotChunk& chunk)
+{
+    lateJoins.forward(from, chunk);
 }
 
 void RelayCore::update()
@@ -93,14 +99,17 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
-    admit(from, slot);
-
     const std::optional<PeerId> donor = isRunning() ? donorFor(from) : std::nullopt;
 
-    if (donor.has_value())
+    if (!donor.has_value())
     {
-        outbox.send(*donor, Channel::Reliable, SnapshotRequest{confirmedLog.lastFrame() + 1});
+        admit(from, slot);
+
+        return;
     }
+
+    roster.admitJoining(from, slot);
+    lateJoins.await(from, slot, *donor);
 }
 
 void RelayCore::handle(PeerId from, const Input& input)
@@ -110,6 +119,11 @@ void RelayCore::handle(PeerId from, const Input& input)
     if (slot == kNoSlot || input.inputSize != config.inputSize)
     {
         return;
+    }
+
+    if (roster.isJoining(from))
+    {
+        roster.startPlaying(from, std::max(input.firstFrame, inputs.nextFrame()));
     }
 
     for (std::uint8_t offset = 0; offset < input.frameCount; ++offset)
@@ -138,7 +152,7 @@ void RelayCore::handle(PeerId from, const Checksum& checksum)
     }
 
     const std::optional<std::uint8_t> minority =
-        referee.record(checksum.frame, slot, checksum.checksum, roster.slotsInPlay());
+        referee.record(checksum.frame, slot, checksum.checksum, roster.slotsInPlayAt(checksum.frame));
 
     if (minority.has_value() && *minority != 0U)
     {
@@ -160,12 +174,11 @@ void RelayCore::handle(PeerId from, const Ping& ping)
 
 void RelayCore::confirmReadyFrames()
 {
-    const std::uint8_t inPlay = roster.slotsInPlay();
-
-    while (inputs.isNextFrameReady(inPlay) ||
+    while (inputs.isNextFrameReady(roster.slotsInPlayAt(inputs.nextFrame())) ||
            inputs.isNextFrameOverdue(clock.nowMicroseconds(), settings.inputDeadlineMicroseconds))
     {
         const std::uint32_t frame = inputs.nextFrame();
+        const std::uint8_t inPlay = roster.slotsInPlayAt(frame);
 
         inputs.confirmNextFrame(inPlay, confirmedSlots);
         confirmedLog.append(confirmedSlots);
@@ -191,14 +204,7 @@ void RelayCore::resendReliably(std::uint32_t lastFrame)
 
 void RelayCore::sendConfirmed(Channel channel, std::uint32_t firstFrame, std::uint32_t lastFrame)
 {
-    const std::uint32_t frameCount = lastFrame - firstFrame + 1;
-
-    sendToAll(channel,
-              Confirmed{firstFrame,
-                        config.slotCount,
-                        config.inputSize,
-                        static_cast<std::uint8_t>(frameCount),
-                        confirmedLog.slotsOf(firstFrame, frameCount)});
+    sendToAll(channel, confirmationOf(confirmedLog, config, firstFrame, lastFrame - firstFrame + 1));
 }
 
 void RelayCore::admit(PeerId peer, std::uint8_t slot)
@@ -219,7 +225,9 @@ std::optional<PeerId> RelayCore::donorFor(PeerId joiner) const
 
     for (const Roster::Member& member : roster.members())
     {
-        if (member.peer == joiner || member.slot == kNoSlot)
+        const bool playsTheMatch = member.slot != kNoSlot && member.playsFrom != Roster::kNotPlayingYet;
+
+        if (member.peer == joiner || !playsTheMatch)
         {
             continue;
         }

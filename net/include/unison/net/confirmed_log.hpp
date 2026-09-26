@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unison/net/protocol.hpp>
+#include <unison/net/session_config.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -20,6 +23,9 @@ public:
     /// The newest frame in the log, zero while it is empty.
     [[nodiscard]] std::uint32_t lastFrame() const;
 
+    /// Whether the log holds a frame: one numbered from one to the newest.
+    [[nodiscard]] bool holds(std::uint32_t frame) const;
+
     /// The slots of `frameCount` frames from `firstFrame` on, frame after frame; asking for a frame the log
     /// does not hold breaks a contract.
     [[nodiscard]] std::span<const std::byte> slotsOf(std::uint32_t firstFrame, std::uint32_t frameCount) const;
@@ -28,5 +34,12 @@ private:
     std::size_t frameSize;
     std::vector<std::byte> frames;
 };
+
+/// The confirmation of `frameCount` frames of a log from `firstFrame` on, for a match of this config; frames the log
+/// does not hold break a contract.
+[[nodiscard]] Confirmed confirmationOf(const ConfirmedLog& log,
+                                       const SessionConfig& config,
+                                       std::uint32_t firstFrame,
+                                       std::uint32_t frameCount);
 
 }

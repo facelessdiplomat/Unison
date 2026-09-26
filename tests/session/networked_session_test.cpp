@@ -2,6 +2,7 @@
 
 #include <unison/session/snapshot_chunks.hpp>
 #include <unison/session/snapshot_serializer.hpp>
+#include <unison/sim/advance_frame.hpp>
 #include <unison/sim/frame_checksum.hpp>
 #include <unison/sim/frame_snapshot.hpp>
 
@@ -541,4 +542,158 @@ TEST_CASE("a client asked for a snapshot sends the first frame it verifies from 
     const auto reported = std::ranges::find(checksums, 2U, &unison::net::Checksum::frame);
     REQUIRE(reported != checksums.end());
     REQUIRE(unison::sim::checksumOf(snapshot) == reported->checksum);
+}
+
+namespace
+{
+
+constexpr std::uint32_t kSnapshotFrame = 5;
+
+std::vector<std::byte> scriptedSnapshotAt(std::uint32_t frames)
+{
+    unison::sim::Frame frame;
+    unison::test::addScoredEntity(frame);
+    unison::test::InputMixer mixer;
+    unison::sim::SystemPipeline pipeline;
+    pipeline.add(mixer);
+
+    for (std::uint32_t next = 1; next <= frames; ++next)
+    {
+        unison::sim::advanceFrame(frame, pipeline, unison::test::scriptedSessionInputs(next));
+    }
+
+    unison::sim::FrameSnapshot snapshot;
+    unison::sim::takeSnapshot(frame, snapshot);
+    std::vector<std::byte> bytes;
+    unison::session::serializeSnapshot(snapshot, bytes);
+
+    return bytes;
+}
+
+void handSnapshot(Rig& rig, std::uint32_t confirmedFrame, const std::vector<std::byte>& snapshot)
+{
+    rig.relayOutbox.send(rig.clientEnd.id(),
+                         unison::net::Channel::Reliable,
+                         unison::net::Welcome{kLocalSlot, rig.config, kSnapshotFrame, confirmedFrame, 0});
+
+    for (const unison::net::SnapshotChunk& chunk : unison::session::chunksOf(kSnapshotFrame, snapshot))
+    {
+        rig.relayOutbox.send(rig.clientEnd.id(), unison::net::Channel::Reliable, chunk);
+    }
+}
+
+void welcomeLate(Rig& rig, std::uint32_t confirmedFrame, const std::vector<std::byte>& snapshot)
+{
+    rig.client.join();
+    handSnapshot(rig, confirmedFrame, snapshot);
+
+    for (std::uint32_t frame = kSnapshotFrame + 1; frame <= confirmedFrame; ++frame)
+    {
+        rig.confirm(frame, unison::test::scriptedSessionInputs(frame));
+    }
+}
+
+}
+
+TEST_CASE("a late joiner restores the snapshot it is welcomed at and plays on to the checksums of the others")
+{
+    Rig rig;
+    const std::vector<std::byte> snapshot = scriptedSnapshotAt(kSnapshotFrame);
+    welcomeLate(rig, kSnapshotFrame + 3, snapshot);
+
+    for (std::uint32_t tick = 0; tick < 3; ++tick)
+    {
+        rig.playWithMove(0);
+    }
+
+    REQUIRE(rig.client.state() == ConnectionState::Playing);
+    const std::vector<unison::net::Checksum> checksums = rig.relayMail().all<unison::net::Checksum>();
+    REQUIRE(checksums.size() == 3U);
+
+    for (const unison::net::Checksum& checksum : checksums)
+    {
+        CAPTURE(checksum.frame);
+        REQUIRE(checksum.checksum == unison::test::checksumOfScriptedSession(checksum.frame));
+    }
+}
+
+TEST_CASE("a late joiner catches up at no more than eight frames a host frame")
+{
+    Rig rig;
+    welcomeLate(rig, kSnapshotFrame + 20, scriptedSnapshotAt(kSnapshotFrame));
+    rig.client.update(rig.now);
+
+    const std::int32_t farBehind = rig.client.takeTickCorrection();
+    for (std::uint32_t tick = 0; tick < 17; ++tick)
+    {
+        rig.client.tick();
+    }
+    const std::int32_t nearlyCaughtUp = rig.client.takeTickCorrection();
+
+    REQUIRE(farBehind == 7);
+    REQUIRE(nearlyCaughtUp == 3);
+}
+
+TEST_CASE("a late joiner sends no input until it has caught up")
+{
+    Rig rig;
+    rig.client.join();
+    handSnapshot(rig, kSnapshotFrame + 3, scriptedSnapshotAt(kSnapshotFrame));
+
+    rig.playWithMove(0);
+    rig.playWithMove(0);
+    const std::vector<unison::net::Input> whileBehind = rig.relayMail().all<unison::net::Input>();
+    for (std::uint32_t frame = kSnapshotFrame + 1; frame <= kSnapshotFrame + 3; ++frame)
+    {
+        rig.confirm(frame, unison::test::scriptedSessionInputs(frame));
+    }
+    rig.playWithMove(0);
+    rig.playWithMove(0);
+    const std::vector<unison::net::Input> caughtUp = rig.relayMail().all<unison::net::Input>();
+
+    REQUIRE(whileBehind.empty());
+    REQUIRE_FALSE(caughtUp.empty());
+}
+
+TEST_CASE("a late joiner catches up to the newest frame it has heard confirmed, though its welcome names an older one")
+{
+    Rig rig;
+    rig.client.join();
+    rig.confirm(kSnapshotFrame + 20, unison::test::scriptedSessionInputs(kSnapshotFrame + 20));
+    handSnapshot(rig, kSnapshotFrame + 1, scriptedSnapshotAt(kSnapshotFrame));
+
+    rig.client.update(rig.now);
+
+    REQUIRE(rig.client.takeTickCorrection() == 7);
+}
+
+TEST_CASE("a late joiner handed the snapshot of another frame than its welcome named is disconnected")
+{
+    Rig rig;
+    rig.client.join();
+    rig.relayOutbox.send(rig.clientEnd.id(),
+                         unison::net::Channel::Reliable,
+                         unison::net::Welcome{kLocalSlot, rig.config, kSnapshotFrame, kSnapshotFrame, 0});
+    const std::vector<std::byte> later = scriptedSnapshotAt(kSnapshotFrame + 1);
+
+    for (const unison::net::SnapshotChunk& chunk : unison::session::chunksOf(kSnapshotFrame + 1, later))
+    {
+        rig.relayOutbox.send(rig.clientEnd.id(), unison::net::Channel::Reliable, chunk);
+    }
+    rig.client.update(rig.now);
+
+    REQUIRE(rig.client.state() == ConnectionState::Disconnected);
+    REQUIRE(rig.client.session() == nullptr);
+}
+
+TEST_CASE("a late joiner handed bytes that are no snapshot is disconnected")
+{
+    Rig rig;
+    rig.client.join();
+    handSnapshot(rig, kSnapshotFrame, std::vector<std::byte>(16, std::byte{7}));
+
+    rig.client.update(rig.now);
+
+    REQUIRE(rig.client.state() == ConnectionState::Disconnected);
+    REQUIRE(rig.client.session() == nullptr);
 }

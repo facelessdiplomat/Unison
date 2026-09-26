@@ -195,6 +195,23 @@ TEST_CASE("a confirmation of a frame already verified is turned away")
     REQUIRE(session.verifiedFrame() == 2U);
 }
 
+TEST_CASE("a confirmation of the frame a session started at is turned away and plays nothing again")
+{
+    constexpr std::uint32_t kStartFrame = 5;
+    unison::sim::Frame frame;
+    frame.frameNumber = kStartFrame;
+    const unison::sim::SystemPipeline pipeline;
+    unison::session::Session session{frame, pipeline, threePlayers(), kLocalSlot};
+    unison::sim::FrameInputs otherInputs;
+    otherInputs.set(0, unison::test::inputWithMove(3), unison::sim::InputFlags::Present);
+
+    const bool accepted = session.confirm(kStartFrame, otherInputs);
+    session.tick();
+
+    REQUIRE_FALSE(accepted);
+    REQUIRE(session.rollbackStats().rollbacks == 0U);
+}
+
 TEST_CASE("a session keeps confirmations far beyond the frames it has played and plays through them")
 {
     constexpr std::uint32_t kFramesAhead = 40;

@@ -2,6 +2,8 @@
 
 #include <unison/core/contract.hpp>
 #include <unison/net/message_codec.hpp>
+#include <unison/session/snapshot_serializer.hpp>
+#include <unison/sim/frame_snapshot.hpp>
 
 #include <algorithm>
 #include <variant>
@@ -81,13 +83,24 @@ void NetworkedSession::tick()
     played->setLocalInput(localInput);
     played->tick();
     moveTo(played->isStalled() ? ConnectionState::Stalled : ConnectionState::Playing);
+    isCatchingUp = isCatchingUp && played->predictedFrame() < newestConfirmed;
 
-    sendInputs();
+    if (!isCatchingUp)
+    {
+        sendInputs();
+    }
+
     sendChecksums();
 }
 
 std::int32_t NetworkedSession::takeTickCorrection()
 {
+    if (isCatchingUp && played->predictedFrame() < newestConfirmed)
+    {
+        return static_cast<std::int32_t>(
+            std::min<std::uint32_t>(kCatchUpExtraTicks, newestConfirmed - played->predictedFrame()));
+    }
+
     return pace.takeCorrection(updatedAt);
 }
 
@@ -177,13 +190,64 @@ void NetworkedSession::handle(const net::Welcome& welcome)
     }
 
     givenSlot = welcome.slot;
+    newestConfirmed = std::max(newestConfirmed, welcome.confirmedFrame);
+
+    if (welcome.startFrame > 0)
+    {
+        snapshotFrame = welcome.startFrame;
+        awaitedSnapshot.emplace();
+
+        return;
+    }
+
     played.emplace(frame, pipeline, config, givenSlot, inputDelay, &verifiedFrames);
+    moveTo(ConnectionState::Playing);
+}
+
+void NetworkedSession::handle(const net::SnapshotChunk& chunk)
+{
+    if (!awaitedSnapshot.has_value() || !awaitedSnapshot->add(chunk) || !awaitedSnapshot->isComplete())
+    {
+        return;
+    }
+
+    startFromSnapshot();
+}
+
+void NetworkedSession::startFromSnapshot()
+{
+    const std::vector<std::byte> bytes = awaitedSnapshot->bytes();
+    const bool isOfTheWelcome = awaitedSnapshot->frame() == snapshotFrame;
+    awaitedSnapshot.reset();
+
+    sim::FrameSnapshot snapshot;
+
+    if (!isOfTheWelcome || !deserializeSnapshot(bytes, snapshot).has_value())
+    {
+        moveTo(ConnectionState::Disconnected);
+
+        return;
+    }
+
+    sim::restoreSnapshot(snapshot, frame);
+    played.emplace(frame, pipeline, config, givenSlot, inputDelay, &verifiedFrames);
+    isCatchingUp = true;
     moveTo(ConnectionState::Playing);
 }
 
 void NetworkedSession::handle(const net::Confirmed& confirmed)
 {
-    if (!isInMatch() || confirmed.slotCount != config.slotCount || confirmed.inputSize != config.inputSize)
+    if (confirmed.slotCount != config.slotCount || confirmed.inputSize != config.inputSize)
+    {
+        return;
+    }
+
+    if (confirmed.frameCount > 0)
+    {
+        newestConfirmed = std::max(newestConfirmed, confirmed.firstFrame + confirmed.frameCount - 1U);
+    }
+
+    if (!isInMatch())
     {
         return;
     }

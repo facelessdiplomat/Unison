@@ -643,16 +643,22 @@ than a tick, the table is worth redoing with its numbers.
 
 - **Late-join**: a player's `Hello` into a running room, one the relay has confirmed a frame of, takes the lowest
   free slot as a member still catching up, whose slot the relay confirms frames without, so the match plays on
-  unslowed. The relay picks a donor, the player with the lowest round trip as its transport measures it
-  (`IRoundTripMeter`, ENet's peer round trip), the lowest slot among equals or where nothing is measured, as
-  in-process, and sends it `SnapshotRequest` for the frame after the newest it has confirmed (a room with no player
-  left to ask welcomes the joiner from frame 0, as a room that has not started does); the donor answers with the
-  first frame it verifies at or after that one. The donor serialises that verified frame `F` (`serializeSnapshot`:
+  unslowed. The relay picks a donor among the players in play, never one still joining: the one with the lowest
+  round trip as its transport measures it (`IRoundTripMeter`, ENet's peer round trip), the lowest slot among equals
+  or where nothing is measured, as in-process, and sends it `SnapshotRequest` for the frame after the newest it has
+  confirmed (a room with no player left to ask welcomes the joiner from frame 0, as a room that has not started
+  does); the donor answers with the first frame it verifies at or after that one. The donor serialises that verified frame `F` (`serializeSnapshot`:
   registry + physics + globals) and sends it to the relay over the reliable channel in numbered `SnapshotChunk`s of
   as many bytes as a datagram carries (`snapshotBytesPerChunk`); `SnapshotAssembler` gathers them in any order,
-  refusing a chunk of another frame or count, a repeat, and a snapshot of more than 4096 chunks. The snapshot
-  reaches the joiner together with the confirmed inputs since `F`; the joiner restores and fast-forwards at up to
-  `N×` speed.
+  refusing a chunk of another frame or count, a repeat, and a snapshot of more than 4096 chunks. The relay
+  (`LateJoins`) hands the chunks on to every player waiting for that donor, each taking a snapshot from its first
+  chunk on, so players who join together share one: a `Welcome` whose start frame is `F`, the chunks, then every
+  frame confirmed since `F`, all over the reliable channel; a chunk of a frame the relay has not confirmed is
+  dropped. The joiner hears the live confirmations all along. It restores `F` and plays the confirmed frames at up
+  to eight a host frame (`kCatchUpExtraTicks`), sending no input until it has reached the newest frame it has heard
+  confirmed; the relay puts its slot in play from the first frame of its first input, or from the next frame to
+  confirm when that one is later. A joiner whose donor leaves before the last chunk waits for good, which 4.3.7
+  settles.
 - **Reconnect**: same mechanism; the relay holds the slot for `reconnectGrace` (default 30 s) and applies the
   drop policy to the absent player's inputs meanwhile.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay.

@@ -16,7 +16,27 @@ void Roster::admit(PeerId peer, std::uint8_t slot)
 {
     UNISON_VERIFY(slot == kNoSlot || (slot < slotCount && !isHeld(slot)));
 
-    admitted.push_back(Member{peer, slot});
+    admitted.push_back(Member{peer, slot, 0});
+}
+
+void Roster::admitJoining(PeerId peer, std::uint8_t slot)
+{
+    UNISON_VERIFY(slot < slotCount && !isHeld(slot));
+
+    admitted.push_back(Member{peer, slot, kNotPlayingYet});
+}
+
+void Roster::startPlaying(PeerId peer, std::uint32_t fromFrame)
+{
+    const auto member = std::ranges::find(admitted, peer, &Member::peer);
+    const bool isJoiningMember = member != admitted.end() && member->playsFrom == kNotPlayingYet;
+
+    UNISON_VERIFY(isJoiningMember);
+
+    if (isJoiningMember)
+    {
+        member->playsFrom = fromFrame;
+    }
 }
 
 void Roster::remove(PeerId peer)
@@ -42,6 +62,13 @@ bool Roster::isMember(PeerId peer) const
     return std::ranges::find(admitted, peer, &Member::peer) != admitted.end();
 }
 
+bool Roster::isJoining(PeerId peer) const
+{
+    const auto member = std::ranges::find(admitted, peer, &Member::peer);
+
+    return member != admitted.end() && member->playsFrom == kNotPlayingYet;
+}
+
 bool Roster::isEmpty() const
 {
     return admitted.empty();
@@ -54,13 +81,13 @@ std::uint8_t Roster::slotOf(PeerId peer) const
     return found == admitted.end() ? kNoSlot : found->slot;
 }
 
-std::uint8_t Roster::slotsInPlay() const
+std::uint8_t Roster::slotsInPlayAt(std::uint32_t frame) const
 {
     std::uint8_t inPlay = 0;
 
     for (const Member& member : admitted)
     {
-        if (member.slot != kNoSlot)
+        if (member.slot != kNoSlot && member.playsFrom <= frame)
         {
             inPlay = static_cast<std::uint8_t>(inPlay | (1U << member.slot));
         }

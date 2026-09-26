@@ -23,6 +23,7 @@ namespace
 constexpr std::uint8_t kPlayers = 2;
 constexpr std::uint32_t kFrames = 1000;
 constexpr std::uint32_t kMostHostFrames = 3 * kFrames;
+constexpr std::uint32_t kLateJoinAllowance = 30;
 constexpr std::uint64_t kHostFrameMicroseconds = 16'667;
 constexpr unison::net::PeerId kFirstToConnect{1};
 constexpr unison::net::PeerId kSecondToConnect{2};
@@ -83,6 +84,24 @@ std::uint32_t fewestVerifiedFrames(const std::deque<Client>& clients)
     return fewest;
 }
 
+unison::test::ChecksumReports
+reportsBetween(const unison::test::ChecksumReports& reports, std::uint32_t firstFrame, std::uint32_t lastFrame)
+{
+    unison::test::ChecksumReports between;
+
+    for (const auto& report : reports)
+    {
+        if (report.first >= firstFrame && report.first <= lastFrame)
+        {
+            between.push_back(report);
+        }
+    }
+
+    std::ranges::sort(between);
+
+    return between;
+}
+
 unison::net::EnetConnection connectionTo(const unison::net::EnetTransport& server)
 {
     auto connected = unison::net::EnetTransport::connect(unison::net::EnetAddress{"127.0.0.1", server.port()},
@@ -135,12 +154,15 @@ TEST_CASE("two clients play a thousand frames through a relay over ENet on local
     }
 
     server->poll(tap);
-    const std::size_t bothReported = std::min(tap.firstReports.size(), tap.secondReports.size());
+    REQUIRE_FALSE(tap.firstReports.empty());
+    REQUIRE_FALSE(tap.secondReports.empty());
+    const std::uint32_t firstCommon = std::max(tap.firstReports.front().first, tap.secondReports.front().first);
+    const std::uint32_t lastCommon = std::min(tap.firstReports.back().first, tap.secondReports.back().first);
 
     REQUIRE(hostFrames < kMostHostFrames);
-    REQUIRE(bothReported >= kFrames - 10);
-    REQUIRE(unison::test::ChecksumReports(tap.firstReports.begin(), tap.firstReports.begin() + bothReported) ==
-            unison::test::ChecksumReports(tap.secondReports.begin(), tap.secondReports.begin() + bothReported));
+    REQUIRE(lastCommon >= firstCommon + kFrames - kLateJoinAllowance);
+    REQUIRE(reportsBetween(tap.firstReports, firstCommon, lastCommon) ==
+            reportsBetween(tap.secondReports, firstCommon, lastCommon));
     REQUIRE_FALSE(clients.front().networked.lastDesync().has_value());
     REQUIRE_FALSE(clients.back().networked.lastDesync().has_value());
 }

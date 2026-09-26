@@ -5,6 +5,7 @@ add_library(
     src/confirmed_log.cpp
     src/enet_transport.cpp
     src/input_collector.cpp
+    src/late_joins.cpp
     src/loopback_hub.cpp
     src/match_clock.cpp
     src/message_reader.cpp

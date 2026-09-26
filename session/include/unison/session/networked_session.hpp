@@ -5,6 +5,7 @@
 #include <unison/net/session_config.hpp>
 #include <unison/net/transport.hpp>
 #include <unison/session/session.hpp>
+#include <unison/session/snapshot_chunks.hpp>
 #include <unison/session/snapshot_donor.hpp>
 #include <unison/session/time_sync.hpp>
 #include <unison/session/verified_frame_fan_out.hpp>
@@ -38,6 +39,9 @@ enum class ConnectionState : std::uint8_t
 /// How many of its newest inputs a client sends in every input message, so that a message lost on the way
 /// costs nothing as long as the next one arrives.
 inline constexpr std::uint32_t kRedundantInputs = 4;
+
+/// How many ticks a late joiner adds to a host frame at most while it catches up, so it plays eight frames in one.
+inline constexpr std::int32_t kCatchUpExtraTicks = 7;
 
 /// How often a playing client pings the relay to time the round trip and to see how far ahead it runs.
 inline constexpr std::uint64_t kPingIntervalMicroseconds = 100'000;
@@ -74,7 +78,7 @@ public:
     void tick();
 
     /// The ticks the host adds to the frame it plays after the last update to keep to the relay's clock: one
-    /// fewer, one more, or none.
+    /// fewer, one more, or none; a late joiner still catching up adds up to `kCatchUpExtraTicks`.
     [[nodiscard]] std::int32_t takeTickCorrection();
 
     void receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message) override;
@@ -120,6 +124,10 @@ private:
 
     void handle(const net::SnapshotRequest& request);
 
+    void handle(const net::SnapshotChunk& chunk);
+
+    void startFromSnapshot();
+
     template <typename T>
     void handle(const T&)
     {
@@ -149,6 +157,10 @@ private:
     std::vector<ConnectionState> changes;
     std::uint8_t givenSlot = net::kNoSlot;
     std::optional<Session> played;
+    std::uint32_t snapshotFrame = 0;
+    std::optional<SnapshotAssembler> awaitedSnapshot;
+    std::uint32_t newestConfirmed = 0;
+    bool isCatchingUp = false;
     std::optional<net::Desync> reportedDesync;
     std::uint64_t updatedAt = 0;
     std::uint64_t nextPingAt = 0;

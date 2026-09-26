@@ -4,6 +4,7 @@
 #include <unison/net/clock.hpp>
 #include <unison/net/confirmed_log.hpp>
 #include <unison/net/input_collector.hpp>
+#include <unison/net/late_joins.hpp>
 #include <unison/net/match_clock.hpp>
 #include <unison/net/outbox.hpp>
 #include <unison/net/protocol.hpp>
@@ -37,9 +38,10 @@ inline constexpr std::uint32_t kRedundantConfirmations = 4;
 /// turns away a client that speaks another protocol, would play another config or finds every slot taken.
 /// It confirms a frame once every player has sent an input for it, or at the deadline without the missing
 /// ones, sends the confirmation with the frames confirmed just before it to everyone, answers a ping with the
-/// frame its clock has due, and tells everyone which players' checksums part ways with the rest. When a player joins a
-/// running match, the player with the lowest round trip the meter, when given, measures is asked for a snapshot. It
-/// never simulates, and it answers through its transport.
+/// frame its clock has due, and tells everyone which players' checksums part ways with the rest. A player joining a
+/// running match holds its slot out of play while the player in play with the lowest round trip the meter, when given,
+/// measures sends it a snapshot, and plays from the first frame it sends an input for. It never simulates, and it
+/// answers through its transport.
 class RelayCore final : public IMessageReceiver
 {
 public:
@@ -69,6 +71,8 @@ private:
     void handle(PeerId from, const Checksum& checksum);
 
     void handle(PeerId from, const Ping& ping);
+
+    void handle(PeerId from, const SnapshotChunk& chunk);
 
     template <typename T>
     void handle(PeerId, const T&)
@@ -102,6 +106,7 @@ private:
     MatchClock matchClock;
     ChecksumReferee referee;
     ConfirmedLog confirmedLog;
+    LateJoins lateJoins;
     std::vector<std::byte> confirmedSlots;
     std::uint32_t framesPerDatagram;
 };

@@ -64,7 +64,7 @@ TEST_CASE("the slots in play have one bit for every slot a player holds")
     roster.admit(kSecond, unison::net::kNoSlot);
     roster.admit(kThird, 2);
 
-    REQUIRE(roster.slotsInPlay() == 0b101U);
+    REQUIRE(roster.slotsInPlayAt(1) == 0b101U);
 }
 
 TEST_CASE("members are listed in the order they were let in")
@@ -123,7 +123,7 @@ TEST_CASE("a member who leaves is no member and frees the slot it held")
 
     REQUIRE_FALSE(roster.isMember(unison::net::PeerId{1}));
     REQUIRE(roster.freeSlot() == 0U);
-    REQUIRE(roster.slotsInPlay() == 0b10U);
+    REQUIRE(roster.slotsInPlayAt(1) == 0b10U);
 }
 
 TEST_CASE("a roster everyone has left is empty")
@@ -149,4 +149,66 @@ TEST_CASE("taking out a peer who never came in changes nothing")
 
     REQUIRE(roster.isMember(unison::net::PeerId{1}));
     REQUIRE(roster.members().size() == 1U);
+}
+
+TEST_CASE("a member still joining holds its slot but none of the slots in play")
+{
+    constexpr std::uint8_t kThreeSlots = 3;
+    unison::net::Roster roster{kThreeSlots};
+    roster.admit(kFirst, 0);
+
+    roster.admitJoining(kSecond, 1);
+
+    REQUIRE(roster.isMember(kSecond));
+    REQUIRE(roster.isJoining(kSecond));
+    REQUIRE(roster.slotOf(kSecond) == 1U);
+    REQUIRE(roster.freeSlot() == 2U);
+    REQUIRE(roster.slotsInPlayAt(1) == 0b001U);
+}
+
+TEST_CASE("a member that starts playing puts its slot in play from the frame it starts at")
+{
+    constexpr std::uint8_t kThreeSlots = 3;
+    unison::net::Roster roster{kThreeSlots};
+    roster.admit(kFirst, 0);
+    roster.admitJoining(kSecond, 1);
+
+    roster.startPlaying(kSecond, 5);
+
+    REQUIRE_FALSE(roster.isJoining(kSecond));
+    REQUIRE(roster.slotsInPlayAt(4) == 0b001U);
+    REQUIRE(roster.slotsInPlayAt(5) == 0b011U);
+}
+
+TEST_CASE("letting a joining player into a slot someone holds breaks a contract")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0);
+    const unison::test::FatalHandlerProbe probe;
+
+    roster.admitJoining(kSecond, 0);
+
+    REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("letting a joining player in without a slot of the match breaks a contract")
+{
+    unison::net::Roster roster{kTwoSlots};
+    const unison::test::FatalHandlerProbe probe;
+
+    roster.admitJoining(kFirst, unison::net::kNoSlot);
+
+    REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("putting in play a member that is not joining breaks a contract")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0);
+    const unison::test::FatalHandlerProbe probe;
+
+    roster.startPlaying(kFirst, 3);
+    roster.startPlaying(kSecond, 3);
+
+    REQUIRE(probe.failureCount() == 2U);
 }
