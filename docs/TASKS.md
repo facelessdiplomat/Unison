@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.1.2**, `ReplayPlayer` driving a verified-only `Session` through a replay, its checksums matching
-  the recorded ones. Last finished: 4.1.1. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2
-  and X.8.3 wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between
-  Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **4.1.3**, `--record` in the runner and the console: a runner-recorded replay verifies. Last finished:
+  4.1.2. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the owner's runs
+  on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is
+  deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,10 +44,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 20 | 1 |
+| 4 Session features | 5 | 20 | 2 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **248** | **188** |
+| **Total** | **41** | **248** | **189** |
 
 ## Charter amendments made while planning
 
@@ -441,7 +441,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### 4.1 Replays
 - [x] 4.1.1 Replay format (magic, version, `SessionConfig`, asset hash, per-frame confirmed inputs, periodic checksums) and `ReplayWriter`. Test: write then read yields identical records. Done on 2026-09-26: a replay opens with the magic `UNRP` and the format's version, then the session config as the protocol writes it, the asset hash among its fields, then frame and checksum records in the order they were written, as the charter's §8.7 now says. `ReplayWriter` builds one in memory; `ReplayReader` reads it back and refuses bytes without the magic, another version, a config with more slots or larger inputs than a frame holds, a record of no known kind and a replay that ends inside its header or a record, so the reader of 4.1.2 is in place and 4.1.2 keeps the player. The config's encoding moved into `writeSessionConfig` and `readSessionConfig`, which the protocol's codec now calls too; the protocol's golden bytes still match. Nine cases: the round trip, the six refusals and a writer for more slots than a frame holds breaking a contract; turning the reader's checks of the magic and of the config's size off fails the three cases that name them.
-- [ ] 4.1.2 `ReplayReader` and `ReplayPlayer` driving a verified-only `Session`. Test: checksums match the recorded ones.
+- [x] 4.1.2 `ReplayReader` and `ReplayPlayer` driving a verified-only `Session`. Test: checksums match the recorded ones. Done on 2026-09-26: `ReplayReader` came with 4.1.1, so this micro-task is the player. `ReplayPlayer` confirms each frame of a replay to a `Session` before it ticks, so the session never predicts and verifies the frame at once, and hands back the checksum the session took of it when the config's interval falls on it; a frame that does not follow the last one played is refused as a malformed replay. A replay of forty frames of the scripted session, its checksums taken straight through every fourth frame, plays back to the same ten checksums, and once warmed up the player takes nothing from the heap, which it fails to do when it keeps the session's events. The reader also refuses a config no session can play, one seating no player or taking checksums on no interval, since a `Session` breaks a contract on either; turning those checks off fails their two cases. `VerifiedChecksum` compares equal field by field.
 - [ ] 4.1.3 `--record` in runner and console. Test: a runner-recorded replay verifies.
 - [ ] 4.1.4 `unison_replay play | verify` CLI with exit codes. Test: `verify` exits 0 on a good file.
 - [ ] 4.1.5 Divergence report: first divergent frame on a tampered replay. Test: a tampered input at frame 300 is reported at the first checksum after it.

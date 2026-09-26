@@ -11,6 +11,8 @@ struct VerifiedChecksum
 {
     std::uint32_t frameNumber = 0;
     std::uint64_t checksum = 0;
+
+    [[nodiscard]] bool operator==(const VerifiedChecksum&) const = default;
 };
 
 }

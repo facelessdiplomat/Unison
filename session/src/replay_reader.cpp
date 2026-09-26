@@ -59,9 +59,9 @@ tl::expected<net::SessionConfig, Error> readConfig(BinaryReader& reader)
         return endsEarly();
     }
 
-    if (!fitsFrameInputs(*config))
+    if (!isPlayable(*config))
     {
-        return malformed("the replay's config has more slots or larger inputs than a frame holds");
+        return malformed("the replay's config is not one a session can play");
     }
 
     return *config;

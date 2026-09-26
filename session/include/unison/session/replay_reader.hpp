@@ -14,7 +14,7 @@ namespace unison::session
 {
 
 /// Reads a replay from bytes it views, which must outlive it: the header as it opens, then a record at a time.
-/// Bytes without the magic, another version of the format, a config no frame can hold, a record of no known
+/// Bytes without the magic, another version of the format, a config no session can play, a record of no known
 /// kind and a replay that ends inside its header or a record are refused.
 class ReplayReader
 {

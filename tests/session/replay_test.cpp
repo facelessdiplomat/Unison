@@ -192,6 +192,34 @@ TEST_CASE("a replay whose config has larger inputs than a slot holds is refused"
     REQUIRE(reader.error().code() == unison::ErrorCode::MalformedReplay);
 }
 
+TEST_CASE("a replay whose config seats no player is refused")
+{
+    unison::net::SessionConfig config = replayConfig();
+    config.slotCount = 0;
+    const std::vector<std::byte> bytes =
+        headerOf(unison::session::kReplayMagic, unison::session::kReplayVersion, config);
+
+    const tl::expected<unison::session::ReplayReader, unison::Error> reader =
+        unison::session::ReplayReader::open(bytes);
+
+    REQUIRE_FALSE(reader.has_value());
+    REQUIRE(reader.error().code() == unison::ErrorCode::MalformedReplay);
+}
+
+TEST_CASE("a replay whose config takes checksums on no interval is refused")
+{
+    unison::net::SessionConfig config = replayConfig();
+    config.checksumInterval = 0;
+    const std::vector<std::byte> bytes =
+        headerOf(unison::session::kReplayMagic, unison::session::kReplayVersion, config);
+
+    const tl::expected<unison::session::ReplayReader, unison::Error> reader =
+        unison::session::ReplayReader::open(bytes);
+
+    REQUIRE_FALSE(reader.has_value());
+    REQUIRE(reader.error().code() == unison::ErrorCode::MalformedReplay);
+}
+
 TEST_CASE("a replay that ends inside its header is refused")
 {
     const std::vector<std::byte> bytes = replayBytes();

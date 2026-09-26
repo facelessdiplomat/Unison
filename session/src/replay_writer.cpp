@@ -33,7 +33,7 @@ void append(std::vector<std::byte>& encoded, Encode encode)
 
 ReplayWriter::ReplayWriter(const net::SessionConfig& config) : config{config}
 {
-    UNISON_VERIFY(fitsFrameInputs(config));
+    UNISON_VERIFY(isPlayable(config));
 
     append(encoded,
            [&config](BinaryWriter& writer)

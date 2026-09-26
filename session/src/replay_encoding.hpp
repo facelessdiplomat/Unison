@@ -14,9 +14,10 @@ enum class ReplayRecordKind : std::uint8_t
     Checksum = 2
 };
 
-[[nodiscard]] inline bool fitsFrameInputs(const net::SessionConfig& config)
+[[nodiscard]] inline bool isPlayable(const net::SessionConfig& config)
 {
-    return config.slotCount <= sim::kMaxSlots && config.inputSize <= sim::kMaxInputSize;
+    return config.slotCount > 0 && config.slotCount <= sim::kMaxSlots && config.inputSize <= sim::kMaxInputSize &&
+           config.checksumInterval > 0;
 }
 
 }

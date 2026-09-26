@@ -652,8 +652,16 @@ then the session config written as the protocol writes it, the asset hash among 
 in the order they were written, each a kind byte and its fields: a frame, its number and every slot's flags
 byte and input of the config's size, or a checksum, the number of a verified frame and its XXH3.
 `ReplayWriter` writes one and `ReplayReader` reads it back, refusing bytes without the magic, another version
-of the format, a config with more slots or larger inputs than a frame holds, a record of no known kind and a
-replay that ends inside its header or a record; the frames' order is the player's to check, not the reader's.
+of the format, a config no session can play, seating no player or more than a frame holds, with larger inputs
+than a slot holds or checksums on no interval, a record of no known kind and a replay that ends inside its
+header or a record.
+
+`ReplayPlayer` plays the frames back through a `Session` handed each frame's inputs before it plays the frame,
+so the session never predicts and verifies every frame at once, taking checksums on the config's interval
+exactly as the recording session did. It hands each checksum back as the session takes it and keeps neither
+checksums nor events, so once warmed up it takes nothing from the heap and a replay of any length plays in
+constant memory. A frame that does not follow the last one played is refused: the frames' order is the
+player's to check, not the reader's.
 
 ---
 

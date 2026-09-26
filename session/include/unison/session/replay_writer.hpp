@@ -12,7 +12,7 @@ namespace unison::session
 {
 
 /// Writes a match as a replay: the header of its config at once, then frames and checksums in the order they
-/// are given. A config with more slots or larger inputs than a frame holds breaks a contract.
+/// are given. A config no session can play breaks a contract.
 class ReplayWriter
 {
 public:
