@@ -149,6 +149,7 @@ add_executable(
     session/session_test.cpp
     session/snapshot_ring_test.cpp
     session/snapshot_serializer_test.cpp
+    session/state_diff_test.cpp
     session/time_sync_test.cpp
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp

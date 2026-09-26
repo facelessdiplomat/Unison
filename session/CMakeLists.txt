@@ -15,6 +15,7 @@ add_library(
     src/session.cpp
     src/snapshot_ring.cpp
     src/snapshot_serializer.cpp
+    src/state_diff.cpp
     src/time_sync.cpp
 )
 

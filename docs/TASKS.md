@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.2.2**, `StateDiff`: the first differing entity, component and byte offset between two serialised
-  snapshots. Last finished: 4.2.1. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3
-  wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows
-  and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **4.2.3**, field names in a diff: `UNISON_FIELDS(...)` so the difference names the field its byte falls
+  in. Last finished: 4.2.2. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait
+  for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and
+  macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,10 +44,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 20 | 6 |
+| 4 Session features | 5 | 20 | 7 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **248** | **193** |
+| **Total** | **41** | **248** | **194** |
 
 ## Charter amendments made while planning
 
@@ -448,7 +448,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### 4.2 Snapshot serialisation and state diff
 - [x] 4.2.1 `SnapshotSerializer`: full frame to bytes and back (entity storage, pools in registration order, physics bytes, character states, globals). Test: round trip is checksum-exact and independent of EnTT storage touch order. Done on 2026-09-26: `serializeSnapshot` and `deserializeSnapshot` in `unison_session` are the serializer. A snapshot's bytes open with the magic `UNSS`, the version and the component layout's hash, then the frame's number and step, the globals, the registry and the physics state, as the charter's §8.6 describes; the pools are walked in registration order, never in the order EnTT's storages were first touched. Every registered component now also counts, writes and reads its pool, `writeRegistry` and `readRegistry` in `unison_sim` carry the entity storage and the pools, and `BodyIdAllocator::fromState` rebuilds an allocator or refuses a state none could be in. An arena frame after 200 scripted frames, serialised and restored into another match, checksums alike and plays the next 100 frames to the same checksums; two registries touched in different orders write the same bytes; the reader refuses another magic, version or layout, an identifier named twice, more entities alive than held, a component on a dead entity or two on one, and every length the bytes can be cut to, and answers every snapshot with one byte corrupted without breaking a contract; turning the identifier, liveness or allocator checks off fails their cases. Open: the physics state is restored under the physics world's contract, so one from an untrusted peer still ends the process; the backlog holds it.
-- [ ] 4.2.2 `StateDiff`: first differing entity, component and byte offset between two serialised snapshots. Test: a single field change is located.
+- [x] 4.2.2 `StateDiff`: first differing entity, component and byte offset between two serialised snapshots. Test: a single field change is located. Done on 2026-09-26: `firstDifferenceOf` in `unison_session` takes two serialised snapshots, refuses bytes either reader refuses, and otherwise names the part their first differing byte falls in, the frame number, the step, the globals, the entity storage, a component's pool or the physics state, with the entity and the byte within its component for a pool, or no byte when the pools hold another entity there. Everything before the first differing byte is alike, so the parts of the first snapshot up to it are the parts of both; the map of the parts lives beside the serializer, one place for the format. Tested: two snapshots of one state do not differ, a changed Position.y is located at Position, the second entity and byte 4, a Position held by the third entity instead of the second is located at the second without a byte, a different generator is located in the globals, and a snapshot without its magic is refused; placing the byte without skipping the identifier fails the two pool cases.
 - [ ] 4.2.3 Field-name reflection `UNISON_FIELDS(...)` so diffs print field names. Test: the diff names the field.
 - [ ] 4.2.4 Desync dumps: on `Desync`, clients write `desync_<frame>_<slot>.snapshot`; `unison_replay diff a b` prints the report. Test: a runner with an injected fault produces dumps that diff to the injected field.
 

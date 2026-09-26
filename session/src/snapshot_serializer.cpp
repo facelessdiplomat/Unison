@@ -1,5 +1,7 @@
 #include <unison/session/snapshot_serializer.hpp>
 
+#include "snapshot_parts.hpp"
+
 #include <unison/core/binary_reader.hpp>
 #include <unison/core/binary_writer.hpp>
 #include <unison/core/body_id.hpp>
@@ -11,6 +13,7 @@
 #include <unison/sim/registry_serialization.hpp>
 
 #include <array>
+#include <cstring>
 #include <limits>
 #include <optional>
 #include <string_view>
@@ -98,6 +101,14 @@ std::optional<sim::Globals> readGlobals(BinaryReader& reader)
     return sim::Globals{*rng, *matchPhase, *bodyIds};
 }
 
+std::uint32_t countAt(std::span<const std::byte> bytes, std::size_t offset)
+{
+    std::uint32_t count = 0;
+    std::memcpy(&count, bytes.subspan(offset, sizeof(count)).data(), sizeof(count));
+
+    return count;
+}
+
 tl::expected<void, Error> readHeader(BinaryReader& reader)
 {
     const std::optional<std::uint32_t> magic = reader.readValue<std::uint32_t>();
@@ -117,6 +128,38 @@ tl::expected<void, Error> readHeader(BinaryReader& reader)
     return {};
 }
 
+}
+
+std::vector<SnapshotPart> partsOf(std::span<const std::byte> bytes)
+{
+    constexpr std::size_t kCountSize = sizeof(std::uint32_t);
+    constexpr std::size_t kFreeCountOffset = sizeof(Rng) + sizeof(sim::MatchPhase);
+
+    std::vector<SnapshotPart> parts{SnapshotPart{"header", 0, kHeaderSize, 0}};
+    std::size_t at = kHeaderSize;
+
+    const auto add = [&parts, &at](std::string_view name, std::size_t size, std::size_t elementSize)
+    {
+        parts.push_back(SnapshotPart{name, at, at + size, elementSize});
+        at += size;
+    };
+
+    add("frame number", sizeof(std::uint32_t), 0);
+    add("step", sizeof(float), 0);
+    add("globals",
+        kFreeCountOffset + kCountSize + countAt(bytes, at + kFreeCountOffset) * sizeof(BodyId) + kCountSize,
+        0);
+    add("entities", 2 * kCountSize + countAt(bytes, at) * kCountSize, 0);
+
+    for (const sim::ComponentInfo& component : sim::componentRegistry().components())
+    {
+        const std::size_t elementSize = kCountSize + component.size;
+        add(component.name, kCountSize + countAt(bytes, at) * elementSize, elementSize);
+    }
+
+    add("physics", kCountSize + countAt(bytes, at), 0);
+
+    return parts;
 }
 
 void serializeSnapshot(const sim::FrameSnapshot& snapshot, std::vector<std::byte>& bytes)

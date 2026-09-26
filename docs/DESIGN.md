@@ -653,6 +653,13 @@ phase or body id allocator, an identifier named twice or no storage could hold, 
 a component on an entity that is not alive or two on one, and bytes that end early or run on. The physics
 state is carried as bytes and checked by the physics world when the snapshot is restored, under its contract.
 
+`firstDifferenceOf` compares two serialised snapshots of one layout. Everything before their first differing
+byte is alike, so the layout of the first up to that byte is the layout of both, and the byte is placed in the
+part it falls in: the frame number, the step, the globals, the entity storage, a component's pool or the
+physics state. In a pool it names the entity and the offset of the byte within that entity's component, or no
+offset when the two pools hold another entity there. Two snapshots alike byte for byte do not differ, and
+bytes either reader refuses are refused.
+
 ### 8.7 Replays
 
 A replay file contains the session config, the asset hash, all confirmed inputs per frame, and the periodic
