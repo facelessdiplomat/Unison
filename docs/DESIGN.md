@@ -643,9 +643,17 @@ than a tick, the table is worth redoing with its numbers.
 
 ### 8.7 Replays
 
-A replay file contains the session config, the asset hash, all confirmed inputs per frame, and the
-periodic checksums. Replays are deterministic by construction; `unison_replay play` re-simulates,
-`verify` compares checksums, `diff` restores two snapshots and prints the first differing component.
+A replay file contains the session config, the asset hash, all confirmed inputs per frame, and the periodic
+checksums. Replays are deterministic by construction; `unison_replay play` re-simulates, `verify` compares
+checksums, `diff` restores two snapshots and prints the first differing component.
+
+The file is little-endian throughout, as the wire is. It opens with the magic `UNRP` and the format's version,
+then the session config written as the protocol writes it, the asset hash among its fields, and then records
+in the order they were written, each a kind byte and its fields: a frame, its number and every slot's flags
+byte and input of the config's size, or a checksum, the number of a verified frame and its XXH3.
+`ReplayWriter` writes one and `ReplayReader` reads it back, refusing bytes without the magic, another version
+of the format, a config with more slots or larger inputs than a frame holds, a record of no known kind and a
+replay that ends inside its header or a record; the frames' order is the player's to check, not the reader's.
 
 ---
 

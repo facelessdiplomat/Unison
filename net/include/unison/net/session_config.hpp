@@ -1,6 +1,10 @@
 #pragma once
 
+#include <unison/core/binary_reader.hpp>
+#include <unison/core/binary_writer.hpp>
+
 #include <cstdint>
+#include <optional>
 
 namespace unison::net
 {
@@ -25,5 +29,12 @@ struct SessionConfig
 /// Folds every field of a config into the number a client presents when it joins, so a client that
 /// disagrees on any one of them is turned away.
 [[nodiscard]] std::uint64_t hashOf(const SessionConfig& config);
+
+/// Writes every field of a config little-endian in the order they are declared, as the protocol and a replay
+/// carry it. Returns false, part of it written, when the buffer runs out first.
+[[nodiscard]] bool writeSessionConfig(BinaryWriter& writer, const SessionConfig& config);
+
+/// Reads a config back as `writeSessionConfig` wrote it, or nothing when the bytes end first.
+[[nodiscard]] std::optional<SessionConfig> readSessionConfig(BinaryReader& reader);
 
 }

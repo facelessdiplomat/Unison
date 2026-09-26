@@ -6,6 +6,8 @@ add_library(
     src/local_input.cpp
     src/networked_session.cpp
     src/repeat_last_input_predictor.cpp
+    src/replay_reader.cpp
+    src/replay_writer.cpp
     src/rollback_stats.cpp
     src/session.cpp
     src/snapshot_ring.cpp

@@ -1,7 +1,8 @@
 #include <unison/net/message_codec.hpp>
 
+#include "read_fields.hpp"
+
 #include <unison/core/binary_reader.hpp>
-#include <unison/core/raw_value.hpp>
 
 #include <array>
 #include <cstdint>
@@ -23,27 +24,6 @@ tl::unexpected<Error> truncated()
 tl::unexpected<Error> malformed()
 {
     return tl::unexpected{Error{ErrorCode::MalformedMessage, "the bytes are not a message the protocol knows"}};
-}
-
-template <RawValue T>
-bool readInto(BinaryReader& reader, T& value)
-{
-    const std::optional<T> read = reader.readValue<T>();
-
-    if (!read.has_value())
-    {
-        return false;
-    }
-
-    value = *read;
-
-    return true;
-}
-
-template <RawValue... Values>
-bool readAll(BinaryReader& reader, Values&... values)
-{
-    return (readInto(reader, values) && ...);
 }
 
 bool readBytesInto(BinaryReader& reader, std::size_t count, std::span<const std::byte>& bytes)
@@ -72,16 +52,16 @@ bool isKnown(LeaveReason reason)
 
 bool readConfig(BinaryReader& reader, SessionConfig& config)
 {
-    return readAll(reader,
-                   config.tickRate,
-                   config.slotCount,
-                   config.inputSize,
-                   config.maxPrediction,
-                   config.checksumInterval,
-                   config.seed,
-                   config.assetHash,
-                   config.pipelineHash,
-                   config.buildId);
+    const std::optional<SessionConfig> read = readSessionConfig(reader);
+
+    if (!read.has_value())
+    {
+        return false;
+    }
+
+    config = *read;
+
+    return true;
 }
 
 template <typename T>

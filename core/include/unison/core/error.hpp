@@ -15,6 +15,8 @@ enum class ErrorCode : std::uint16_t
     MalformedMessage,
     InvalidOption,
     NetworkUnavailable,
+    MalformedReplay,
+    UnsupportedReplayVersion,
 };
 
 /// A recoverable failure returned from a boundary inside tl::expected. It is small and trivially

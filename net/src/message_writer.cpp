@@ -14,24 +14,15 @@ namespace unison::net
 namespace
 {
 
-bool writeFields(BinaryWriter& writer, const SessionConfig& config)
-{
-    return writer.writeValue(config.tickRate) && writer.writeValue(config.slotCount) &&
-           writer.writeValue(config.inputSize) && writer.writeValue(config.maxPrediction) &&
-           writer.writeValue(config.checksumInterval) && writer.writeValue(config.seed) &&
-           writer.writeValue(config.assetHash) && writer.writeValue(config.pipelineHash) &&
-           writer.writeValue(config.buildId);
-}
-
 bool writeFields(BinaryWriter& writer, const Hello& hello)
 {
-    return writer.writeValue(hello.protocolVersion) && writeFields(writer, hello.config) &&
+    return writer.writeValue(hello.protocolVersion) && writeSessionConfig(writer, hello.config) &&
            writer.writeValue(hello.role) && writer.writeValue(hello.reconnectToken);
 }
 
 bool writeFields(BinaryWriter& writer, const Welcome& welcome)
 {
-    return writer.writeValue(welcome.slot) && writeFields(writer, welcome.config) &&
+    return writer.writeValue(welcome.slot) && writeSessionConfig(writer, welcome.config) &&
            writer.writeValue(welcome.startFrame) && writer.writeValue(welcome.confirmedFrame) &&
            writer.writeValue(welcome.reconnectToken);
 }

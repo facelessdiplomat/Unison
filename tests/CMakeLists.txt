@@ -136,6 +136,7 @@ add_executable(
     session/local_input_test.cpp
     session/networked_session_test.cpp
     session/repeat_last_input_predictor_test.cpp
+    session/replay_test.cpp
     session/session_allocation_test.cpp
     session/session_checksum_test.cpp
     session/session_events_test.cpp
