@@ -9,12 +9,14 @@
 #include <unison/net/enet_transport.hpp>
 #include <unison/relay/relay_rooms.hpp>
 #include <unison/session/networked_session.hpp>
+#include <unison/session/verified_frame_receiver.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <map>
 #include <memory>
 
 namespace
@@ -40,9 +42,10 @@ unison::net::SessionConfig twoPlayerMatch()
 
 struct Client
 {
-    explicit Client(unison::net::EnetConnection connected)
+    explicit Client(unison::net::EnetConnection connected, unison::session::IVerifiedFrameReceiver* receiver = nullptr)
         : connection{std::move(connected)},
-          networked{match.frame(), match.pipeline(), twoPlayerMatch(), *connection.transport, connection.server}
+          networked{
+              match.frame(), match.pipeline(), twoPlayerMatch(), *connection.transport, connection.server, 0, receiver}
     {
     }
 
@@ -101,6 +104,81 @@ reportsBetween(const unison::test::ChecksumReports& reports, std::uint32_t first
 
     return between;
 }
+
+std::map<std::uint32_t, std::uint64_t> byFrame(const unison::test::ChecksumReports& reports)
+{
+    return {reports.begin(), reports.end()};
+}
+
+std::uint32_t framesAlike(const std::map<std::uint32_t, std::uint64_t>& reference,
+                          const std::map<std::uint32_t, std::uint64_t>& compared)
+{
+    std::uint32_t alike = 0;
+
+    for (const auto& [frame, checksum] : compared)
+    {
+        const auto found = reference.find(frame);
+
+        if (found != reference.end())
+        {
+            CAPTURE(frame);
+            REQUIRE(found->second == checksum);
+            ++alike;
+        }
+    }
+
+    return alike;
+}
+
+class ChecksumsHeard final : public unison::session::IVerifiedFrameReceiver
+{
+public:
+    void frameVerified(const unison::session::VerifiedFrame& frame) override
+    {
+        if (frame.checksum.has_value())
+        {
+            byFrame.emplace(frame.frameNumber, *frame.checksum);
+        }
+    }
+
+    std::map<std::uint32_t, std::uint64_t> byFrame;
+};
+
+struct EnetRelay
+{
+    EnetRelay()
+    {
+        REQUIRE(listening.has_value());
+    }
+
+    unison::net::EnetConnection connection()
+    {
+        auto connected = unison::net::EnetTransport::connect(
+            unison::net::EnetAddress{"127.0.0.1", (*listening)->port()}, unison::net::EnetAddress{"127.0.0.1", 0});
+
+        REQUIRE(connected.has_value());
+
+        return std::move(*connected);
+    }
+
+    void playHostFrame(std::deque<Client>& clients)
+    {
+        clock.advance(kHostFrameMicroseconds);
+        (*listening)->poll(tap);
+        rooms.update();
+
+        for (Client& client : clients)
+        {
+            client.playHostFrame(clock.nowMicroseconds());
+        }
+    }
+
+    tl::expected<std::unique_ptr<unison::net::EnetTransport>, unison::Error> listening =
+        unison::net::EnetTransport::listen(unison::net::EnetAddress{"127.0.0.1", 0}, 4);
+    unison::net::ManualClock clock;
+    unison::relay::RelayRooms rooms{**listening, clock, unison::net::RelaySettings{}, listening->get()};
+    unison::test::ChecksumTap tap{rooms, kFirstToConnect, kSecondToConnect};
+};
 
 unison::net::EnetConnection connectionTo(const unison::net::EnetTransport& server)
 {
@@ -165,4 +243,77 @@ TEST_CASE("two clients play a thousand frames through a relay over ENet on local
             reportsBetween(tap.secondReports, firstCommon, lastCommon));
     REQUIRE_FALSE(clients.front().networked.lastDesync().has_value());
     REQUIRE_FALSE(clients.back().networked.lastDesync().has_value());
+}
+
+TEST_CASE("a client whose connection drops comes back over ENet into its slot and agrees on every checksum")
+{
+    constexpr std::uint32_t kDropsAt = 200;
+    constexpr std::uint32_t kComesBackAt = kDropsAt + 60;
+    EnetRelay relay;
+    std::deque<Client> clients;
+    clients.emplace_back(relay.connection());
+    clients.back().networked.join();
+    clients.emplace_back(relay.connection());
+    clients.back().networked.join();
+    std::uint8_t slotBeforeTheDrop = unison::net::kNoSlot;
+    std::uint64_t reconnectToken = 0;
+    std::uint32_t hostFrames = 0;
+
+    while (hostFrames < kMostHostFrames && (hostFrames < kComesBackAt || fewestVerifiedFrames(clients) < kFrames))
+    {
+        if (hostFrames == kDropsAt)
+        {
+            slotBeforeTheDrop = clients.back().networked.localSlot();
+            reconnectToken = clients.back().networked.reconnectToken();
+            clients.pop_back();
+        }
+
+        if (hostFrames == kComesBackAt)
+        {
+            clients.emplace_back(relay.connection());
+            clients.back().networked.join(reconnectToken);
+        }
+
+        relay.playHostFrame(clients);
+        ++hostFrames;
+    }
+
+    (*relay.listening)->poll(relay.tap);
+    REQUIRE(hostFrames < kMostHostFrames);
+    REQUIRE(reconnectToken != 0U);
+    REQUIRE(clients.back().networked.localSlot() == slotBeforeTheDrop);
+    REQUIRE(clients.back().networked.startFrame() > kDropsAt);
+    REQUIRE(framesAlike(byFrame(relay.tap.firstReports), byFrame(relay.tap.secondReports)) >= kFrames - kComesBackAt);
+    REQUIRE_FALSE(clients.front().networked.lastDesync().has_value());
+}
+
+TEST_CASE("a spectator follows a match over ENet on localhost, never ahead of the relay, agreeing with the players")
+{
+    EnetRelay relay;
+    ChecksumsHeard heard;
+    std::deque<Client> clients;
+    clients.emplace_back(relay.connection());
+    clients.back().networked.join();
+    clients.emplace_back(relay.connection());
+    clients.back().networked.join();
+    clients.emplace_back(relay.connection(), &heard);
+    clients.back().networked.spectate();
+    bool wasAlwaysVerified = true;
+    std::uint32_t hostFrames = 0;
+
+    while (hostFrames < kMostHostFrames && fewestVerifiedFrames(clients) < kFrames)
+    {
+        relay.playHostFrame(clients);
+
+        const unison::session::Session* watched = clients.back().networked.session();
+        wasAlwaysVerified =
+            wasAlwaysVerified && (watched == nullptr || watched->predictedFrame() == watched->verifiedFrame());
+        ++hostFrames;
+    }
+
+    (*relay.listening)->poll(relay.tap);
+    REQUIRE(hostFrames < kMostHostFrames);
+    REQUIRE(wasAlwaysVerified);
+    REQUIRE(clients.back().networked.localSlot() == unison::net::kNoSlot);
+    REQUIRE(framesAlike(byFrame(relay.tap.firstReports), heard.byFrame) >= kFrames - kLateJoinAllowance);
 }

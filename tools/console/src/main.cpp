@@ -47,6 +47,7 @@ constexpr std::uint64_t kMicrosecondsPerSecond = 1'000'000;
 constexpr std::uint64_t kMicrosecondsPerScreen = 100'000;
 constexpr std::chrono::milliseconds kIdleBetweenFrames{1};
 constexpr std::uint32_t kNoInputDelay = 0;
+constexpr std::uint64_t kComebackMicroseconds = 30'000'000;
 
 volatile std::sig_atomic_t isStopAsked = 0;
 
@@ -145,19 +146,17 @@ private:
 class StatusDisplay
 {
 public:
-    StatusDisplay(const unison::console::ConsoleOptions& options,
-                  const unison::session::NetworkedSession& networked,
-                  const unison::sim::Frame& frame)
-        : options{options}, networked{networked}, frame{frame}
+    StatusDisplay(const unison::console::ConsoleOptions& options, const unison::sim::Frame& frame)
+        : options{options}, frame{frame}
     {
     }
 
-    void update(std::uint64_t now)
+    void update(std::uint64_t now, const unison::session::NetworkedSession& networked)
     {
         if (now >= nextSecondAt)
         {
             const std::uint32_t rollbacks = rollbacksSoFar(networked);
-            rollbacksLastSecond = rollbacks - rollbacksAtLastSecond;
+            rollbacksLastSecond = rollbacks >= rollbacksAtLastSecond ? rollbacks - rollbacksAtLastSecond : rollbacks;
             rollbacksAtLastSecond = rollbacks;
             nextSecondAt += kMicrosecondsPerSecond;
 
@@ -177,7 +176,6 @@ public:
 
 private:
     const unison::console::ConsoleOptions& options;
-    const unison::session::NetworkedSession& networked;
     const unison::sim::Frame& frame;
     unison::console::ConsoleScreen screen;
     std::uint64_t nextSecondAt = kMicrosecondsPerSecond;
@@ -186,53 +184,12 @@ private:
     std::uint32_t rollbacksLastSecond = 0;
 };
 
-void playUntilStopped(const unison::console::ConsoleOptions& options,
-                      const arena::ArenaSimulation& match,
-                      unison::session::NetworkedSession& networked,
-                      unison::view::SessionRunner& runner,
-                      const unison::net::IClock& clock)
-{
-    const std::uint64_t stopAt = options.runForSeconds > 0 ? options.runForSeconds * kMicrosecondsPerSecond
-                                                           : std::numeric_limits<std::uint64_t>::max();
-    std::optional<Steering> steering;
-    StatusDisplay display{options, networked, match.frame()};
-    const unison::net::MillisecondTimer millisecondTimer;
-
-    if (options.isSpectating)
-    {
-        networked.spectate(options.spectatorDelayFrames);
-    }
-    else
-    {
-        steering.emplace(clock.nowMicroseconds());
-        networked.join();
-    }
-
-    if (steering.has_value() && !steering->isKeyboardAvailable())
-    {
-        unison::logMessage(unison::LogLevel::Info,
-                           "unison_console: no console to read the keyboard from, so the player stands still");
-    }
-
-    while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt && isInPlay(networked))
-    {
-        const arena::ArenaInput input =
-            steering.has_value() ? steering->inputAt(clock.nowMicroseconds()) : arena::ArenaInput{};
-
-        runner.setLocalInput(std::as_bytes(std::span{&input, 1}));
-        static_cast<void>(runner.update());
-        networked.clearConnectionChanges();
-        display.update(clock.nowMicroseconds());
-        std::this_thread::sleep_for(kIdleBetweenFrames);
-    }
-}
-
 class MatchKeeping
 {
 public:
     MatchKeeping(const unison::console::ConsoleOptions& options, const unison::net::SessionConfig& config)
         : options{options}, recording{recordingFor(options, config)}, dumper{dumperFor(options)},
-          verifiedFrames{receiversOf(recording, dumper)}
+          verifiedFrames{receiversOf(recording, dumper)}, verifiedFramesAfterReturn{receiversOf(noRecording, dumper)}
     {
     }
 
@@ -244,6 +201,11 @@ public:
     [[nodiscard]] unison::session::IVerifiedFrameReceiver* receiver()
     {
         return &verifiedFrames;
+    }
+
+    [[nodiscard]] unison::session::IVerifiedFrameReceiver* receiverAfterReturn()
+    {
+        return &verifiedFramesAfterReturn;
     }
 
     [[nodiscard]] bool keep(const unison::session::NetworkedSession& networked) const
@@ -337,8 +299,10 @@ private:
 
     const unison::console::ConsoleOptions& options;
     std::optional<unison::session::ReplayWriter> recording;
+    std::optional<unison::session::ReplayWriter> noRecording;
     std::optional<unison::session::DesyncDumper> dumper;
     unison::session::VerifiedFrameFanOut verifiedFrames;
+    unison::session::VerifiedFrameFanOut verifiedFramesAfterReturn;
 };
 
 tl::expected<unison::net::EnetConnection, unison::Error> connectToRelay(const unison::console::ConsoleOptions& options)
@@ -348,6 +312,161 @@ tl::expected<unison::net::EnetConnection, unison::Error> connectToRelay(const un
 
     return unison::net::EnetTransport::connect(unison::net::EnetAddress{options.host, options.port}, from);
 }
+
+class RelayLink
+{
+public:
+    RelayLink(unison::net::EnetConnection connected,
+              arena::ArenaSimulation& match,
+              const unison::net::SessionConfig& config,
+              unison::session::IVerifiedFrameReceiver* receiver,
+              const unison::net::IClock& clock)
+        : connection{std::move(connected)}, networked{match.frame(),
+                                                      match.pipeline(),
+                                                      config,
+                                                      *connection.transport,
+                                                      connection.server,
+                                                      kNoInputDelay,
+                                                      receiver},
+          runner{networked, dispatcher, clock, config.tickRate}
+    {
+    }
+
+    RelayLink(const RelayLink&) = delete;
+    RelayLink& operator=(const RelayLink&) = delete;
+    RelayLink(RelayLink&&) = delete;
+    RelayLink& operator=(RelayLink&&) = delete;
+
+    unison::net::EnetConnection connection;
+    unison::session::NetworkedSession networked;
+    unison::view::EventDispatcher dispatcher;
+    unison::view::SessionRunner runner;
+};
+
+class ConsoleMatch
+{
+public:
+    ConsoleMatch(const unison::console::ConsoleOptions& options,
+                 arena::ArenaSimulation& match,
+                 const unison::net::SessionConfig& config,
+                 MatchKeeping& keeping,
+                 const unison::net::IClock& clock)
+        : options{options}, match{match}, config{config}, keeping{keeping}, clock{clock}
+    {
+    }
+
+    [[nodiscard]] tl::expected<void, unison::Error> connect()
+    {
+        auto connected = connectToRelay(options);
+
+        if (!connected.has_value())
+        {
+            return tl::unexpected{connected.error()};
+        }
+
+        link.emplace(std::move(*connected), match, config, keeping.receiver(), clock);
+
+        return {};
+    }
+
+    void playUntilStopped()
+    {
+        const std::uint64_t stopAt = options.runForSeconds > 0 ? options.runForSeconds * kMicrosecondsPerSecond
+                                                               : std::numeric_limits<std::uint64_t>::max();
+        StatusDisplay display{options, match.frame()};
+        const unison::net::MillisecondTimer millisecondTimer;
+        enter();
+
+        while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt && isInPlay(link->networked))
+        {
+            const arena::ArenaInput input =
+                steering.has_value() ? steering->inputAt(clock.nowMicroseconds()) : arena::ArenaInput{};
+
+            link->runner.setLocalInput(std::as_bytes(std::span{&input, 1}));
+            static_cast<void>(link->runner.update());
+            link->networked.clearConnectionChanges();
+            display.update(clock.nowMicroseconds(), link->networked);
+            std::this_thread::sleep_for(kIdleBetweenFrames);
+            comeBackWhenLost();
+        }
+    }
+
+    [[nodiscard]] const unison::session::NetworkedSession& networked() const
+    {
+        return link->networked;
+    }
+
+private:
+    void enter()
+    {
+        if (options.isSpectating)
+        {
+            link->networked.spectate(options.spectatorDelayFrames);
+
+            return;
+        }
+
+        link->networked.join(reconnectToken);
+
+        if (!steering.has_value())
+        {
+            steering.emplace(clock.nowMicroseconds());
+
+            if (!steering->isKeyboardAvailable())
+            {
+                unison::logMessage(unison::LogLevel::Info,
+                                   "unison_console: no console to read the keyboard from, so the player stands still");
+            }
+        }
+    }
+
+    void comeBackWhenLost()
+    {
+        const unison::session::NetworkedSession& lost = link->networked;
+
+        if (lost.state() == unison::session::ConnectionState::Playing)
+        {
+            lostAt.reset();
+        }
+
+        if (lost.state() != unison::session::ConnectionState::Disconnected || lost.lastDesync().has_value())
+        {
+            return;
+        }
+
+        reconnectToken = lost.reconnectToken() != 0 ? lost.reconnectToken() : reconnectToken;
+        const std::uint64_t now = clock.nowMicroseconds();
+        lostAt = lostAt.value_or(now);
+        const bool mayComeBack = (options.isSpectating || reconnectToken != 0) && now - *lostAt < kComebackMicroseconds;
+
+        if (!mayComeBack)
+        {
+            return;
+        }
+
+        auto connected = connectToRelay(options);
+
+        if (!connected.has_value())
+        {
+            return;
+        }
+
+        link.reset();
+        link.emplace(std::move(*connected), match, config, keeping.receiverAfterReturn(), clock);
+        unison::logMessage(unison::LogLevel::Info, "unison_console: lost the relay, coming back");
+        enter();
+    }
+
+    const unison::console::ConsoleOptions& options;
+    arena::ArenaSimulation& match;
+    const unison::net::SessionConfig& config;
+    MatchKeeping& keeping;
+    const unison::net::IClock& clock;
+    std::optional<RelayLink> link;
+    std::optional<Steering> steering;
+    std::optional<std::uint64_t> lostAt;
+    std::uint64_t reconnectToken = 0;
+};
 
 }
 
@@ -376,7 +495,10 @@ int main(int argc, char** argv)
 
     arena::ArenaSimulation match{options->players};
     const unison::net::SessionConfig config = configOf(*options, match);
-    auto connected = connectToRelay(*options);
+    const unison::net::SteadyClock clock;
+    MatchKeeping keeping{*options, config};
+    ConsoleMatch consoleMatch{*options, match, config, keeping, clock};
+    const tl::expected<void, unison::Error> connected = consoleMatch.connect();
 
     if (!connected.has_value())
     {
@@ -385,25 +507,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const unison::net::SteadyClock clock;
-    MatchKeeping keeping{*options, config};
-    unison::session::NetworkedSession networked{match.frame(),
-                                                match.pipeline(),
-                                                config,
-                                                *connected->transport,
-                                                connected->server,
-                                                kNoInputDelay,
-                                                keeping.receiver()};
-    unison::view::EventDispatcher dispatcher;
-    unison::view::SessionRunner runner{networked, dispatcher, clock, config.tickRate};
+    consoleMatch.playUntilStopped();
 
-    playUntilStopped(*options, match, networked, runner, clock);
-
-    const unison::console::ConsoleStatus lastStatus = statusOf(*options, networked, 0);
+    const unison::console::ConsoleStatus lastStatus = statusOf(*options, consoleMatch.networked(), 0);
     logStatus(lastStatus);
     const int exitCode = unison::console::exitCodeOf(lastStatus);
 
-    if (!keeping.keep(networked) && exitCode == 0)
+    if (!keeping.keep(consoleMatch.networked()) && exitCode == 0)
     {
         return 1;
     }

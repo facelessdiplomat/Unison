@@ -927,16 +927,19 @@ the session's event changes are.
   understands the terminal's escape sequences, on macOS any terminal on standard output; with its output redirected
   the console prints the status line once a second instead. The screen is drawn in the window's own buffer, so when
   the console ends, its last screen and its last status line stay in view. It runs on the real clock until Ctrl+C,
-  `--run-for` seconds, a disconnect, which ends it with exit code 1, or a desync the relay reports, which ends it
-  with exit code 2 whatever else happened and puts the frame and the slots out of step at the end of the status
-  line. With `--record` it writes the replay of the frames it verified into a file when it ends, and a replay it
-  could not write turns an exit code of 0 into 1. Told of a desync, it dumps the snapshot of that frame into
-  `--dump-dir`, the working folder unless told otherwise. `--spectate` makes it watch instead of play, `--delay
-  <frames>` behind the newest confirmed frame, a delay being refused without `--spectate`: it reads no keyboard, and
-  its status line says it is watching, with no slot. The keyboard is read without blocking from Windows' console
-  input, which reports keys going down and up while the window has focus, and a lost focus lets every key go: W and
-  S move forward and back, A and D to the sides, Space jumps, F fires, and Q and E turn the aim half a turn a second
-  for as long as they are held, by the time held rather than by how often the loop asks. A console without a console
+  `--run-for` seconds, a disconnect it cannot come back from, which ends it with exit code 1, or a desync the relay
+  reports, which ends it with exit code 2 whatever else happened and puts the frame and the slots out of step at the
+  end of the status line. With `--record` it writes the replay of the frames it verified into a file when it ends,
+  and a replay it could not write turns an exit code of 0 into 1. Told of a desync, it dumps the snapshot of that
+  frame into `--dump-dir`, the working folder unless told otherwise. `--spectate` makes it watch instead of play,
+  `--delay <frames>` behind the newest confirmed frame, a delay being refused without `--spectate`: it reads no
+  keyboard, and its status line says it is watching, with no slot. A console whose transport reports the relay gone
+  comes back for up to 30 s: it connects again and joins with the token of its last welcome, into the slot it held,
+  or watches again as a spectator, catching up from a snapshot (§8.6); the replay it records ends where it lost the
+  relay, while its desync dumps go on. The keyboard is read without blocking from Windows' console input, which
+  reports keys going down and up while the window has focus, and a lost focus lets every key go: W and S move
+  forward and back, A and D to the sides, Space jumps, F fires, and Q and E turn the aim half a turn a second for as
+  long as they are held, by the time held rather than by how often the loop asks. A console without a console
   window, its input redirected, stands still. On macOS (X.7), where no terminal reports a key going up, the console
   takes the terminal into raw mode, so keys neither echo nor wait for a line, and on every read asks the window
   server which game keys are down (`CGEventSourceKeyState`), so keys held together work as on Windows; the answer is
