@@ -802,7 +802,9 @@ lobbies are out of scope in v1, and rooms that come and go with their players ar
 `unison_relay` is that standalone relay: it listens with an `EnetTransport` on `--bind` and `--port`
 (0.0.0.0:7777 unless told otherwise) for `--max-peers` peers, and hands every message to `RelayRooms`, which
 opens a `RelayCore` for the first `Hello` of every config and passes each seated peer's messages to its room
-from then on; a peer that has said no hello is not answered. A peer that has gone leaves its room: the relay
+from then on; a peer that has said no hello is not answered. The transport is every room's round-trip meter too,
+so a late joiner's snapshot comes from the player in play with ENet's lowest round trip (§8.6). A peer that has gone
+leaves its room: the relay
 core frees its slot and confirms the frames it no longer sends inputs for with the slot absent rather than
 waiting out the deadline, and the room closes once its last peer has gone. Ctrl+C or `SIGTERM` stops the
 loop, and the transport says goodbye to every peer as it goes. The loop polls the transport, lets every room

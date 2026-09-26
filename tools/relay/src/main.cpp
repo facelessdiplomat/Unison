@@ -95,7 +95,8 @@ int main(int argc, char** argv)
         *transport,
         clock,
         unison::net::RelaySettings{options->inputDeadlineMilliseconds * kMicrosecondsPerMillisecond,
-                                   options->reliableResendInterval}};
+                                   options->reliableResendInterval},
+        transport.get()};
 
     unison::logMessage(unison::LogLevel::Info,
                        std::format("unison_relay: listening on {}:{}", options->bindAddress, transport->port()));

@@ -8,8 +8,11 @@
 namespace unison::relay
 {
 
-RelayRooms::RelayRooms(net::ITransport& transport, const net::IClock& clock, const net::RelaySettings& settings)
-    : transport{transport}, clock{clock}, settings{settings}
+RelayRooms::RelayRooms(net::ITransport& transport,
+                       const net::IClock& clock,
+                       const net::RelaySettings& settings,
+                       const net::IRoundTripMeter* roundTrips)
+    : transport{transport}, clock{clock}, settings{settings}, roundTrips{roundTrips}
 {
 }
 
@@ -88,7 +91,9 @@ net::RelayCore& RelayRooms::roomFor(const net::SessionConfig& config)
         return *room;
     }
 
-    return *rooms.emplace_back(Room{configHash, std::make_unique<net::RelayCore>(transport, clock, config, settings)})
+    return *rooms
+                .emplace_back(
+                    Room{configHash, std::make_unique<net::RelayCore>(transport, clock, config, settings, roundTrips)})
                 .core;
 }
 

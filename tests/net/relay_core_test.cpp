@@ -3,21 +3,19 @@
 #include <unison/net/loopback_hub.hpp>
 #include <unison/net/message_codec.hpp>
 #include <unison/net/network_simulator.hpp>
-#include <unison/net/round_trip_meter.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
 #include <support/fatal_handler_probe.hpp>
+#include <support/fixed_round_trips.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <ranges>
 #include <span>
-#include <utility>
 #include <variant>
 #include <vector>
 
@@ -786,25 +784,6 @@ TEST_CASE("a pong before the first input of the match names no frame due")
 namespace
 {
 
-class FixedRoundTrips final : public unison::net::IRoundTripMeter
-{
-public:
-    void set(unison::net::PeerId peer, std::uint64_t microseconds)
-    {
-        measured.emplace_back(peer, microseconds);
-    }
-
-    [[nodiscard]] std::optional<std::uint64_t> roundTripMicroseconds(unison::net::PeerId peer) const override
-    {
-        const auto found = std::ranges::find(measured, peer, &std::pair<unison::net::PeerId, std::uint64_t>::first);
-
-        return found == measured.end() ? std::nullopt : std::optional{found->second};
-    }
-
-private:
-    std::vector<std::pair<unison::net::PeerId, std::uint64_t>> measured;
-};
-
 struct RunningMatch
 {
     RunningMatch()
@@ -834,7 +813,7 @@ struct RunningMatch
 
     unison::net::LoopbackHub hub;
     unison::net::ManualClock clock;
-    FixedRoundTrips roundTrips;
+    unison::test::FixedRoundTrips roundTrips;
     unison::net::LoopbackEndpoint& endpoint;
     unison::net::RelayCore core;
     unison::net::LoopbackEndpoint& first;

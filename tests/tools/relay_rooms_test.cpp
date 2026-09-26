@@ -7,6 +7,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <support/fixed_round_trips.hpp>
+
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -59,7 +62,8 @@ struct Relay
     unison::net::LoopbackHub hub;
     unison::net::LoopbackEndpoint& endpoint = hub.join();
     unison::net::ManualClock clock;
-    unison::relay::RelayRooms rooms{endpoint, clock, unison::net::RelaySettings{}};
+    unison::test::FixedRoundTrips roundTrips;
+    unison::relay::RelayRooms rooms{endpoint, clock, unison::net::RelaySettings{}, &roundTrips};
 
     struct Client
     {
@@ -78,6 +82,13 @@ struct Relay
         client.endpoint.poll(client.mail);
 
         return client;
+    }
+
+    void sendInput(Client& client, std::uint32_t frame)
+    {
+        const std::array<std::byte, 2> input{};
+        client.outbox.send(endpoint.id(), unison::net::Channel::Unreliable, unison::net::Input{frame, 2, 1, input});
+        endpoint.poll(rooms);
     }
 
     std::deque<Client> clients;
@@ -192,4 +203,22 @@ TEST_CASE("a peer that leaves without having said hello changes nothing")
     relay.rooms.peerLeft(unison::net::PeerId{99});
 
     REQUIRE(relay.rooms.roomCount() == 1U);
+}
+
+TEST_CASE("a room asks the player its meter measures lowest for the snapshot of a player joining late")
+{
+    Relay relay;
+    Relay::Client& first = relay.join(matchOf(3));
+    Relay::Client& second = relay.join(matchOf(3));
+    relay.sendInput(first, 1);
+    relay.sendInput(second, 1);
+    relay.roundTrips.set(first.endpoint.id(), 40'000);
+    relay.roundTrips.set(second.endpoint.id(), 10'000);
+
+    static_cast<void>(relay.join(matchOf(3)));
+    first.endpoint.poll(first.mail);
+    second.endpoint.poll(second.mail);
+
+    REQUIRE_FALSE(first.mail.first<unison::net::SnapshotRequest>().has_value());
+    REQUIRE(second.mail.first<unison::net::SnapshotRequest>().has_value());
 }

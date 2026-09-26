@@ -2,6 +2,7 @@
 
 #include <unison/net/clock.hpp>
 #include <unison/net/relay_core.hpp>
+#include <unison/net/round_trip_meter.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/net/transport.hpp>
 
@@ -21,7 +22,12 @@ namespace unison::relay
 class RelayRooms final : public net::IMessageReceiver
 {
 public:
-    RelayRooms(net::ITransport& transport, const net::IClock& clock, const net::RelaySettings& settings);
+    /// A round-trip meter, when given, tells every room which player to ask for a late joiner's snapshot, and must
+    /// outlive the rooms.
+    RelayRooms(net::ITransport& transport,
+               const net::IClock& clock,
+               const net::RelaySettings& settings,
+               const net::IRoundTripMeter* roundTrips = nullptr);
 
     void receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message) override;
 
@@ -46,6 +52,7 @@ private:
     net::ITransport& transport;
     const net::IClock& clock;
     net::RelaySettings settings;
+    const net::IRoundTripMeter* roundTrips;
     std::vector<Room> rooms;
     std::unordered_map<net::PeerId, std::uint64_t> seats;
 };

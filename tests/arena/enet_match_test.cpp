@@ -120,7 +120,7 @@ TEST_CASE("two clients play a thousand frames through a relay over ENet on local
     REQUIRE(listening.has_value());
     const std::unique_ptr<unison::net::EnetTransport> server = std::move(*listening);
     unison::net::ManualClock clock;
-    unison::relay::RelayRooms rooms{*server, clock, unison::net::RelaySettings{}};
+    unison::relay::RelayRooms rooms{*server, clock, unison::net::RelaySettings{}, server.get()};
     unison::test::ChecksumTap tap{rooms, kFirstToConnect, kSecondToConnect};
     std::deque<Client> clients;
     clients.emplace_back(connectionTo(*server));
