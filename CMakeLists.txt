@@ -21,6 +21,7 @@ include(UnisonLanguageSubset)
 include(UnisonWarnings)
 
 include(Dependencies)
+include(UnisonJoltConfig)
 
 enable_testing()
 

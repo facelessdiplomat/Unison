@@ -973,6 +973,11 @@ the session's event changes are.
   flags of §7.1 and copies them into `ThirdParty/lib/Mac/` beside `lib/Win64/`; `Unison.uplugin` allows `Win64`
   and `Mac`, and `Unison.Build.cs` links the archives of its platform. Universal arm64 and x86-64 binaries are
   backlog.
+- A plugin translation unit includes `unison_jolt_config.hpp` before Jolt's headers, since it compiles them without
+  Jolt's CMake usage requirements: the build writes the `JPH_` macros Jolt is built with into it, per configuration
+  (`cmake/UnisonJoltConfig.cmake`), leaving `NDEBUG` and the like to the host. `jolt_config_matches_the_library` in
+  CTest compiles a probe with that header alone and asks the built library through `JPH::VerifyJoltVersionID`, which
+  compares every setting that changes Jolt's ABI.
 - `UUnisonSessionSubsystem` (`UGameInstanceSubsystem`): owns `SessionRunner`, ticks it on the game thread
   before physics, exposes connection state and statistics.
 - `UUnisonInputComponent`: converts Enhanced Input actions into the game's quantised `Input`.
@@ -1156,6 +1161,7 @@ player's spawn point faces; a physics state from an untrusted peer checked befor
 | Q16 | An x86-64 build under Rosetta 2 as the Mac's fallback | Answered 2026-09-25 by X.6 (Q-H): not needed. Every golden recorded on Windows reproduces on arm64 in Debug and in Release, so the Mac plays natively, and x86-64 macOS stays in the backlog. |
 | Q17 | Whether Definition of Done item 2 needs two Windows machines | Answered 2026-09-25 (Q-I): no. X.8.2, the run with the relay on Windows and a console on each platform, counts for item 2 as well, and 3.4.5 is ticked from it. |
 | Q18 | What a running room with no player in play left does with the players still joining it, and with a new or a returning player's `Hello` | Open, raised 2026-09-26 in 4.3.7 for the owner. Nobody left holds the match's state, so no snapshot can come: the joiners wait for good, and a new player, or one back with its token while every other player is away, is welcomed from frame 0 and plays behind every frame the relay has confirmed. (a) Turn them away with a new `LeaveReason`, the match being over, as a Quantum room ends with its last player; the protocol's version goes to 6 and its golden is recorded again on Windows. (b) Start the room over from frame 0 with whoever is still joining, which leaves the protocol alone but gives the relay core a match to reset. (c) Leave it as it is, for the host to give up. Recommended: (a). |
+| Q19 | How a host reaches the session and hears the game's events across the boundary of §7.3 | Open, raised 2026-09-26 for the owner before 5.1.3. §10.1 gives the host `EventDispatcher::on<EventType>(callback)`, a template it would instantiate over the game's event types, and `session_runner.hpp` includes `NetworkedSession`, and through it EnTT and Jolt; §7.3 and 5.1.3 allow the boundary headers POD data and non-inline functions only. (a) A `SessionRunner` behind a pointer to its implementation, built by a function the game's module exports, handing the host every event as a POD record, its kind and its bytes, which the game's public header describes as POD structs. (b) The template dispatcher kept in a header of the game's module, built with the determinism flags, the host calling a non-inline registration the module exports for every event type. (c) A C ABI now, which the backlog holds for later. Recommended: (a). |
 
 ---
 

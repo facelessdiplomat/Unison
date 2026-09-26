@@ -304,6 +304,20 @@ target_compile_definitions(
 
 catch_discover_tests(unison_tests_arena PROPERTIES LABELS fast)
 
+add_executable(jolt_config_probe cmake/jolt_config/probe.cpp)
+
+add_dependencies(jolt_config_probe Jolt unison_jolt_config)
+
+target_include_directories(jolt_config_probe PRIVATE "${UNISON_JOLT_CONFIG_DIR}" "${JoltPhysics_SOURCE_DIR}")
+
+target_link_libraries(jolt_config_probe PRIVATE "$<TARGET_FILE:Jolt>")
+
+unison_apply_language_subset(jolt_config_probe)
+
+add_test(NAME jolt_config_matches_the_library COMMAND jolt_config_probe)
+
+set_tests_properties(jolt_config_matches_the_library PROPERTIES LABELS fast)
+
 add_executable(unison_benchmarks benchmarks/arena_benchmarks.cpp)
 
 target_include_directories(unison_benchmarks PRIVATE "${CMAKE_CURRENT_LIST_DIR}")

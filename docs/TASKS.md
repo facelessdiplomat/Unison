@@ -18,10 +18,12 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.3.9**, 4.3.9 waits for the owner's answer to Q18; Phase 4's exit criteria follow: Definition of
-  Done items 3 to 6 in the runner and over UDP. Last finished: 4.4.5. On the owner's word of 2026-09-26 Phase 4
-  goes on while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open
-  until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **5.1.3**, the host's boundary headers without Jolt or EnTT, POD data and non-inline functions only,
+  waiting for the owner's answer to Q19 of `DESIGN.md` §17 on how a host reaches the session and hears the game's
+  events. 5.1.1 and the tasks that build or open Unreal need Windows or Unreal Engine 5.8 on the Mac; 4.3.9 waits
+  for Q18. Last finished: 5.1.2. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3
+  wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows
+  and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -45,9 +47,9 @@ needs from earlier tasks is ticked.
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
 | 4 Session features | 5 | 27 | 26 |
-| 5 Unreal Engine plugin | 2 | 23 | 0 |
+| 5 Unreal Engine plugin | 2 | 23 | 1 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **255** | **213** |
+| **Total** | **41** | **255** | **214** |
 
 ## Charter amendments made while planning
 
@@ -437,7 +439,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 ## Phase 4 — Session features
 
 **Exit criteria**
-- [ ] Definition of Done items 3–6 pass in the runner and over UDP.
+- [ ] Definition of Done items 3–6 pass in the runner and over UDP. Checked on the Mac on 2026-09-26, the Windows machines and the LAN still to come: item 3 in `runner_lets_a_player_join_late` and over ENet in the ENet match test and by hand with consoles; item 4 in `runner_lets_a_player_come_back`, five seconds away, over ENet in the test of a return and by hand with a console frozen for five seconds and one for ten; item 5 in `runner_lets_spectators_watch`, over ENet in the spectator's test and by hand with `--spectate --delay 5`; item 6 in the runner's replay tests, `runner_dumps_the_snapshots_of_a_desync` and `replay_diffs_the_dumps_of_a_desync`, and over ENet by hand: two consoles' replays of 479 frames verified 23 of 23 checksums, and one with frame 200's input changed reported frame 200 with exit code 2; a state diff over UDP would need a console with a fault, which none has.
 
 ### 4.1 Replays
 - [x] 4.1.1 Replay format (magic, version, `SessionConfig`, asset hash, per-frame confirmed inputs, periodic checksums) and `ReplayWriter`. Test: write then read yields identical records. Done on 2026-09-26: a replay opens with the magic `UNRP` and the format's version, then the session config as the protocol writes it, the asset hash among its fields, then frame and checksum records in the order they were written, as the charter's §8.7 now says. `ReplayWriter` builds one in memory; `ReplayReader` reads it back and refuses bytes without the magic, another version, a config with more slots or larger inputs than a frame holds, a record of no known kind and a replay that ends inside its header or a record, so the reader of 4.1.2 is in place and 4.1.2 keeps the player. The config's encoding moved into `writeSessionConfig` and `readSessionConfig`, which the protocol's codec now calls too; the protocol's golden bytes still match. Nine cases: the round trip, the six refusals and a writer for more slots than a frame holds breaking a contract; turning the reader's checks of the magic and of the config's size off fails the three cases that name them.
@@ -486,7 +488,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### 5.1 ThirdParty build and module
 - [ ] 5.1.1 `tools/build_unreal_thirdparty.ps1`: builds the deterministic libraries, Jolt and ENet in Release with UE-compatible settings (`/MD`, exceptions and RTTI off, matching toolset) and copies libs and headers into the plugin's `ThirdParty/`. Done when: the script produces the libs from a clean tree.
-- [ ] 5.1.2 Jolt configuration macros exported from CMake into a generated `unison_jolt_config.hpp` so every translation unit including Jolt headers sees identical settings. Test: a probe compares the generated values with the built library's.
+- [x] 5.1.2 Jolt configuration macros exported from CMake into a generated `unison_jolt_config.hpp` so every translation unit including Jolt headers sees identical settings. Test: a probe compares the generated values with the built library's. Done on 2026-09-26: the build writes the `JPH_` macros Jolt is built with into `unison_jolt_config.hpp`, one per configuration under `generated/jolt_config/`, through `cmake/UnisonJoltConfig.cmake` and `cmake/WriteJoltConfig.cmake`, leaving `NDEBUG` and the like to the host; the Mac's Debug and Release headers hold `JPH_CROSS_PLATFORM_DETERMINISTIC` alone. In CTest `jolt_config_matches_the_library` compiles a probe with that header and without Jolt's usage requirements, links the built library and asks it through `JPH::VerifyJoltVersionID`, which compares every setting that changes Jolt's ABI; a header left without the macro fails it. The Windows half is the owner's `tools\\ci.ps1`.
 - [ ] 5.1.3 Host boundary headers `unison/view/*.hpp` include neither Jolt nor EnTT; the view API exposes POD types and non-inline functions only. Test: a probe translation unit compiled with only the boundary headers links.
 - [ ] 5.1.4 `Unison.uplugin`, `UnisonRuntime` module, `Unison.Build.cs` linking the ThirdParty libs; the plugin compiles in UE 5.8 (installed; compatibility of Visual Studio 18 / MSVC 14.51 with UE's toolchain confirmed here and recorded in `DESIGN.md` Q5).
 - [ ] 5.1.5 Sample project `integrations/unreal/UnisonArena` (C++ project) referencing the plugin. Done when: it builds and opens in the editor.
