@@ -70,6 +70,11 @@ bool RelayCore::isEmpty() const
 
 void RelayCore::handle(PeerId from, const Hello& hello)
 {
+    if (roster.isMember(from))
+    {
+        return;
+    }
+
     if (hello.protocolVersion != kProtocolVersion)
     {
         turnAway(from, LeaveReason::ProtocolMismatch);

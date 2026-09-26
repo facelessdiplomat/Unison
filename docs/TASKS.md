@@ -18,10 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.3.8**, a second `Hello` from a member changes nothing: today it seats the member again in a second
-  slot. Last finished: 4.3.7. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait
-  for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and
-  macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **4.4.1**, a reconnect token in `Welcome`, and the relay holds a dropped player's slot for
+  `reconnectGrace` with the drop policy applied: the slot is kept within the grace and released after it. 4.3.9
+  waits for the owner's answer to Q18. Last finished: 4.3.8. On the owner's word of 2026-09-26 Phase 4 goes on
+  while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until
+  X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,10 +45,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 24 | 16 |
+| 4 Session features | 5 | 24 | 17 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **252** | **203** |
+| **Total** | **41** | **252** | **204** |
 
 ## Charter amendments made while planning
 
@@ -460,7 +461,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] 4.3.5 Runner scenario `--late-join-at <frame>` in CTest. Done on 2026-09-26: `--late-join-at <frame>` makes the runner's last client join once the first has verified that frame. It comes in through a snapshot, as 4.3.3 and 4.3.4 have it, and the ledger compares the frames every client reported, the late one's from its snapshot on. `NetworkedSession::startFrame` tells the frame the relay let a client in at, nought at the start of a match, and the report names every client that joined late with the frame of its snapshot. A late join into a match of one player, or at a frame not before `--frames`, is refused. In CTest `runner_lets_a_player_join_late` plays three players for 600 frames, the third joining at frame 300, and prints `3 players verified 600 frames`, `the clients agree on the checksums of 297 frames` and `slot 2 joined late, from a snapshot of frame 303`. Tested: the option and its refusals, a client's start frame, the report's line, and a runner match whose late player starts past the frame, verifies every frame and agrees with the others. Joining every client at the start, never joining the late one, joining it without waiting, a start frame of nought, and the report's line missing or shown for every client fail their cases; a run with a faulty client fails the CTest.
 - [x] 4.3.6 (+) The relay tool hands its ENet transport to every room as the round-trip meter, so a joiner's donor is the player in play with the lowest round trip over the network rather than the lowest slot. Found in 4.3.1, whose note left it to the rest of late-join. Test: a room of `RelayRooms` given a meter asks the player it measures lowest for the snapshot. Done on 2026-09-26: `RelayRooms` takes a round-trip meter, when given, and hands it to the `RelayCore` of every room it opens, and `unison_relay` gives it its `EnetTransport`, so a late joiner's snapshot comes from the player in play with ENet's lowest round trip. The ENet match test hands its server to its rooms the same way, and `FixedRoundTrips` moved into the tests' support for the relay's tests and the rooms' alike. Tested: a room given a meter asks the player it measures lowest for the snapshot, the second of two measured at 40 and 10 ms; rooms that drop the meter fail the case. By hand on the Mac, a relay on localhost and two consoles of three players, then a third console five seconds later: the third played in slot 2 from a verified frame of 360 in its first status line, kept to the others' frames for eight seconds, and all four programs exited with 0.
 - [x] 4.3.7 (+) A joiner whose donor leaves before the last chunk is asked of another player in play; today it waits for good. Found in 4.3.3. Test: the donor leaving mid-snapshot makes the relay ask the next player, and the joiner gets a whole snapshot. Done on 2026-09-26: when a donor leaves, `LateJoins` hands every joiner it was to send a snapshot to over to the next player in play, the nearest by round trip, asks that player for the snapshot of the frame after the newest confirmed, and has each joiner take it from its first chunk on, so the joiner is welcomed again at the new snapshot's frame. A client whose snapshot is not whole yet takes a newer welcome in place of the older one. `LateJoins::forget` became `forgetJoiner`, for a joiner that left, and `replaceDonor`, and the relay's `donorFor` became `nearestPlayerInPlay`, since a joiner was never among the players in play it chose from. A running room with no player in play left is Q18 of `DESIGN.md` §17, open for the owner, and 4.3.9 follows the answer. Tested: the next player is asked for frame 2, the joiner is welcomed at frame 2 with that snapshot's two chunks, a joiner that left is handed nothing, a player that leaves while nobody waits on it makes the relay ask nobody, and a client welcomed again restores the newer welcome's snapshot. Dropping the request, keeping the old donor's progress, never forgetting a joiner, asking when nobody waits or ignoring a second welcome fails its case.
-- [ ] 4.3.8 (+) A second `Hello` from a member changes nothing; today it seats the member again in a second slot. Found in 4.3.3. Test: a player's second hello leaves its slot, the free slots and the relay's replies as they were.
+- [x] 4.3.8 (+) A second `Hello` from a member changes nothing; today it seats the member again in a second slot. Found in 4.3.3. Test: a player's second hello leaves its slot, the free slots and the relay's replies as they were. Done on 2026-09-26: `RelayCore` ignores a `Hello` from a peer already in its roster, whatever it asks for, where it once seated a player again in the next free slot and welcomed it there, so one client could hold every slot of a room. Tested: a player's second hello is answered with nothing and a newcomer still takes slot 2 of three; without the check the member is welcomed again.
 - [ ] 4.3.9 (+) A running room with no player in play left does with the players joining it, and with a new player's `Hello`, what the owner answers to Q18 of `DESIGN.md` §17; today the joiners wait for good and the new player is welcomed from frame 0, behind every frame the relay has confirmed. Found in 4.3.7. Test: per the answer.
 
 ### 4.4 Reconnect

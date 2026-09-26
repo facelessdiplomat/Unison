@@ -796,7 +796,8 @@ Inside it, a `Roster` records who is in the match and which slot each of them pl
 hands it to the transport.
 A `RelayCore` hosts one match with the config it was created with: a `Hello` in the wrong protocol version
 or whose config hashes otherwise is answered with `Kick`, a player takes the lowest free slot or is kicked
-when none is left, and a spectator is welcomed without a slot (`kNoSlot`). A `Hello` carries the whole
+when none is left, a spectator is welcomed without a slot (`kNoSlot`), and a member's second `Hello` changes
+nothing, where it once seated the member again in another slot. A `Hello` carries the whole
 config rather than its hash because the relay never simulates and cannot know a game's asset and pipeline
 hashes: the standalone relay opens a room from the first `Hello` of a config, one room per config, since
 lobbies are out of scope in v1, and rooms that come and go with their players are its concern (3.2.2).

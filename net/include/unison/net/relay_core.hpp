@@ -34,10 +34,10 @@ struct RelaySettings
 /// confirmation lost on the way costs nothing as long as the next one arrives.
 inline constexpr std::uint32_t kRedundantConfirmations = 4;
 
-/// The relay of one match. It lets clients in, seats players in the slots of the config it was given and
-/// turns away a client that speaks another protocol, would play another config or finds every slot taken.
-/// It confirms a frame once every player has sent an input for it, or at the deadline without the missing
-/// ones, sends the confirmation with the frames confirmed just before it to everyone, answers a ping with the
+/// The relay of one match. It lets clients in, seats players in the slots of the config it was given and turns away a
+/// client that speaks another protocol, would play another config or finds every slot taken; a member's second hello
+/// changes nothing. It confirms a frame once every player has sent an input for it, or at the deadline without the
+/// missing ones, sends the confirmation with the frames confirmed just before it to everyone, answers a ping with the
 /// frame its clock has due, and tells everyone which players' checksums part ways with the rest. A player joining a
 /// running match holds its slot out of play while the player in play with the lowest round trip the meter, when given,
 /// measures sends it a snapshot, and plays from the first frame it sends an input for. It never simulates, and it

@@ -1178,3 +1178,16 @@ TEST_CASE("a player leaving while no joiner waits for its snapshot makes the rel
 
     REQUIRE(snapshotRequestsIn(Match::repliesOf(match.first)).empty());
 }
+
+TEST_CASE("a second hello from a member changes nothing")
+{
+    Match match;
+
+    sendMessage(match.first, match.relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    match.relay.endpoint.poll(match.relay.core);
+    const Replies atFirst = Match::repliesOf(match.first);
+    const Replies newcomer = repliesTo(match.relay, helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+
+    REQUIRE(atFirst.empty());
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(newcomer).slot == 2U);
+}
