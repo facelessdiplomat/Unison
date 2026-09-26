@@ -85,13 +85,13 @@ private:
     {
     }
 
-    void admit(PeerId peer, std::uint8_t slot);
+    [[nodiscard]] std::optional<LeaveReason> refusalOf(const Hello& hello) const;
+
+    void seat(PeerId peer, std::uint8_t slot);
 
     void readmit(PeerId peer, std::uint64_t reconnectToken);
 
     [[nodiscard]] bool isRunning() const;
-
-    [[nodiscard]] std::optional<PeerId> nearestPlayerInPlay() const;
 
     void turnAway(PeerId peer, LeaveReason reason);
 

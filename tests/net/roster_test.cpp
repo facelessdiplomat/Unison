@@ -191,14 +191,28 @@ TEST_CASE("letting a joining player into a slot someone holds breaks a contract"
     REQUIRE(probe.failureCount() == 1U);
 }
 
-TEST_CASE("letting a joining player in without a slot of the match breaks a contract")
+TEST_CASE("letting a joining player into a slot the match does not have breaks a contract")
 {
     unison::net::Roster roster{kTwoSlots};
     const unison::test::FatalHandlerProbe probe;
 
-    roster.admitJoining(kFirst, unison::net::kNoSlot);
+    roster.admitJoining(kFirst, kTwoSlots);
 
     REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("a spectator joining a running match catches up without a slot and never comes into play")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0);
+
+    roster.admitJoining(kSecond, unison::net::kNoSlot);
+
+    REQUIRE(roster.isMember(kSecond));
+    REQUIRE(roster.slotOf(kSecond) == unison::net::kNoSlot);
+    REQUIRE(roster.freeSlot() == 1U);
+    REQUIRE_FALSE(roster.isInPlay(kSecond));
+    REQUIRE(roster.slotsInPlayAt(1) == 0b01U);
 }
 
 TEST_CASE("putting in play a member that is not catching up breaks a contract")

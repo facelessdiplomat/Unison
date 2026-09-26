@@ -3,6 +3,7 @@ add_library(
     src/checksum_referee.cpp
     src/clock.cpp
     src/confirmed_log.cpp
+    src/donor_choice.cpp
     src/enet_transport.cpp
     src/input_collector.cpp
     src/late_joins.cpp

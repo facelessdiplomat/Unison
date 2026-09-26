@@ -81,7 +81,8 @@ unison::net::SessionConfig twoPlayers()
 
 struct Relay
 {
-    explicit Relay(const unison::net::SessionConfig& config) : endpoint{hub.join()}, core{endpoint, clock, config}
+    explicit Relay(const unison::net::SessionConfig& config, const unison::net::IRoundTripMeter* roundTrips = nullptr)
+        : endpoint{hub.join()}, core{endpoint, clock, config, unison::net::RelaySettings{}, roundTrips}
     {
     }
 
@@ -1485,4 +1486,62 @@ TEST_CASE("a player back with its token takes its slot over from an old peer the
     REQUIRE(welcome.slot == 1U);
     REQUIRE(Match::repliesOf(match.second).empty());
     REQUIRE_FALSE(confirmationsIn(Match::repliesOf(back)).empty());
+}
+
+TEST_CASE("a spectator joining a running match is caught up from a donor's snapshot, taking no slot")
+{
+    RunningMatch match;
+    unison::net::LoopbackEndpoint& spectator = match.hub.join();
+    sendMessage(spectator, match.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Spectator));
+    match.endpoint.poll(match.core);
+    const std::vector<unison::net::SnapshotRequest> toFirst = snapshotRequestsIn(Match::repliesOf(match.first));
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    const Replies atSpectator = Match::repliesOf(spectator);
+    const unison::net::Welcome welcome = welcomeIn(atSpectator);
+    REQUIRE(toFirst.size() == 1U);
+    REQUIRE(welcome.slot == unison::net::kNoSlot);
+    REQUIRE(welcome.startFrame == 1U);
+    REQUIRE(welcome.reconnectToken == 0U);
+    REQUIRE(allOf<unison::net::SnapshotChunk>(atSpectator).size() == 1U);
+}
+
+TEST_CASE("a spectator joining a running match leaves every slot to the players")
+{
+    RunningMatch match;
+    unison::net::LoopbackEndpoint& spectator = match.hub.join();
+    sendMessage(spectator, match.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Spectator));
+    match.endpoint.poll(match.core);
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    match.hello(match.joiner);
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    REQUIRE(welcomeIn(Match::repliesOf(match.joiner)).slot == 2U);
+}
+
+TEST_CASE("a spectator is never asked for a snapshot, however near it is")
+{
+    unison::test::FixedRoundTrips roundTrips;
+    Relay relay{threeSlotsOfTwoBytes(), &roundTrips};
+    unison::net::LoopbackEndpoint& player = relay.hub.join();
+    unison::net::LoopbackEndpoint& spectator = relay.hub.join();
+    unison::net::LoopbackEndpoint& joiner = relay.hub.join();
+    sendMessage(player, relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    sendMessage(spectator, relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Spectator));
+    relay.endpoint.poll(relay.core);
+    roundTrips.set(player.id(), 40'000);
+    roundTrips.set(spectator.id(), 1'000);
+    sendMessage(player, relay.endpoint.id(), unison::net::Input{1, 2, 1, inputOf(1)});
+    relay.endpoint.poll(relay.core);
+
+    sendMessage(joiner, relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    relay.endpoint.poll(relay.core);
+
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(player)).size() == 1U);
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(spectator)).empty());
 }

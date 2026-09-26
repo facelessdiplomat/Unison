@@ -1,10 +1,10 @@
 #include <unison/net/relay_core.hpp>
 
 #include <unison/core/contract.hpp>
+#include <unison/net/donor_choice.hpp>
 #include <unison/net/message_codec.hpp>
 
 #include <algorithm>
-#include <limits>
 #include <optional>
 #include <variant>
 
@@ -58,7 +58,7 @@ void RelayCore::peerLeft(PeerId peer)
     }
 
     lateJoins.forgetJoiner(peer);
-    lateJoins.replaceDonor(peer, nearestPlayerInPlay());
+    lateJoins.replaceDonor(peer, nearestAwaitedPlayer(roster, roundTrips));
     confirmReadyFrames();
 }
 
@@ -85,23 +85,16 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
-    if (hello.protocolVersion != kProtocolVersion)
+    if (const std::optional<LeaveReason> refusal = refusalOf(hello))
     {
-        turnAway(from, LeaveReason::ProtocolMismatch);
-
-        return;
-    }
-
-    if (hashOf(hello.config) != configHash)
-    {
-        turnAway(from, LeaveReason::ConfigMismatch);
+        turnAway(from, *refusal);
 
         return;
     }
 
     if (hello.role == Role::Spectator)
     {
-        admit(from, kNoSlot);
+        seat(from, kNoSlot);
 
         return;
     }
@@ -122,18 +115,7 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
-    const std::optional<PeerId> donor = isRunning() ? nearestPlayerInPlay() : std::nullopt;
-
-    if (!donor.has_value())
-    {
-        admit(from, slot);
-
-        return;
-    }
-
-    const std::uint64_t reconnectToken = reconnectTokens.next();
-    roster.admitJoining(from, slot, reconnectToken);
-    lateJoins.await(from, slot, reconnectToken, *donor);
+    seat(from, slot);
 }
 
 void RelayCore::handle(PeerId from, const Input& input)
@@ -231,18 +213,43 @@ void RelayCore::sendConfirmed(Channel channel, std::uint32_t firstFrame, std::ui
     sendToAll(channel, confirmationOf(confirmedLog, config, firstFrame, lastFrame - firstFrame + 1));
 }
 
-void RelayCore::admit(PeerId peer, std::uint8_t slot)
+std::optional<LeaveReason> RelayCore::refusalOf(const Hello& hello) const
+{
+    if (hello.protocolVersion != kProtocolVersion)
+    {
+        return LeaveReason::ProtocolMismatch;
+    }
+
+    if (hashOf(hello.config) != configHash)
+    {
+        return LeaveReason::ConfigMismatch;
+    }
+
+    return std::nullopt;
+}
+
+void RelayCore::seat(PeerId peer, std::uint8_t slot)
 {
     const std::uint64_t reconnectToken = slot == kNoSlot ? 0 : reconnectTokens.next();
-    roster.admit(peer, slot, reconnectToken);
-    outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, reconnectToken});
+    const std::optional<PeerId> donor = isRunning() ? nearestAwaitedPlayer(roster, roundTrips) : std::nullopt;
+
+    if (!donor.has_value())
+    {
+        roster.admit(peer, slot, reconnectToken);
+        outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, reconnectToken});
+
+        return;
+    }
+
+    roster.admitJoining(peer, slot, reconnectToken);
+    lateJoins.await(peer, slot, reconnectToken, *donor);
 }
 
 void RelayCore::readmit(PeerId peer, std::uint64_t reconnectToken)
 {
     roster.reclaim(reconnectToken, peer);
     const std::uint8_t slot = roster.slotOf(peer);
-    const std::optional<PeerId> donor = isRunning() ? nearestPlayerInPlay() : std::nullopt;
+    const std::optional<PeerId> donor = isRunning() ? nearestAwaitedPlayer(roster, roundTrips) : std::nullopt;
 
     if (donor.has_value())
     {
@@ -258,37 +265,6 @@ void RelayCore::readmit(PeerId peer, std::uint64_t reconnectToken)
 bool RelayCore::isRunning() const
 {
     return confirmedLog.lastFrame() > 0;
-}
-
-std::optional<PeerId> RelayCore::nearestPlayerInPlay() const
-{
-    std::optional<Roster::Member> nearest;
-    std::uint64_t nearestRoundTrip = std::numeric_limits<std::uint64_t>::max();
-
-    for (const Roster::Member& member : roster.members())
-    {
-        const bool isAwaited =
-            member.slot != kNoSlot && member.awaitedFrom != Roster::kNotPlayingYet && !member.heldUntil.has_value();
-
-        if (!isAwaited)
-        {
-            continue;
-        }
-
-        const std::optional<std::uint64_t> measured =
-            roundTrips == nullptr ? std::nullopt : roundTrips->roundTripMicroseconds(member.peer);
-        const std::uint64_t roundTrip = measured.value_or(std::numeric_limits<std::uint64_t>::max());
-        const bool isNearer = !nearest.has_value() || roundTrip < nearestRoundTrip ||
-                              (roundTrip == nearestRoundTrip && member.slot < nearest->slot);
-
-        if (isNearer)
-        {
-            nearest = member;
-            nearestRoundTrip = roundTrip;
-        }
-    }
-
-    return nearest.has_value() ? std::optional{nearest->peer} : std::nullopt;
 }
 
 void RelayCore::turnAway(PeerId peer, LeaveReason reason)

@@ -117,6 +117,7 @@ add_executable(
     net/checksum_referee_test.cpp
     net/clock_test.cpp
     net/confirmed_log_test.cpp
+    net/donor_choice_test.cpp
     net/enet_smoke_test.cpp
     net/enet_transport_test.cpp
     net/input_collector_test.cpp

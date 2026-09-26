@@ -21,7 +21,7 @@ void Roster::admit(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken)
 
 void Roster::admitJoining(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken)
 {
-    UNISON_VERIFY(slot < slotCount && !isHeld(slot));
+    UNISON_VERIFY(slot == kNoSlot || (slot < slotCount && !isHeld(slot)));
 
     admitted.push_back(Member{peer, slot, kNotPlayingYet, kNotPlayingYet, reconnectToken, std::nullopt});
 }

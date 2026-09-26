@@ -43,8 +43,9 @@ public:
     /// already holds breaks a contract.
     void admit(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken = 0);
 
-    /// Lets a player in who holds its slot but plays no frame of it yet, as one joining a running match; a slot the
-    /// match does not have or someone already holds breaks a contract.
+    /// Lets a client in that catches up with a running match before it plays: a player holding a slot it plays no
+    /// frame of yet, or a spectator holding none; a slot the match does not have or someone already holds breaks a
+    /// contract.
     void admitJoining(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken = 0);
 
     /// Awaits a member catching up from a frame on, its slot in play from then on too if it was not already; any other
