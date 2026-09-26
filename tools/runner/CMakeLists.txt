@@ -90,6 +90,13 @@ set_tests_properties(
                LABELS fast
 )
 
+add_test(NAME runner_lets_spectators_watch COMMAND unison_runner --players 2 --frames 600 --spectators 2)
+
+set_tests_properties(
+    runner_lets_spectators_watch PROPERTIES PASS_REGULAR_EXPRESSION "2 players and 2 spectators verified 600 frames"
+                                            LABELS fast
+)
+
 set(UNISON_PROFILE_SECONDS 5)
 
 foreach(players IN ITEMS 2 4 8)

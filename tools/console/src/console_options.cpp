@@ -26,6 +26,10 @@ cxxopts::Options describedOptions()
     add("run-for", "seconds to run, 0 until stopped", cxxopts::value<std::uint32_t>()->default_value("0"));
     add("record", "file the match is recorded into", cxxopts::value<std::string>()->default_value(""));
     add("dump-dir", "folder desync dumps go into, none when empty", cxxopts::value<std::string>()->default_value("."));
+    add("spectate", "watches the match without playing");
+    add("delay",
+        "frames a spectator watches behind the newest confirmed one",
+        cxxopts::value<std::uint32_t>()->default_value("0"));
     add("help", "lists these options");
 
     return options;
@@ -47,11 +51,19 @@ tl::expected<ConsoleOptions, Error> parseConsoleOptions(std::span<const char* co
     read.runForSeconds = parsed["run-for"].as<std::uint32_t>();
     read.recordPath = parsed["record"].as<std::string>();
     read.dumpDirectory = parsed["dump-dir"].as<std::string>();
+    read.isSpectating = parsed.count("spectate") > 0;
+    read.spectatorDelayFrames = parsed["delay"].as<std::uint32_t>();
     read.isHelpAsked = parsed.count("help") > 0;
 
     if (read.players == 0 || read.players > net::kMaxSlots)
     {
         return tl::unexpected{Error{ErrorCode::InvalidOption, "--players takes one player at least and eight at most"}};
+    }
+
+    if (parsed.count("delay") > 0 && !read.isSpectating)
+    {
+        return tl::unexpected{
+            Error{ErrorCode::InvalidOption, "--delay takes the console of a spectator, with --spectate"}};
     }
 
     return read;

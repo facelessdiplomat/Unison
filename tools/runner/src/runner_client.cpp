@@ -68,7 +68,7 @@ RunnerClient::RunnerClient(net::LoopbackHub& hub,
       verifiedFrames{receiversOf(setup, dumper)},
       networked{match.frame(), match.pipeline(), config, link, relay, kNoInputDelay, &verifiedFrames},
       runner{networked, dispatcher, clock, config.tickRate}, player{config.seed, player},
-      reconnectToken{setup.reconnectToken}
+      reconnectToken{setup.reconnectToken}, isSpectator{setup.isSpectator}
 {
     if (setup.isFaulty)
     {
@@ -78,6 +78,13 @@ RunnerClient::RunnerClient(net::LoopbackHub& hub,
 
 void RunnerClient::join()
 {
+    if (isSpectator)
+    {
+        networked.spectate();
+
+        return;
+    }
+
     networked.join(reconnectToken);
 }
 

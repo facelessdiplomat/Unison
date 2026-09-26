@@ -1,5 +1,6 @@
 #include <unison/runner/run_outcome.hpp>
 
+#include <unison/net/protocol.hpp>
 #include <unison/runner/client_outcome.hpp>
 #include <unison/runner/runner_options.hpp>
 
@@ -155,4 +156,16 @@ TEST_CASE("the report of a run names every player that came back and the frame o
 
     REQUIRE(report.find("slot 1 came back, from a snapshot of frame 312") != std::string::npos);
     REQUIRE(report.find("joined late") == std::string::npos);
+}
+
+TEST_CASE("the report of a run with spectators says how many of them verified every frame with the players")
+{
+    unison::runner::RunOutcome outcome = flawless();
+    outcome.clients.push_back(clientInSlot(unison::net::kNoSlot, 0));
+    unison::runner::RunnerOptions options;
+    options.spectators = 1;
+
+    const std::string report = unison::runner::reportOf(outcome, options);
+
+    REQUIRE(report.find("2 players and 1 spectator verified 600 frames in 603 host frames") != std::string::npos);
 }

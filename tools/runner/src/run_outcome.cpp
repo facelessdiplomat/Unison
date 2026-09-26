@@ -44,6 +44,16 @@ std::string reportOfDisagreement(const RunOutcome& outcome, const Disagreement& 
     return report;
 }
 
+std::string spectatorsOf(const RunnerOptions& options)
+{
+    if (options.spectators == 0)
+    {
+        return std::string{};
+    }
+
+    return std::format(" and {} spectator{}", options.spectators, options.spectators == 1 ? "" : "s");
+}
+
 std::string verdictOf(const RunOutcome& outcome, const RunnerOptions& options)
 {
     if (outcome.disagreement.has_value())
@@ -66,9 +76,10 @@ std::string verdictOf(const RunOutcome& outcome, const RunnerOptions& options)
                            outcome.hostFrames);
     }
 
-    return std::format("unison_runner: {} players verified {} frames in {} host frames\n"
+    return std::format("unison_runner: {} players{} verified {} frames in {} host frames\n"
                        "unison_runner: the clients agree on the checksums of {} frames\n",
                        options.players,
+                       spectatorsOf(options),
                        options.frames,
                        outcome.hostFrames,
                        outcome.framesCompared);

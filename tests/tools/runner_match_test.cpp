@@ -2,6 +2,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <unison/net/protocol.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/runner/client_outcome.hpp>
 #include <unison/runner/runner_options.hpp>
@@ -244,4 +245,37 @@ TEST_CASE("the others wait for nothing from a player while it is away, their fra
     REQUIRE(outcome.hostFrames < options.frames + 20U);
     REQUIRE(outcome.clients[0].rollbacks.deepestRollback <= kDeepestOnAFlawlessNetwork);
     REQUIRE(outcome.clients[2].rollbacks.deepestRollback <= kDeepestOnAFlawlessNetwork);
+}
+
+TEST_CASE("a spectator watches a run from its start, verifying every frame alike with the players, taking nothing back")
+{
+    unison::runner::RunnerOptions options;
+    options.frames = 300;
+    options.spectators = 1;
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.isComplete);
+    REQUIRE_FALSE(outcome.disagreement.has_value());
+    REQUIRE(outcome.clients.size() == 3U);
+    REQUIRE(outcome.clients[2].slot == unison::net::kNoSlot);
+    REQUIRE(outcome.clients[2].rollbacks.rollbacks == 0U);
+    REQUIRE(outcome.framesCompared >= options.frames);
+}
+
+TEST_CASE("a late player of a run with spectators is still the last player, not a spectator")
+{
+    unison::runner::RunnerOptions options;
+    options.players = 3;
+    options.frames = 300;
+    options.lateJoinFrame = 100;
+    options.spectators = 1;
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.isComplete);
+    REQUIRE(outcome.clients[2].startFrame > options.lateJoinFrame);
+    REQUIRE(outcome.clients[3].startFrame == 0U);
 }

@@ -194,21 +194,30 @@ void playUntilStopped(const unison::console::ConsoleOptions& options,
 {
     const std::uint64_t stopAt = options.runForSeconds > 0 ? options.runForSeconds * kMicrosecondsPerSecond
                                                            : std::numeric_limits<std::uint64_t>::max();
-    Steering steering{clock.nowMicroseconds()};
+    std::optional<Steering> steering;
+    StatusDisplay display{options, networked, match.frame()};
+    const unison::net::MillisecondTimer millisecondTimer;
 
-    if (!steering.isKeyboardAvailable())
+    if (options.isSpectating)
+    {
+        networked.spectate(options.spectatorDelayFrames);
+    }
+    else
+    {
+        steering.emplace(clock.nowMicroseconds());
+        networked.join();
+    }
+
+    if (steering.has_value() && !steering->isKeyboardAvailable())
     {
         unison::logMessage(unison::LogLevel::Info,
                            "unison_console: no console to read the keyboard from, so the player stands still");
     }
 
-    StatusDisplay display{options, networked, match.frame()};
-    const unison::net::MillisecondTimer millisecondTimer;
-    networked.join();
-
     while (isStopAsked == 0 && clock.nowMicroseconds() < stopAt && isInPlay(networked))
     {
-        const arena::ArenaInput input = steering.inputAt(clock.nowMicroseconds());
+        const arena::ArenaInput input =
+            steering.has_value() ? steering->inputAt(clock.nowMicroseconds()) : arena::ArenaInput{};
 
         runner.setLocalInput(std::as_bytes(std::span{&input, 1}));
         static_cast<void>(runner.update());

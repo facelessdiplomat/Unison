@@ -90,3 +90,16 @@ TEST_CASE("the status line of a client not in a match yet says where it stands a
     REQUIRE(joining == "ada joining the match");
     REQUIRE(disconnected == "ada disconnected");
 }
+
+TEST_CASE("the status line of a spectator says it watches, stalled or not, and names no slot")
+{
+    unison::console::ConsoleStatus status = playingStatus();
+    status.slot = unison::net::kNoSlot;
+    status.predictedFrame = status.verifiedFrame;
+    unison::console::ConsoleStatus waiting = status;
+    waiting.state = unison::session::ConnectionState::Stalled;
+
+    REQUIRE(unison::console::statusLineOf(status) ==
+            "ada watching, verified 312, predicted 312, rollbacks in the last second 12, round trip 3 ms, lead 1 ms");
+    REQUIRE(unison::console::statusLineOf(waiting).starts_with("ada watching, verified 312"));
+}

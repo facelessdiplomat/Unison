@@ -13,13 +13,23 @@ namespace
 constexpr std::uint64_t kMicrosecondsPerMillisecond = 1'000;
 constexpr int kSlotBits = std::numeric_limits<std::uint8_t>::digits;
 
-std::string inMatch(const ConsoleStatus& status, std::string_view standing)
+std::string seatOf(const ConsoleStatus& status)
 {
-    return std::format("{} {} in slot {}, verified {}, predicted {}, rollbacks in the last second {}, "
+    if (status.slot == net::kNoSlot)
+    {
+        return "watching";
+    }
+
+    return std::format(
+        "{} in slot {}", status.state == session::ConnectionState::Stalled ? "stalled" : "playing", status.slot);
+}
+
+std::string inMatch(const ConsoleStatus& status)
+{
+    return std::format("{} {}, verified {}, predicted {}, rollbacks in the last second {}, "
                        "round trip {} ms, lead {} ms",
                        status.name,
-                       standing,
-                       status.slot,
+                       seatOf(status),
                        status.verifiedFrame,
                        status.predictedFrame,
                        status.rollbacksLastSecond,
@@ -51,7 +61,7 @@ std::string standingOf(const ConsoleStatus& status)
         return std::format("{} disconnected", status.name);
     }
 
-    return inMatch(status, status.state == ConnectionState::Stalled ? "stalled" : "playing");
+    return inMatch(status);
 }
 
 std::string slotsOf(std::uint8_t slotBits)

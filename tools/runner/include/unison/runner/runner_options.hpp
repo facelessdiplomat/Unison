@@ -25,8 +25,9 @@ struct Drop
 /// network (its loss as a share of one), how fast the match ticks, every how many verified frames the clients
 /// compare checksums, the file the run is recorded into, none when empty, the folder the clients write desync dumps
 /// into, none when empty, the client that starts with the first player one health point low, to show a desync, the
-/// frame the first client has verified when the last one joins, every client joining at the start when nought, and the
-/// client that drops and comes back, if one does. A run asked for help lists the options instead.
+/// frame the first client has verified when the last one joins, every client joining at the start when nought, the
+/// client that drops and comes back, if one does, and how many spectators watch it from the start. A run asked for help
+/// lists the options instead.
 struct RunnerOptions
 {
     std::uint32_t players = 2;
@@ -42,6 +43,7 @@ struct RunnerOptions
     std::optional<std::uint32_t> faultyClient;
     std::uint32_t lateJoinFrame = 0;
     std::optional<Drop> drop;
+    std::uint32_t spectators = 0;
     bool isHelpAsked = false;
 };
 

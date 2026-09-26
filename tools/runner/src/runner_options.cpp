@@ -41,6 +41,7 @@ cxxopts::Options describedOptions()
     add("late-join-at",
         "frame the first client has verified when the last one joins, none when nought",
         cxxopts::value<std::uint32_t>()->default_value("0"));
+    add("spectators", "spectators watching from the start", cxxopts::value<std::uint32_t>()->default_value("0"));
     add("disconnect",
         "client, frame the first client has verified and seconds of a drop, as 1,300,5",
         cxxopts::value<std::vector<std::uint32_t>>());
@@ -84,6 +85,7 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
     read.dumpDirectory = parsed["dump-dir"].as<std::string>();
     const std::int32_t fault = parsed["fault"].as<std::int32_t>();
     read.lateJoinFrame = parsed["late-join-at"].as<std::uint32_t>();
+    read.spectators = parsed["spectators"].as<std::uint32_t>();
     read.isHelpAsked = parsed.count("help") > 0;
 
     if (read.players == 0 || read.players > net::kMaxSlots)

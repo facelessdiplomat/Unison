@@ -901,52 +901,52 @@ the session's event changes are.
   <client>,<frame>,<seconds>` takes a client off the network once the first client has verified that frame: the
   relay hears it leave and holds its slot, and in its place a new client over a new link, which records no replay,
   joins with the old one's reconnect token that many seconds later and catches up from a donor's snapshot; the
-  report names it as come back, with the frame of its snapshot. Its config carries the arena's asset and pipeline
-  hashes, as the console's does, so a replay it records names what it was played with. It plays the arena with every
-  client and the relay in one process, each client's link crossing one seeded simulated network and each player
-  scripted from the seed, one host frame at a time; a run that has not verified every frame after twice as many host
-  frames and ten seconds more fails. A wiretap in front of the relay writes every checksum the clients report into a
-  ledger, and the run lasts until every client has reported the last frame it checks; the first frame the clients
-  report different checksums for is the desync, printed with every slot's checksum of it. The exit code is 0 for a
-  run that verified every frame alike within its window, 2 for a desync, 3 for a rollback deeper than the prediction
-  window, and 1 for a run that missed frames, a command line it could not read or a replay it could not write; a
-  desync outranks an overflow, and both outrank missed frames. After the verdict every run prints a table of
-  rollbacks by slot, in slot order: how many, how many per second of play, how deep on average and at most, and how
-  many ticks the client stalled with its window full, closed by a row for every client together.
-- `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard input,
-  connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output. It joins
-  the relay at `--host` and `--port` (127.0.0.1:7777 unless told otherwise), sending from `--from` or from
-  whatever address the system picks, plays the arena for `--players` players, which every console of a match
-  must agree on as the config's seed, asset hash and pipeline hash come from the build, and ten times a second
-  draws its screen over the last one in place: a status line, where it stands, its slot, its verified and
-  predicted frames, the rollbacks of the last second, the round trip and the lead, and below it the map of the
-  frame it predicts. Stalled is where it stands while its prediction window is full. The lead is how far
-  ahead of the relay's clock it played when the last pong came back (§8.3), about half a round trip while it
-  keeps pace. The screen needs a console that understands the terminal's escape sequences, on macOS any terminal on
-  standard output; with its output redirected the console prints the status line once a second instead. The screen
-  is drawn in the window's own buffer, so when the console ends, its last screen and its last status line stay in
-  view.
-  It runs on the real clock until Ctrl+C, `--run-for` seconds, a disconnect, which ends it with exit code 1,
-  or a desync the relay reports, which ends it with exit code 2 whatever else happened and puts the frame and
-  the slots out of step at the end of the status line. With `--record` it writes the replay of the frames it
-  verified into a file when it ends, and a replay it could not write turns an exit code of 0 into 1. Told of a desync, it
-  dumps the snapshot of that frame into `--dump-dir`, the working folder unless told otherwise.
-  `--spectate` comes with spectators (4.5.3). The keyboard is read without
-  blocking from Windows' console input, which reports keys going down and up while the window has focus, and
-  a lost focus lets every key go: W and S move forward and back, A and D to the sides, Space jumps, F fires,
-  and Q and E turn the aim half a turn a second for as long as they are held, by the time held rather than by
-  how often the loop asks. A console without a console window, its input redirected, stands still. On macOS
-  (X.7), where no terminal reports a key going up, the console takes the terminal into raw mode, so keys neither echo
-  nor wait for a line, and on every read asks the window server which game keys are down
-  (`CGEventSourceKeyState`), so keys held together work as on Windows; the answer is the whole login
-  session's, so a Mac console reads the keys whichever window is in front, and macOS may ask for the
+  report names it as come back, with the frame of its snapshot. `--spectators <n>` seats that many spectators from
+  the start, whose checksums the ledger compares with the players' as any client's, and the verdict counts them; the
+  rollback table names their rows `spectator`. Its config carries the arena's asset and pipeline hashes, as the
+  console's does, so a replay it records names what it was played with. It plays the arena with every client and the
+  relay in one process, each client's link crossing one seeded simulated network and each player scripted from the
+  seed, one host frame at a time; a run that has not verified every frame after twice as many host frames and ten
+  seconds more fails. A wiretap in front of the relay writes every checksum the clients report into a ledger, and
+  the run lasts until every client has reported the last frame it checks; the first frame the clients report
+  different checksums for is the desync, printed with every slot's checksum of it. The exit code is 0 for a run that
+  verified every frame alike within its window, 2 for a desync, 3 for a rollback deeper than the prediction window,
+  and 1 for a run that missed frames, a command line it could not read or a replay it could not write; a desync
+  outranks an overflow, and both outrank missed frames. After the verdict every run prints a table of rollbacks by
+  slot, in slot order: how many, how many per second of play, how deep on average and at most, and how many ticks
+  the client stalled with its window full, closed by a row for every client together.
+- `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard
+  input, connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output. It joins
+  the relay at `--host` and `--port` (127.0.0.1:7777 unless told otherwise), sending from `--from` or from whatever
+  address the system picks, plays the arena for `--players` players, which every console of a match must agree on as
+  the config's seed, asset hash and pipeline hash come from the build, and ten times a second draws its screen over
+  the last one in place: a status line, where it stands, its slot, its verified and predicted frames, the rollbacks
+  of the last second, the round trip and the lead, and below it the map of the frame it predicts. Stalled is where
+  it stands while its prediction window is full. The lead is how far ahead of the relay's clock it played when the
+  last pong came back (§8.3), about half a round trip while it keeps pace. The screen needs a console that
+  understands the terminal's escape sequences, on macOS any terminal on standard output; with its output redirected
+  the console prints the status line once a second instead. The screen is drawn in the window's own buffer, so when
+  the console ends, its last screen and its last status line stay in view. It runs on the real clock until Ctrl+C,
+  `--run-for` seconds, a disconnect, which ends it with exit code 1, or a desync the relay reports, which ends it
+  with exit code 2 whatever else happened and puts the frame and the slots out of step at the end of the status
+  line. With `--record` it writes the replay of the frames it verified into a file when it ends, and a replay it
+  could not write turns an exit code of 0 into 1. Told of a desync, it dumps the snapshot of that frame into
+  `--dump-dir`, the working folder unless told otherwise. `--spectate` makes it watch instead of play, `--delay
+  <frames>` behind the newest confirmed frame, a delay being refused without `--spectate`: it reads no keyboard, and
+  its status line says it is watching, with no slot. The keyboard is read without blocking from Windows' console
+  input, which reports keys going down and up while the window has focus, and a lost focus lets every key go: W and
+  S move forward and back, A and D to the sides, Space jumps, F fires, and Q and E turn the aim half a turn a second
+  for as long as they are held, by the time held rather than by how often the loop asks. A console without a console
+  window, its input redirected, stands still. On macOS (X.7), where no terminal reports a key going up, the console
+  takes the terminal into raw mode, so keys neither echo nor wait for a line, and on every read asks the window
+  server which game keys are down (`CGEventSourceKeyState`), so keys held together work as on Windows; the answer is
+  the whole login session's, so a Mac console reads the keys whichever window is in front, and macOS may ask for the
   Terminal's Input Monitoring permission (Q8); a console whose terminal lacks it says so when it stops, below its
   last screen, since the first screen draws over whatever was printed before it. Its map comes from
   `arena_view_console`: the arena from above, +X to the right and +Z down, half a metre a column and a metre a row,
-  `#` for walls, `=` for ramps, `C` for crates, `*` for shots and every player by the
-  number of their slot with an arrow for the quarter turn they look along, and below it a line for every
-  player with their health, or that they wait to come back, and their kills. The map reads the arena's
-  components and runs none of its code (§7.3).
+  `#` for walls, `=` for ramps, `C` for crates, `*` for shots and every player by the number of their slot with an
+  arrow for the quarter turn they look along, and below it a line for every player with their health, or that they
+  wait to come back, and their kills. The map reads the arena's components and runs none of its code (§7.3).
 - `unison_replay`: record / play / verify / diff. It builds the arena for the players and the tick rate of a
   replay's config and refuses a replay recorded with other assets or systems than the build's, whose hashes the
   config carries. `play <file>` re-simulates the replay and prints how many frames it played and the checksum of the

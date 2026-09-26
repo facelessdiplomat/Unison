@@ -31,6 +31,8 @@ TEST_CASE("a console told nothing joins a relay on this machine at port 7777 and
     REQUIRE(options->runForSeconds == 0U);
     REQUIRE(options->recordPath.empty());
     REQUIRE(options->dumpDirectory == ".");
+    REQUIRE_FALSE(options->isSpectating);
+    REQUIRE(options->spectatorDelayFrames == 0U);
     REQUIRE_FALSE(options->isHelpAsked);
 }
 
@@ -51,7 +53,10 @@ TEST_CASE("a console takes every option it lists")
                                  "--record",
                                  "match.replay",
                                  "--dump-dir",
-                                 "dumps"});
+                                 "dumps",
+                                 "--spectate",
+                                 "--delay",
+                                 "10"});
 
     REQUIRE(options.has_value());
     REQUIRE(options->host == "192.168.1.20");
@@ -62,6 +67,8 @@ TEST_CASE("a console takes every option it lists")
     REQUIRE(options->runForSeconds == 5U);
     REQUIRE(options->recordPath == "match.replay");
     REQUIRE(options->dumpDirectory == "dumps");
+    REQUIRE(options->isSpectating);
+    REQUIRE(options->spectatorDelayFrames == 10U);
 }
 
 TEST_CASE("a console asked for help says so")
@@ -86,12 +93,29 @@ TEST_CASE("a console refuses a match it cannot play, naming the option")
     }
 }
 
+TEST_CASE("a console refuses a delay unless it spectates, naming the option")
+{
+    const auto options = parsed({"--delay", "10"});
+
+    REQUIRE_FALSE(options.has_value());
+    REQUIRE(options.error().code() == unison::ErrorCode::InvalidOption);
+    REQUIRE(options.error().message().find("--delay") != std::string_view::npos);
+}
+
 TEST_CASE("the console's help lists every option")
 {
     const std::string help = unison::console::consoleHelp();
 
-    for (const std::string_view option :
-         {"--host", "--port", "--from", "--name", "--players", "--run-for", "--record", "--dump-dir"})
+    for (const std::string_view option : {"--host",
+                                          "--port",
+                                          "--from",
+                                          "--name",
+                                          "--players",
+                                          "--run-for",
+                                          "--record",
+                                          "--dump-dir",
+                                          "--spectate",
+                                          "--delay"})
     {
         CAPTURE(option);
 

@@ -44,6 +44,7 @@ TEST_CASE("a runner told nothing plays two players for six hundred frames on a f
     REQUIRE_FALSE(options->faultyClient.has_value());
     REQUIRE(options->lateJoinFrame == 0U);
     REQUIRE_FALSE(options->drop.has_value());
+    REQUIRE(options->spectators == 0U);
     REQUIRE_FALSE(options->isHelpAsked);
 }
 
@@ -74,7 +75,9 @@ TEST_CASE("every option of the runner is read")
                                  "--late-join-at",
                                  "300",
                                  "--disconnect",
-                                 "1,300,5"});
+                                 "1,300,5",
+                                 "--spectators",
+                                 "2"});
 
     REQUIRE(options.has_value());
     REQUIRE(options->players == 4U);
@@ -93,6 +96,7 @@ TEST_CASE("every option of the runner is read")
     REQUIRE(options->drop->client == 1U);
     REQUIRE(options->drop->frame == 300U);
     REQUIRE(options->drop->seconds == 5U);
+    REQUIRE(options->spectators == 2U);
 }
 
 TEST_CASE("a runner asked for help says so and lists its options")

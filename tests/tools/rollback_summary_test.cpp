@@ -1,5 +1,6 @@
 #include <unison/runner/rollback_summary.hpp>
 
+#include <unison/net/protocol.hpp>
 #include <unison/runner/client_outcome.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -103,4 +104,15 @@ TEST_CASE("the rollback summary closes with a row for every client together")
     const std::string summary = unison::runner::rollbackSummaryOf(clients, kTickRate);
 
     REQUIRE(rowStartingWith(summary, "all") == std::vector<std::string>{"all", "36", "1.80", "1.83", "6", "9"});
+}
+
+TEST_CASE("the rollback summary names a spectator's row after it, below the players' slots")
+{
+    const std::array clients{clientInSlot(unison::net::kNoSlot, 0, 0, 0, 4), clientInSlot(0, 24, 36, 3, 0)};
+
+    const std::string summary = unison::runner::rollbackSummaryOf(clients, kTickRate);
+
+    REQUIRE(firstWordsOf(summary) == std::vector<std::string>{"unison_runner:", "slot", "0", "spectator", "all"});
+    REQUIRE(rowStartingWith(summary, "spectator") ==
+            std::vector<std::string>{"spectator", "0", "0.00", "0.00", "0", "4"});
 }

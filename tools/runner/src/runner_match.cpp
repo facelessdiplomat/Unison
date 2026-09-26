@@ -64,8 +64,15 @@ std::vector<std::unique_ptr<RunnerClient>> clientsFor(net::LoopbackHub& hub,
     for (std::uint32_t player = 0; player < config.slotCount; ++player)
     {
         const ClientSetup setup{
-            player == 0 ? recorder : nullptr, options.dumpDirectory, options.faultyClient == player, 0};
+            player == 0 ? recorder : nullptr, options.dumpDirectory, options.faultyClient == player, 0, false};
         clients.push_back(std::make_unique<RunnerClient>(hub, network, relay, config, clock, player, setup));
+    }
+
+    for (std::uint32_t spectator = 0; spectator < options.spectators; ++spectator)
+    {
+        const ClientSetup setup{nullptr, options.dumpDirectory, false, 0, true};
+        clients.push_back(
+            std::make_unique<RunnerClient>(hub, network, relay, config, clock, config.slotCount + spectator, setup));
     }
 
     return clients;
@@ -88,9 +95,9 @@ std::uint32_t lastFrameChecked(const RunnerOptions& options)
     return options.frames / options.checksumInterval * options.checksumInterval;
 }
 
-std::size_t clientsJoiningAtStart(const RunnerOptions& options)
+std::optional<std::size_t> lateClientOf(const RunnerOptions& options)
 {
-    return options.lateJoinFrame > 0 ? options.players - 1U : options.players;
+    return options.lateJoinFrame > 0 ? std::optional<std::size_t>{options.players - 1U} : std::nullopt;
 }
 
 }
@@ -106,9 +113,12 @@ RunnerMatch::RunnerMatch(const RunnerOptions& options)
 
 RunOutcome RunnerMatch::play()
 {
-    for (std::size_t client = 0; client < clientsJoiningAtStart(options); ++client)
+    for (std::size_t client = 0; client < clients.size(); ++client)
     {
-        clients[client]->join();
+        if (client != lateClientOf(options))
+        {
+            clients[client]->join();
+        }
     }
 
     const std::uint64_t hostFrame = kMicrosecondsPerSecond / options.tickRate;
@@ -169,14 +179,15 @@ void RunnerMatch::letTimePass(std::uint64_t microseconds)
 
 void RunnerMatch::joinLateClientWhenDue()
 {
-    RunnerClient& lateClient = *clients.back();
+    const std::optional<std::size_t> lateClient = lateClientOf(options);
     const session::Session* first = clients.front()->session().session();
-    const bool isDue = options.lateJoinFrame > 0 && lateClient.session().state() == session::ConnectionState::Idle &&
-                       first != nullptr && first->verifiedFrame() >= options.lateJoinFrame;
+    const bool isDue = lateClient.has_value() &&
+                       clients[*lateClient]->session().state() == session::ConnectionState::Idle && first != nullptr &&
+                       first->verifiedFrame() >= options.lateJoinFrame;
 
     if (isDue)
     {
-        lateClient.join();
+        clients[*lateClient]->join();
     }
 }
 
