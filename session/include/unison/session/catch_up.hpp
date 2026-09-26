@@ -28,9 +28,18 @@ public:
     /// The extra ticks a host frame adds while the client is behind; nothing once it has caught up.
     [[nodiscard]] std::optional<std::int32_t> extraTicks(std::uint32_t predictedFrame) const;
 
+    /// The newest frame heard confirmed, nought before any.
+    [[nodiscard]] std::uint32_t newestHeard() const;
+
 private:
     std::uint32_t newestConfirmed = 0;
     bool isCatchingUp = false;
 };
+
+/// The ticks a spectator adds to or takes from a host frame to play, as soon as it may, every frame `delayFrames`
+/// behind the newest the relay has confirmed: one fewer when it may play none, and one more for every frame after the
+/// first it may play, up to `kCatchUpExtraTicks`.
+[[nodiscard]] std::int32_t
+spectatorTickCorrection(std::uint32_t newestConfirmed, std::uint32_t delayFrames, std::uint32_t predictedFrame);
 
 }

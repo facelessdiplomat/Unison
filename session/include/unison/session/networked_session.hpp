@@ -53,6 +53,10 @@ public:
     /// for the slot that welcome gave back after a drop.
     void join(std::uint64_t reconnectToken = 0);
 
+    /// Asks the relay to let this client watch the config it was made with: it plays only the frames the relay has
+    /// confirmed, `delayFrames` behind the newest, holds no slot and sends no input.
+    void spectate(std::uint32_t delayFrames = 0);
+
     /// Replaces the input the local player plays from the next tick on, even before the relay's welcome. More
     /// bytes than a slot holds break a contract.
     void setLocalInput(std::span<const std::byte> input);
@@ -123,6 +127,8 @@ private:
 
     void startFrom(const tl::expected<sim::FrameSnapshot, Error>& snapshot);
 
+    void startSession();
+
     template <typename T>
     void handle(const T&)
     {
@@ -143,6 +149,7 @@ private:
     VerifiedFrameFanOut verifiedFrames;
     TimeSync pace;
     ConnectionStates connection;
+    std::optional<Spectating> spectating;
     std::optional<net::Welcome> welcomed;
     std::optional<Session> played;
     std::optional<AwaitedSnapshot> awaitedSnapshot;

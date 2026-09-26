@@ -27,7 +27,7 @@ Session::Session(sim::Frame& frame,
                  std::uint32_t inputDelayFrames,
                  IVerifiedFrameReceiver* verifiedFrames)
     : liveFrame{frame}, systemPipeline{pipeline}, config{config}, inputDelay{inputDelayFrames},
-      verifiedFrameReceiver{verifiedFrames},
+      predictionWindow{config.maxPrediction}, verifiedFrameReceiver{verifiedFrames},
       inputTimeline{config.slotCount, localSlot, predictionWindowFor(config) + inputDelayFrames + kConfirmationsAhead},
       snapshotRing{predictionWindowFor(config)}, eventHistory{predictionWindowFor(config)}, verified{frame.frameNumber},
       predicted{frame.frameNumber}
@@ -42,6 +42,17 @@ Session::Session(sim::Frame& frame,
     {
         inputTimeline.sampleLocal(verified + ahead);
     }
+}
+
+Session::Session(sim::Frame& frame,
+                 const sim::SystemPipeline& pipeline,
+                 const net::SessionConfig& config,
+                 Spectating spectating,
+                 IVerifiedFrameReceiver* verifiedFrames)
+    : Session{frame, pipeline, config, 0, 0, verifiedFrames}
+{
+    predictionWindow = 0;
+    spectatorDelay = spectating.delayFrames;
 }
 
 void Session::setLocalInput(std::span<const std::byte> input)
@@ -206,8 +217,10 @@ void Session::advanceVerified()
 
 bool Session::mayPlay(std::uint32_t frameNumber) const
 {
-    const bool staysInsideWindow = frameNumber - verified <= config.maxPrediction;
-    const bool isVerifiedAtOnce = verified == predicted && inputTimeline.isConfirmed(frameNumber);
+    const std::uint32_t newestNeeded = frameNumber + spectatorDelay;
+    const bool staysInsideWindow = frameNumber - verified <= predictionWindow;
+    const bool isVerifiedAtOnce = verified == predicted && inputTimeline.isConfirmed(frameNumber) &&
+                                  inputTimeline.holds(newestNeeded) && inputTimeline.isConfirmed(newestNeeded);
 
     return staysInsideWindow || isVerifiedAtOnce;
 }

@@ -48,3 +48,24 @@ TEST_CASE("a client catches up with the newest frame it heard confirmed, not wit
     REQUIRE(catchUp.isBehind());
     REQUIRE(catchUp.extraTicks(35) == 5);
 }
+
+TEST_CASE("a spectator that may play no frame yet drops the tick of its host frame")
+{
+    REQUIRE(unison::session::spectatorTickCorrection(10, 2, 8) == -1);
+}
+
+TEST_CASE("a spectator that may play one frame plays its host frame's one tick")
+{
+    REQUIRE(unison::session::spectatorTickCorrection(10, 2, 7) == 0);
+}
+
+TEST_CASE("a spectator that may play many frames adds a tick for every one after the first, seven at most")
+{
+    REQUIRE(unison::session::spectatorTickCorrection(10, 2, 4) == 3);
+    REQUIRE(unison::session::spectatorTickCorrection(40, 0, 0) == unison::session::kCatchUpExtraTicks);
+}
+
+TEST_CASE("a spectator further ahead than its delay allows drops the tick of its host frame")
+{
+    REQUIRE(unison::session::spectatorTickCorrection(1, 3, 0) == -1);
+}

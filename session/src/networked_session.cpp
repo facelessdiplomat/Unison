@@ -50,6 +50,13 @@ void NetworkedSession::join(std::uint64_t reconnectToken)
     connection.moveTo(ConnectionState::Connecting);
 }
 
+void NetworkedSession::spectate(std::uint32_t delayFrames)
+{
+    spectating = Spectating{delayFrames};
+    outbox.send(relay, net::Channel::Reliable, net::Hello{net::kProtocolVersion, config, net::Role::Spectator, 0});
+    connection.moveTo(ConnectionState::Connecting);
+}
+
 void NetworkedSession::setLocalInput(std::span<const std::byte> input)
 {
     UNISON_VERIFY(input.size() <= localInput.size());
@@ -96,6 +103,11 @@ void NetworkedSession::tick()
 
 std::int32_t NetworkedSession::takeTickCorrection()
 {
+    if (played.has_value() && spectating.has_value())
+    {
+        return spectatorTickCorrection(catchUp.newestHeard(), spectating->delayFrames, played->predictedFrame());
+    }
+
     const std::optional<std::int32_t> extraTicks =
         played.has_value() ? catchUp.extraTicks(played->predictedFrame()) : std::nullopt;
 
@@ -193,7 +205,10 @@ void NetworkedSession::handle(const net::Welcome& welcome)
     const bool isWaitingToBeLetIn =
         connection.current() == ConnectionState::Connecting || connection.current() == ConnectionState::Joining;
 
-    if (!isWaitingToBeLetIn || welcome.slot >= config.slotCount)
+    const bool isSeatOfItsRole =
+        spectating.has_value() ? welcome.slot == net::kNoSlot : welcome.slot < config.slotCount;
+
+    if (!isWaitingToBeLetIn || !isSeatOfItsRole)
     {
         return;
     }
@@ -208,7 +223,7 @@ void NetworkedSession::handle(const net::Welcome& welcome)
         return;
     }
 
-    played.emplace(frame, pipeline, config, welcome.slot, inputDelay, &verifiedFrames);
+    startSession();
     connection.moveTo(ConnectionState::Playing);
 }
 
@@ -240,9 +255,21 @@ void NetworkedSession::startFrom(const tl::expected<sim::FrameSnapshot, Error>& 
     }
 
     sim::restoreSnapshot(*snapshot, frame);
-    played.emplace(frame, pipeline, config, welcomed->slot, inputDelay, &verifiedFrames);
+    startSession();
     catchUp.start();
     connection.moveTo(ConnectionState::Playing);
+}
+
+void NetworkedSession::startSession()
+{
+    if (spectating.has_value())
+    {
+        played.emplace(frame, pipeline, config, *spectating, &verifiedFrames);
+
+        return;
+    }
+
+    played.emplace(frame, pipeline, config, welcomed->slot, inputDelay, &verifiedFrames);
 }
 
 void NetworkedSession::handle(const net::Confirmed& confirmed)
@@ -303,6 +330,11 @@ void NetworkedSession::handle(const net::SnapshotRequest& request)
 
 void NetworkedSession::sendInputs()
 {
+    if (welcomed->slot == net::kNoSlot)
+    {
+        return;
+    }
+
     const std::optional<net::Input> newest =
         newestInputsOf(*played, welcomed->slot, inputDelay, config.inputSize, inputBatch);
 

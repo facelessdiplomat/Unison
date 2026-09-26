@@ -683,7 +683,13 @@ than a tick, the table is worth redoing with its numbers.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay. A
   spectator's `Hello` takes no slot and gets no reconnect token; into a running match it is caught up as a late
   joiner is, from a donor's snapshot and a welcome at its frame with `kNoSlot`, and it is never a donor itself. It
-  hears every confirmation, and the relay ignores its inputs and its checksums.
+  hears every confirmation, and the relay ignores its inputs and its checksums. A client spectates with
+  `NetworkedSession::spectate(delayFrames)`: its `Session`, built with `Spectating`, has no local player and plays a
+  frame only once the relay has confirmed it and the `delayFrames` after it, so its predicted frame is always its
+  verified one and it never rolls back. It sends no input, whatever input delay its host gave, and a welcome into a
+  slot is no welcome for it. Its host frames follow `spectatorTickCorrection`: one tick fewer when it may play no
+  frame, one more for every frame after the first it may play, up to `kCatchUpExtraTicks`, which also catches up a
+  spectator that came into a running match from a snapshot.
 
 A serialised snapshot is little-endian throughout. It opens with the magic `UNSS`, the format's version and a
 hash of the component layout, every registered component's name and size in registration order, so a build

@@ -25,6 +25,13 @@ namespace unison::session
 /// relay sends each frame reliably only once, and plays through them to catch up.
 inline constexpr std::uint32_t kConfirmationsAhead = 128;
 
+/// How far a spectator's session stays behind the newest frame the relay has confirmed: it plays a frame only once the
+/// relay has confirmed it and the `delayFrames` frames after it.
+struct Spectating
+{
+    std::uint32_t delayFrames = 0;
+};
+
 /// One client's side of a match, played ahead of the relay: every tick simulates the next frame on the
 /// local player's input and a guess for everyone else and keeps a snapshot of it to roll back to. The
 /// frame and the pipeline belong to the game, which keeps them alive for as long as the session runs.
@@ -39,6 +46,15 @@ public:
             const net::SessionConfig& config,
             std::size_t localSlot,
             std::uint32_t inputDelayFrames = 0,
+            IVerifiedFrameReceiver* verifiedFrames = nullptr);
+
+    /// A spectator's session, which has no local player: it plays no frame ahead of the relay, so its predicted frame
+    /// is always its verified one. A receiver, when given, hears of every frame the session verifies and must outlive
+    /// it.
+    Session(sim::Frame& frame,
+            const sim::SystemPipeline& pipeline,
+            const net::SessionConfig& config,
+            Spectating spectating,
             IVerifiedFrameReceiver* verifiedFrames = nullptr);
 
     Session(const Session&) = delete;
@@ -96,6 +112,8 @@ private:
     const sim::SystemPipeline& systemPipeline;
     net::SessionConfig config;
     std::uint32_t inputDelay;
+    std::uint32_t predictionWindow;
+    std::uint32_t spectatorDelay = 0;
     IVerifiedFrameReceiver* verifiedFrameReceiver;
     InputTimeline inputTimeline;
     SnapshotRing snapshotRing;

@@ -156,6 +156,7 @@ add_executable(
     session/session_rollback_test.cpp
     session/session_test.cpp
     session/snapshot_chunks_test.cpp
+    session/spectator_session_test.cpp
     session/snapshot_ring_test.cpp
     session/snapshot_serializer_test.cpp
     session/state_diff_test.cpp
@@ -263,6 +264,7 @@ add_executable(
     arena/networked_match_test.cpp
     arena/outage_test.cpp
     arena/reconnect_test.cpp
+    arena/spectator_test.cpp
     arena/respawn_test.cpp
     arena/rollback_test.cpp
     arena/session_config_golden_test.cpp

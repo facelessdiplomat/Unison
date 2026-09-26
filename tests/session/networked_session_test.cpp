@@ -78,7 +78,7 @@ public:
 
 struct Rig
 {
-    Rig()
+    explicit Rig(std::uint32_t inputDelay = 0) : inputDelayFrames{inputDelay}
     {
         unison::test::addScoredEntity(frame);
         pipeline.add(mixer);
@@ -147,7 +147,8 @@ struct Rig
     unison::sim::Frame frame;
     unison::test::InputMixer mixer;
     unison::sim::SystemPipeline pipeline;
-    unison::session::NetworkedSession client{frame, pipeline, config, clientEnd, relayEnd.id()};
+    std::uint32_t inputDelayFrames = 0;
+    unison::session::NetworkedSession client{frame, pipeline, config, clientEnd, relayEnd.id(), inputDelayFrames};
     Mailbox atRelay;
     std::uint64_t now = 0;
 };
@@ -759,4 +760,84 @@ TEST_CASE("a client joining with a reconnect token asks for its slot back with i
     const std::vector<unison::net::Hello> hellos = rig.relayMail().all<unison::net::Hello>();
     REQUIRE(hellos.size() == 1U);
     REQUIRE(hellos.front().reconnectToken == 77U);
+}
+
+TEST_CASE("a client that spectates asks the relay to let it watch")
+{
+    Rig rig;
+
+    rig.client.spectate();
+
+    const std::vector<unison::net::Hello> hellos = rig.relayMail().all<unison::net::Hello>();
+    REQUIRE(hellos.size() == 1U);
+    REQUIRE(hellos.front().role == unison::net::Role::Spectator);
+}
+
+TEST_CASE("a spectator let in without a slot plays only the frames the relay confirmed")
+{
+    Rig rig;
+    rig.client.spectate();
+    rig.welcome(unison::net::kNoSlot);
+    for (std::uint32_t frame = 1; frame <= 3; ++frame)
+    {
+        rig.confirm(frame, unison::test::scriptedSessionInputs(frame));
+    }
+
+    for (int tick = 0; tick < 5; ++tick)
+    {
+        rig.playWithMove(1);
+
+        REQUIRE(rig.client.session()->predictedFrame() == rig.client.session()->verifiedFrame());
+    }
+
+    REQUIRE(rig.client.localSlot() == unison::net::kNoSlot);
+    REQUIRE(rig.client.session()->verifiedFrame() == 3U);
+}
+
+TEST_CASE("a spectator sends no input, whatever input delay its host gave it")
+{
+    Rig rig{3};
+    rig.client.spectate();
+    rig.welcome(unison::net::kNoSlot);
+    rig.confirm(1, unison::test::scriptedSessionInputs(1));
+
+    rig.playWithMove(1);
+    rig.playWithMove(1);
+
+    REQUIRE(rig.relayMail().all<unison::net::Input>().empty());
+}
+
+TEST_CASE("a spectator is not let into a slot")
+{
+    Rig rig;
+    rig.client.spectate();
+    rig.welcome(kLocalSlot);
+
+    rig.playWithMove(0);
+
+    REQUIRE(rig.client.session() == nullptr);
+    REQUIRE(rig.client.state() == ConnectionState::Connecting);
+}
+
+TEST_CASE("a spectator's host frames play every frame its delay behind the newest confirmed one allows")
+{
+    Rig rig;
+    rig.client.spectate(2);
+    rig.welcome(unison::net::kNoSlot);
+    for (std::uint32_t frame = 1; frame <= 10; ++frame)
+    {
+        rig.confirm(frame, unison::test::scriptedSessionInputs(frame));
+    }
+    rig.client.update(rig.now);
+
+    const std::int32_t farBehind = rig.client.takeTickCorrection();
+    for (int tick = 0; tick < 8; ++tick)
+    {
+        rig.client.tick();
+    }
+    const std::int32_t caughtUp = rig.client.takeTickCorrection();
+
+    REQUIRE(farBehind == unison::session::kCatchUpExtraTicks);
+    REQUIRE(rig.client.session()->verifiedFrame() == 8U);
+    REQUIRE(caughtUp == -1);
 }
