@@ -13,8 +13,9 @@ namespace unison::console
 
 /// What one console plays: the relay it joins at an address and port, the address it sends from, any the
 /// system picks when empty, the name it shows, how many players the match has, which every console of the
-/// match must agree on, for how many seconds it runs, nought for until it is stopped, and the file it records
-/// the match into, none when empty. A console asked for help lists the options instead.
+/// match must agree on, for how many seconds it runs, nought for until it is stopped, the file it records the match
+/// into, none when empty, and the folder it dumps the snapshot of a desync into, none when empty. A console asked for
+/// help lists the options instead.
 struct ConsoleOptions
 {
     std::string host = "127.0.0.1";
@@ -24,6 +25,7 @@ struct ConsoleOptions
     std::uint32_t players = 2;
     std::uint32_t runForSeconds = 0;
     std::string recordPath;
+    std::string dumpDirectory = ".";
     bool isHelpAsked = false;
 };
 

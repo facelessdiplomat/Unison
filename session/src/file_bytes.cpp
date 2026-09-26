@@ -1,4 +1,4 @@
-#include <unison/session/replay_file.hpp>
+#include <unison/session/file_bytes.hpp>
 
 #include <fstream>
 #include <ios>
@@ -17,13 +17,13 @@ tl::unexpected<Error> unavailable(std::string_view reason)
 
 }
 
-tl::expected<void, Error> writeReplayFile(const std::filesystem::path& path, std::span<const std::byte> bytes)
+tl::expected<void, Error> writeFileBytes(const std::filesystem::path& path, std::span<const std::byte> bytes)
 {
     std::ofstream file{path, std::ios::binary | std::ios::trunc};
 
     if (!file.is_open())
     {
-        return unavailable("the replay file cannot be opened for writing");
+        return unavailable("the file cannot be opened for writing");
     }
 
     file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
@@ -31,26 +31,26 @@ tl::expected<void, Error> writeReplayFile(const std::filesystem::path& path, std
 
     if (file.fail())
     {
-        return unavailable("the replay file could not be written whole");
+        return unavailable("the file could not be written whole");
     }
 
     return {};
 }
 
-tl::expected<std::vector<std::byte>, Error> readReplayFile(const std::filesystem::path& path)
+tl::expected<std::vector<std::byte>, Error> readFileBytes(const std::filesystem::path& path)
 {
     std::ifstream file{path, std::ios::binary | std::ios::ate};
 
     if (!file.is_open())
     {
-        return unavailable("the replay file cannot be opened for reading");
+        return unavailable("the file cannot be opened for reading");
     }
 
     const std::streamoff size = file.tellg();
 
     if (size < 0)
     {
-        return unavailable("the replay file's size cannot be read");
+        return unavailable("the file's size cannot be read");
     }
 
     std::vector<std::byte> bytes(static_cast<std::size_t>(size));
@@ -59,7 +59,7 @@ tl::expected<std::vector<std::byte>, Error> readReplayFile(const std::filesystem
 
     if (file.fail())
     {
-        return unavailable("the replay file could not be read whole");
+        return unavailable("the file could not be read whole");
     }
 
     return bytes;

@@ -195,7 +195,8 @@ void Session::advanceVerified()
 
         if (verifiedFrameReceiver != nullptr)
         {
-            verifiedFrameReceiver->frameVerified(verified, inputTimeline.inputsAt(verified), checksum);
+            verifiedFrameReceiver->frameVerified(
+                VerifiedFrame{verified, inputTimeline.inputsAt(verified), checksum, snapshotRing.snapshotAt(verified)});
         }
     }
 

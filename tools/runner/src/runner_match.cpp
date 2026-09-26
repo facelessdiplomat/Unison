@@ -55,13 +55,16 @@ std::deque<RunnerClient> clientsFor(net::LoopbackHub& hub,
                                     net::PeerId relay,
                                     const net::SessionConfig& config,
                                     const net::IClock& clock,
+                                    const RunnerOptions& options,
                                     session::IVerifiedFrameReceiver* recorder)
 {
     std::deque<RunnerClient> clients;
 
     for (std::uint32_t player = 0; player < config.slotCount; ++player)
     {
-        clients.emplace_back(hub, network, relay, config, clock, player, player == 0 ? recorder : nullptr);
+        const ClientSetup setup{
+            player == 0 ? recorder : nullptr, options.dumpDirectory, options.faultyClient == player};
+        clients.emplace_back(hub, network, relay, config, clock, player, setup);
     }
 
     return clients;
@@ -89,7 +92,8 @@ std::uint32_t lastFrameChecked(const RunnerOptions& options)
 RunnerMatch::RunnerMatch(const RunnerOptions& options)
     : options{options}, config{configFor(options)}, network{conditionsFor(options), options.seed}, relayEnd{hub.join()},
       relayLink{relayEnd, network}, relay{relayLink, clock, config}, recording{recordingFor(options, config)},
-      clients{clientsFor(hub, network, relayEnd.id(), config, clock, recording.has_value() ? &*recording : nullptr)},
+      clients{clientsFor(
+          hub, network, relayEnd.id(), config, clock, options, recording.has_value() ? &*recording : nullptr)},
       ledger{clients.size()}, wiretap{relay, ledger, peersOf(clients)}
 {
 }
@@ -126,6 +130,21 @@ RunOutcome RunnerMatch::play()
 std::span<const std::byte> RunnerMatch::replay() const
 {
     return recording.has_value() ? recording->bytes() : std::span<const std::byte>{};
+}
+
+std::vector<tl::expected<std::filesystem::path, Error>> RunnerMatch::desyncDumps() const
+{
+    std::vector<tl::expected<std::filesystem::path, Error>> dumps;
+
+    for (const RunnerClient& client : clients)
+    {
+        if (client.desyncDump().has_value())
+        {
+            dumps.push_back(*client.desyncDump());
+        }
+    }
+
+    return dumps;
 }
 
 void RunnerMatch::letTimePass(std::uint64_t microseconds)

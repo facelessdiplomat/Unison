@@ -3,10 +3,12 @@
 #include <unison/core/error.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/session/replay_verification.hpp>
+#include <unison/session/state_diff.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace
@@ -87,4 +89,48 @@ TEST_CASE("a replay recorded with other assets or systems is refused")
     REQUIRE(otherAssets.error().code() == unison::ErrorCode::ForeignReplay);
     REQUIRE_FALSE(otherSystems.has_value());
     REQUIRE(otherSystems.error().code() == unison::ErrorCode::ForeignReplay);
+}
+
+TEST_CASE("snapshots that are alike end the diff with 0 and say so")
+{
+    const std::optional<unison::session::StateDifference> alike;
+
+    REQUIRE(unison::replay::diffExitCodeOf(alike) == 0);
+    REQUIRE(unison::replay::diffReportOf(alike) == "unison_replay: the snapshots are alike\n");
+}
+
+TEST_CASE("snapshots that differ end the diff with 2")
+{
+    const std::optional<unison::session::StateDifference> difference{
+        unison::session::StateDifference{"Health", 3, 0, "points"}};
+
+    REQUIRE(unison::replay::diffExitCodeOf(difference) == 2);
+}
+
+TEST_CASE("the diff report names the component, the entity, the byte and the field")
+{
+    const std::optional<unison::session::StateDifference> difference{
+        unison::session::StateDifference{"Health", 3, 0, "points"}};
+
+    REQUIRE(unison::replay::diffReportOf(difference) ==
+            "unison_replay: the snapshots first differ in Health of entity 3 at byte 0, in its field points\n");
+}
+
+TEST_CASE("the diff report names a pool whose entities part ways by the first one's entity")
+{
+    const std::optional<unison::session::StateDifference> difference{
+        unison::session::StateDifference{"Health", 3, std::nullopt, std::nullopt}};
+
+    REQUIRE(
+        unison::replay::diffReportOf(difference) ==
+        "unison_replay: the snapshots first differ in Health, where the first holds entity 3 and the second another\n");
+}
+
+TEST_CASE("the diff report names a part outside the pools and its byte")
+{
+    const std::optional<unison::session::StateDifference> difference{
+        unison::session::StateDifference{"globals", std::nullopt, 5, std::nullopt}};
+
+    REQUIRE(unison::replay::diffReportOf(difference) ==
+            "unison_replay: the snapshots first differ in globals at byte 5\n");
 }

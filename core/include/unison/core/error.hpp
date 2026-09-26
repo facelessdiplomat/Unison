@@ -20,6 +20,7 @@ enum class ErrorCode : std::uint16_t
     FileUnavailable,
     ForeignReplay,
     MalformedSnapshot,
+    FrameNotKept,
 };
 
 /// A recoverable failure returned from a boundary inside tl::expected. It is small and trivially

@@ -31,6 +31,24 @@ TEST_CASE("a replay command line names the command and the replay file")
     REQUIRE_FALSE(play->isHelpAsked);
 }
 
+TEST_CASE("a diff command line names both snapshot files")
+{
+    const auto options = parsed({"diff", "desync_300_0.snapshot", "desync_300_1.snapshot"});
+
+    REQUIRE(options.has_value());
+    REQUIRE(options->command == unison::replay::ReplayCommand::Diff);
+    REQUIRE(options->file == "desync_300_0.snapshot");
+    REQUIRE(options->otherFile == "desync_300_1.snapshot");
+}
+
+TEST_CASE("a diff command line without its second file is refused")
+{
+    const auto options = parsed({"diff", "desync_300_0.snapshot"});
+
+    REQUIRE_FALSE(options.has_value());
+    REQUIRE(options.error().code() == unison::ErrorCode::InvalidOption);
+}
+
 TEST_CASE("a replay command line without a file is refused")
 {
     const auto options = parsed({"verify"});
@@ -55,11 +73,11 @@ TEST_CASE("the replay tool asked for help says so")
     REQUIRE(options->isHelpAsked);
 }
 
-TEST_CASE("the replay tool's help names both commands")
+TEST_CASE("the replay tool's help names every command")
 {
     const std::string help = unison::replay::replayHelp();
 
-    for (const std::string_view command : {"play", "verify"})
+    for (const std::string_view command : {"play", "verify", "diff"})
     {
         CAPTURE(command);
 

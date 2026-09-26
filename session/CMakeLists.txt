@@ -1,12 +1,13 @@
 add_library(
     unison_session STATIC
+    src/desync_dumper.cpp
     src/event_history.cpp
+    src/file_bytes.cpp
     src/input_buffer.cpp
     src/input_timeline.cpp
     src/local_input.cpp
     src/networked_session.cpp
     src/repeat_last_input_predictor.cpp
-    src/replay_file.cpp
     src/replay_player.cpp
     src/replay_reader.cpp
     src/replay_verification.cpp
@@ -17,6 +18,7 @@ add_library(
     src/snapshot_serializer.cpp
     src/state_diff.cpp
     src/time_sync.cpp
+    src/verified_frame_fan_out.cpp
 )
 
 target_include_directories(unison_session PUBLIC include)

@@ -634,7 +634,10 @@ than a tick, the table is worth redoing with its numbers.
   A frame is judged once every player has reported it; the majority is a checksum more than half of them
   report, and without one every player is in the minority, since nobody can tell who is right. Only players
   report, and at most 64 frames wait for their reports, the oldest giving way.
-  Clients dump the offending snapshot to disk; `unison_replay diff` shows the first differing component.
+  A client keeps the serialised snapshots of the frames it checksummed in the last 128 frames, longer than the relay
+  keeps a frame waiting, and, told of a desync, writes the one of that frame into `desync_<frame>_<slot>.snapshot`
+  in its dump folder: `--dump-dir`, the working folder unless told otherwise, none when empty. `unison_replay diff a
+  b` names the part, the entity, the byte and the field two dumps first differ in.
 
 ### 8.6 Late-join, reconnect, spectators
 
@@ -688,10 +691,11 @@ player's to check, not the reader's.
 
 A client records a replay as its session verifies frames. The session tells the `IVerifiedFrameReceiver` it
 was given of every frame it verifies, in order and before the frame leaves its window: the frame's number, the
-inputs the relay settled for it and, when the config's interval falls on it, its checksum. `ReplayWriter` is
-such a receiver. `--record <file>` records the runner's first client or the console's own session and writes
-the file once the match ends; `writeReplayFile` and `readReplayFile` move a replay between memory and a file
-whole.
+inputs the relay settled for it, its checksum when the config's interval falls on it, and its snapshot.
+`VerifiedFrameFanOut` hands one frame to several receivers. `ReplayWriter` is such a receiver, and so is
+`DesyncDumper`. `--record <file>` records the runner's first client or the console's own session and writes
+the file once the match ends; `writeFileBytes` and `readFileBytes` move a replay or a dump between memory and
+a file whole.
 
 A checksum follows the frame it was taken of. `verifyReplay` plays every frame through a `ReplayPlayer` and
 compares every checksum the replay recorded with the one the player took of the same frame, counting how many
@@ -842,6 +846,8 @@ the session's event changes are.
 
 - `unison_runner`: CI workhorse; arguments for players, frames, seed, network simulator parameters, checksum
   interval, replay recording; non-zero exit code on desync or window overflow; prints rollback statistics. Its
+  clients dump the snapshot of a desync into `--dump-dir`, the working folder unless told otherwise, and `--fault
+  <client>` starts that client with the first player one health point low, to show a desync and its dumps. Its
   config carries the arena's asset and pipeline hashes, as the console's does, so a replay it records names what it
   was played with. It plays the arena with every client and the relay in one process, each client's link crossing
   one seeded simulated network and each player scripted from the seed, one host frame at a time; a run that has not
@@ -870,7 +876,8 @@ the session's event changes are.
   It runs on the real clock until Ctrl+C, `--run-for` seconds, a disconnect, which ends it with exit code 1,
   or a desync the relay reports, which ends it with exit code 2 whatever else happened and puts the frame and
   the slots out of step at the end of the status line. With `--record` it writes the replay of the frames it
-  verified into a file when it ends, and a replay it could not write turns an exit code of 0 into 1.
+  verified into a file when it ends, and a replay it could not write turns an exit code of 0 into 1. Told of a desync, it
+  dumps the snapshot of that frame into `--dump-dir`, the working folder unless told otherwise.
   `--spectate` comes with spectators (4.5.3). The keyboard is read without
   blocking from Windows' console input, which reports keys going down and up while the window has focus, and
   a lost focus lets every key go: W and S move forward and back, A and D to the sides, Space jumps, F fires,
@@ -893,7 +900,8 @@ the session's event changes are.
   last; `verify <file>` also compares every checksum the replay recorded and prints how many of them match and the
   first frame that differs. The exit code is 0 for a replay played through with every checksum matching, 2 for a
   checksum that differs, and 1 for a command line it could not read, a file it could not read, a malformed replay or
-  one of other assets or systems; `diff` comes with 4.2.4.
+  one of other assets or systems. `diff <a> <b>` compares two serialised snapshots, desync dumps above all, and
+  prints that they are alike, exit code 0, or the part, entity, byte and field they first differ in, exit code 2.
 
 ### 10.3 Unreal Engine plugin (Phase 5)
 

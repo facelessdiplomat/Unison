@@ -145,8 +145,9 @@ TEST_CASE("a replay written as a session verifies frames holds each frame and th
     const unison::session::VerifiedChecksum checksum{2, 0x0123456789ABCDEFULL};
     unison::session::ReplayWriter writer{replayConfig()};
     unison::session::IVerifiedFrameReceiver& receiver = writer;
-    receiver.frameVerified(1, inputsOf(1, 2), std::nullopt);
-    receiver.frameVerified(2, inputsOf(3, 4), checksum.checksum);
+    const unison::sim::FrameSnapshot snapshot;
+    receiver.frameVerified(unison::session::VerifiedFrame{1, inputsOf(1, 2), std::nullopt, snapshot});
+    receiver.frameVerified(unison::session::VerifiedFrame{2, inputsOf(3, 4), checksum.checksum, snapshot});
 
     tl::expected<unison::session::ReplayReader, unison::Error> reader =
         unison::session::ReplayReader::open(writer.bytes());

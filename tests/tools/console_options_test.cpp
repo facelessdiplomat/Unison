@@ -30,6 +30,7 @@ TEST_CASE("a console told nothing joins a relay on this machine at port 7777 and
     REQUIRE(options->players == 2U);
     REQUIRE(options->runForSeconds == 0U);
     REQUIRE(options->recordPath.empty());
+    REQUIRE(options->dumpDirectory == ".");
     REQUIRE_FALSE(options->isHelpAsked);
 }
 
@@ -48,7 +49,9 @@ TEST_CASE("a console takes every option it lists")
                                  "--run-for",
                                  "5",
                                  "--record",
-                                 "match.replay"});
+                                 "match.replay",
+                                 "--dump-dir",
+                                 "dumps"});
 
     REQUIRE(options.has_value());
     REQUIRE(options->host == "192.168.1.20");
@@ -58,6 +61,7 @@ TEST_CASE("a console takes every option it lists")
     REQUIRE(options->players == 4U);
     REQUIRE(options->runForSeconds == 5U);
     REQUIRE(options->recordPath == "match.replay");
+    REQUIRE(options->dumpDirectory == "dumps");
 }
 
 TEST_CASE("a console asked for help says so")
@@ -86,7 +90,8 @@ TEST_CASE("the console's help lists every option")
 {
     const std::string help = unison::console::consoleHelp();
 
-    for (const std::string_view option : {"--host", "--port", "--from", "--name", "--players", "--run-for", "--record"})
+    for (const std::string_view option :
+         {"--host", "--port", "--from", "--name", "--players", "--run-for", "--record", "--dump-dir"})
     {
         CAPTURE(option);
 

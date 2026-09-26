@@ -40,3 +40,17 @@ add_test(
 )
 
 set_tests_properties(replay_plays_a_runner_replay PROPERTIES FIXTURES_REQUIRED runnerReplay LABELS fast)
+
+add_test(
+    NAME replay_diffs_the_dumps_of_a_desync
+    COMMAND
+        unison_replay diff "${CMAKE_BINARY_DIR}/tools/runner/desync_dumps/desync_1_0.snapshot"
+        "${CMAKE_BINARY_DIR}/tools/runner/desync_dumps/desync_1_1.snapshot"
+)
+
+set_tests_properties(
+    replay_diffs_the_dumps_of_a_desync
+    PROPERTIES FIXTURES_REQUIRED desyncDumps
+               PASS_REGULAR_EXPRESSION "in Health of entity [0-9]+ at byte 0, in its field points"
+               LABELS fast
+)

@@ -139,7 +139,13 @@ from the repository's folder.
   `unison_console: <name> playing in slot <n>, verified <v>, ...` with nothing about a desync at its end, and
   `<v>` is at least 36000, ten minutes at 60 Hz.
 - **Desync**: the console prints `2`, and its last line ends with `desync on frame <f> by slot <s>`. Record
-  the frame, the slots and both windows' last lines; the run fails.
+  the frame, the slots and both windows' last lines; the run fails. Each console has written the snapshot of that
+  frame into `desync_<f>_<slot>.snapshot` in the folder it was started from; bring both files to one machine and
+  `unison_replay diff` names the component, the entity and the field they first differ in:
+
+  ```sh
+  build/clang-release/tools/replay/unison_replay diff desync_<f>_0.snapshot desync_<f>_1.snapshot
+  ```
 - **Lost the relay**: the console prints `1` and its last line reads `<name> disconnected`. The network or the
   firewall stood between the machines; fix that and run again. It is no verdict on determinism. On a Mac with a
   VPN on, `route -n get` with the other machine's address names the device that carries the traffic; it should

@@ -130,13 +130,14 @@ add_executable(
     net/relay_core_test.cpp
     net/roster_test.cpp
     net/session_config_test.cpp
+    session/desync_dumper_test.cpp
     session/event_history_test.cpp
+    session/file_bytes_test.cpp
     session/input_buffer_test.cpp
     session/input_timeline_test.cpp
     session/local_input_test.cpp
     session/networked_session_test.cpp
     session/repeat_last_input_predictor_test.cpp
-    session/replay_file_test.cpp
     session/replay_player_test.cpp
     session/replay_test.cpp
     session/replay_verification_test.cpp
@@ -151,6 +152,7 @@ add_executable(
     session/snapshot_serializer_test.cpp
     session/state_diff_test.cpp
     session/time_sync_test.cpp
+    session/verified_frame_fan_out_test.cpp
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp
     sim/asset_registry_test.cpp
@@ -263,6 +265,7 @@ add_executable(
     arena/text_map_test.cpp
     arena/weapons_test.cpp
     support/allocation_probe.cpp
+    tools/runner_desync_test.cpp
     tools/runner_match_test.cpp
     tools/runner_replay_test.cpp
     tools/scripted_player_test.cpp

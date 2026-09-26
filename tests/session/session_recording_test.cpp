@@ -31,11 +31,9 @@ struct HeardFrame
 class FrameListener final : public unison::session::IVerifiedFrameReceiver
 {
 public:
-    void frameVerified(std::uint32_t frameNumber,
-                       const unison::sim::FrameInputs& inputs,
-                       std::optional<std::uint64_t> checksum) override
+    void frameVerified(const unison::session::VerifiedFrame& frame) override
     {
-        heardFrames.push_back(HeardFrame{frameNumber, inputs, checksum});
+        heardFrames.push_back(HeardFrame{frame.frameNumber, frame.inputs, frame.checksum});
     }
 
     [[nodiscard]] const std::vector<HeardFrame>& heard() const

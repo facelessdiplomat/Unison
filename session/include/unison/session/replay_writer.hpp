@@ -22,9 +22,7 @@ public:
     explicit ReplayWriter(const net::SessionConfig& config);
 
     /// Writes the frame, then its checksum when the session took one.
-    void frameVerified(std::uint32_t frameNumber,
-                       const sim::FrameInputs& inputs,
-                       std::optional<std::uint64_t> checksum) override;
+    void frameVerified(const VerifiedFrame& frame) override;
 
     /// Appends a frame: its number, then every slot's flags and as many bytes of its input as the config says.
     void writeFrame(std::uint32_t frameNumber, const sim::FrameInputs& inputs);

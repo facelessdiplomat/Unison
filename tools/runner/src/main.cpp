@@ -4,10 +4,11 @@
 
 #include <arena/assets.hpp>
 
-#include <unison/session/replay_file.hpp>
+#include <unison/session/file_bytes.hpp>
 
 #include <cstddef>
 #include <cstdio>
+#include <filesystem>
 #include <span>
 #include <string>
 
@@ -22,7 +23,7 @@ namespace
     }
 
     const tl::expected<void, unison::Error> written =
-        unison::session::writeReplayFile(options.recordPath, match.replay());
+        unison::session::writeFileBytes(options.recordPath, match.replay());
 
     if (!written.has_value())
     {
@@ -38,6 +39,24 @@ namespace
     std::printf("unison_runner: recorded the run into %s\n", options.recordPath.c_str());
 
     return true;
+}
+
+void reportDesyncDumps(const unison::runner::RunnerMatch& match)
+{
+    for (const tl::expected<std::filesystem::path, unison::Error>& dump : match.desyncDumps())
+    {
+        if (dump.has_value())
+        {
+            std::fprintf(stderr, "unison_runner: dumped the snapshot of the desync into %s\n", dump->string().c_str());
+        }
+        else
+        {
+            std::fprintf(stderr,
+                         "unison_runner: %.*s\n",
+                         static_cast<int>(dump.error().message().size()),
+                         dump.error().message().data());
+        }
+    }
 }
 
 }
@@ -77,6 +96,7 @@ int main(int argc, char** argv)
     const std::string report = unison::runner::reportOf(outcome, *options);
 
     std::fputs(report.c_str(), exitCode == 0 ? stdout : stderr);
+    reportDesyncDumps(match);
 
     if (!keepRecording(*options, match) && exitCode == 0)
     {

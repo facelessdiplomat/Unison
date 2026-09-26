@@ -3,10 +3,12 @@
 #include <unison/core/error.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/session/replay_verification.hpp>
+#include <unison/session/state_diff.hpp>
 
 #include <tl/expected.hpp>
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace unison::replay
@@ -25,5 +27,11 @@ checkRecordedContent(const net::SessionConfig& recorded, std::uint64_t assetHash
 
 /// What playing prints: how many frames were played and the checksum of the last one.
 [[nodiscard]] std::string playReportOf(const session::ReplayVerdict& verdict, std::uint64_t lastChecksum);
+
+/// The exit code a diff ends with: nought for snapshots alike, two for snapshots that differ.
+[[nodiscard]] int diffExitCodeOf(const std::optional<session::StateDifference>& difference);
+
+/// What a diff prints: that the snapshots are alike, or the part, entity, byte and field they first differ in.
+[[nodiscard]] std::string diffReportOf(const std::optional<session::StateDifference>& difference);
 
 }

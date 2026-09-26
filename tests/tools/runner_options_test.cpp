@@ -40,29 +40,18 @@ TEST_CASE("a runner told nothing plays two players for six hundred frames on a f
     REQUIRE(options->tickRate == 60U);
     REQUIRE(options->checksumInterval == 1U);
     REQUIRE(options->recordPath.empty());
+    REQUIRE(options->dumpDirectory == ".");
+    REQUIRE_FALSE(options->faultyClient.has_value());
     REQUIRE_FALSE(options->isHelpAsked);
 }
 
 TEST_CASE("every option of the runner is read")
 {
-    const auto options = parsed({"--players",
-                                 "4",
-                                 "--frames",
-                                 "36000",
-                                 "--seed",
-                                 "77",
-                                 "--latency",
-                                 "120",
-                                 "--jitter",
-                                 "30",
-                                 "--loss",
-                                 "5",
-                                 "--tick-rate",
-                                 "30",
-                                 "--checksum-interval",
-                                 "20",
-                                 "--record",
-                                 "match.replay"});
+    const auto options = parsed({"--players", "4",         "--frames",     "36000",      "--seed",
+                                 "77",        "--latency", "120",          "--jitter",   "30",
+                                 "--loss",    "5",         "--tick-rate",  "30",         "--checksum-interval",
+                                 "20",        "--record",  "match.replay", "--dump-dir", "dumps",
+                                 "--fault",   "3"});
 
     REQUIRE(options.has_value());
     REQUIRE(options->players == 4U);
@@ -74,6 +63,8 @@ TEST_CASE("every option of the runner is read")
     REQUIRE(options->tickRate == 30U);
     REQUIRE(options->checksumInterval == 20U);
     REQUIRE(options->recordPath == "match.replay");
+    REQUIRE(options->dumpDirectory == "dumps");
+    REQUIRE(options->faultyClient == 3U);
 }
 
 TEST_CASE("a runner asked for help says so and lists its options")
@@ -93,7 +84,8 @@ TEST_CASE("a run the runner cannot play is refused with an error naming the opti
                               Refusal{{"--loss", "101"}, "--loss"},
                               Refusal{{"--loss", "-1"}, "--loss"},
                               Refusal{{"--tick-rate", "0"}, "--tick-rate"},
-                              Refusal{{"--checksum-interval", "0"}, "--checksum-interval"}};
+                              Refusal{{"--checksum-interval", "0"}, "--checksum-interval"},
+                              Refusal{{"--fault", "2"}, "--fault"}};
 
     for (const Refusal& refusal : refusals)
     {

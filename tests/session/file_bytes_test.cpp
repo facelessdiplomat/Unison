@@ -1,4 +1,4 @@
-#include <unison/session/replay_file.hpp>
+#include <unison/session/file_bytes.hpp>
 
 #include <unison/core/error.hpp>
 
@@ -40,38 +40,38 @@ private:
     std::filesystem::path path;
 };
 
-const std::vector<std::byte> kReplayBytes{
+const std::vector<std::byte> kBytes{
     std::byte{0x55}, std::byte{0x4E}, std::byte{0x52}, std::byte{0x50}, std::byte{0x00}, std::byte{0xFF}};
 
 }
 
-TEST_CASE("a replay file reads back as the bytes written into it")
+TEST_CASE("a file reads back as the bytes written into it")
 {
-    const std::filesystem::path path = scratchPath("unison_replay_file_round_trip.replay");
+    const std::filesystem::path path = scratchPath("unison_file_bytes_round_trip.bin");
     const RemovedAfterwards cleanup{path};
-    REQUIRE(unison::session::writeReplayFile(path, kReplayBytes).has_value());
+    REQUIRE(unison::session::writeFileBytes(path, kBytes).has_value());
 
-    const tl::expected<std::vector<std::byte>, unison::Error> read = unison::session::readReplayFile(path);
+    const tl::expected<std::vector<std::byte>, unison::Error> read = unison::session::readFileBytes(path);
 
     REQUIRE(read.has_value());
-    REQUIRE(*read == kReplayBytes);
+    REQUIRE(*read == kBytes);
 }
 
-TEST_CASE("a replay file in a folder that does not exist is not written")
+TEST_CASE("a file in a folder that does not exist is not written")
 {
-    const std::filesystem::path path = scratchPath("unison_replay_file_no_such_folder") / "match.replay";
+    const std::filesystem::path path = scratchPath("unison_file_bytes_no_such_folder") / "match.bin";
 
-    const tl::expected<void, unison::Error> written = unison::session::writeReplayFile(path, kReplayBytes);
+    const tl::expected<void, unison::Error> written = unison::session::writeFileBytes(path, kBytes);
 
     REQUIRE_FALSE(written.has_value());
     REQUIRE(written.error().code() == unison::ErrorCode::FileUnavailable);
 }
 
-TEST_CASE("a replay file that does not exist is not read")
+TEST_CASE("a file that does not exist is not read")
 {
-    const std::filesystem::path path = scratchPath("unison_replay_file_that_was_never_written.replay");
+    const std::filesystem::path path = scratchPath("unison_file_bytes_never_written.bin");
 
-    const tl::expected<std::vector<std::byte>, unison::Error> read = unison::session::readReplayFile(path);
+    const tl::expected<std::vector<std::byte>, unison::Error> read = unison::session::readFileBytes(path);
 
     REQUIRE_FALSE(read.has_value());
     REQUIRE(read.error().code() == unison::ErrorCode::FileUnavailable);

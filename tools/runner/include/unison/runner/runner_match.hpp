@@ -13,11 +13,17 @@
 #include <unison/net/session_config.hpp>
 #include <unison/session/replay_writer.hpp>
 
+#include <unison/core/error.hpp>
+
+#include <tl/expected.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <filesystem>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace unison::runner
 {
@@ -41,6 +47,9 @@ public:
 
     /// The replay recorded so far, no bytes for a run without a file to record into.
     [[nodiscard]] std::span<const std::byte> replay() const;
+
+    /// The file every client that heard of a desync dumped its snapshot into, or why it could not, in client order.
+    [[nodiscard]] std::vector<tl::expected<std::filesystem::path, Error>> desyncDumps() const;
 
 private:
     void letTimePass(std::uint64_t microseconds);

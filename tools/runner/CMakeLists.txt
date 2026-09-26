@@ -64,6 +64,16 @@ add_test(
 
 set_tests_properties(runner_reports_a_replay_it_cannot_write PROPERTIES WILL_FAIL TRUE LABELS fast)
 
+add_test(
+    NAME runner_dumps_the_snapshots_of_a_desync
+    COMMAND unison_runner --frames 60 --fault 1 --dump-dir "${CMAKE_CURRENT_BINARY_DIR}/desync_dumps"
+)
+
+set_tests_properties(
+    runner_dumps_the_snapshots_of_a_desync PROPERTIES FIXTURES_SETUP desyncDumps PASS_REGULAR_EXPRESSION
+                                                      "dumped the snapshot of the desync" LABELS fast
+)
+
 set(UNISON_PROFILE_SECONDS 5)
 
 foreach(players IN ITEMS 2 4 8)

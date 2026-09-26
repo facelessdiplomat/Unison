@@ -44,6 +44,41 @@ std::string verifyReportOf(const session::ReplayVerdict& verdict)
                        firstDivergence);
 }
 
+int diffExitCodeOf(const std::optional<session::StateDifference>& difference)
+{
+    return difference.has_value() ? kChecksumDiffered : kEveryChecksumMatched;
+}
+
+std::string diffReportOf(const std::optional<session::StateDifference>& difference)
+{
+    if (!difference.has_value())
+    {
+        return "unison_replay: the snapshots are alike\n";
+    }
+
+    const std::string field = difference->field.has_value() ? std::format(", in its field {}", *difference->field) : "";
+
+    if (difference->entity.has_value() && difference->byte.has_value())
+    {
+        return std::format("unison_replay: the snapshots first differ in {} of entity {} at byte {}{}\n",
+                           difference->part,
+                           *difference->entity,
+                           *difference->byte,
+                           field);
+    }
+
+    if (difference->entity.has_value())
+    {
+        return std::format(
+            "unison_replay: the snapshots first differ in {}, where the first holds entity {} and the second another\n",
+            difference->part,
+            *difference->entity);
+    }
+
+    return std::format(
+        "unison_replay: the snapshots first differ in {} at byte {}\n", difference->part, difference->byte.value_or(0));
+}
+
 std::string playReportOf(const session::ReplayVerdict& verdict, std::uint64_t lastChecksum)
 {
     return std::format(

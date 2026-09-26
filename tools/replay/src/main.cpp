@@ -3,16 +3,18 @@
 
 #include <arena/arena_simulation.hpp>
 
-#include <unison/session/replay_file.hpp>
+#include <unison/session/file_bytes.hpp>
 #include <unison/session/replay_player.hpp>
 #include <unison/session/replay_reader.hpp>
 #include <unison/session/replay_verification.hpp>
+#include <unison/session/state_diff.hpp>
 #include <unison/sim/asset_hash.hpp>
 #include <unison/sim/frame_checksum.hpp>
 #include <unison/sim/pipeline_hash.hpp>
 
 #include <cstddef>
 #include <cstdio>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -62,6 +64,30 @@ int playBack(const unison::replay::ReplayOptions& options, unison::session::Repl
     return exitCode;
 }
 
+int diff(const unison::replay::ReplayOptions& options)
+{
+    const tl::expected<std::vector<std::byte>, unison::Error> first = unison::session::readFileBytes(options.file);
+    const tl::expected<std::vector<std::byte>, unison::Error> second =
+        unison::session::readFileBytes(options.otherFile);
+
+    if (!first.has_value() || !second.has_value())
+    {
+        return refuse(first.has_value() ? second.error() : first.error());
+    }
+
+    const tl::expected<std::optional<unison::session::StateDifference>, unison::Error> difference =
+        unison::session::firstDifferenceOf(*first, *second);
+
+    if (!difference.has_value())
+    {
+        return refuse(difference.error());
+    }
+
+    std::fputs(unison::replay::diffReportOf(*difference).c_str(), stdout);
+
+    return unison::replay::diffExitCodeOf(*difference);
+}
+
 }
 
 int main(int argc, char** argv)
@@ -81,7 +107,12 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    const tl::expected<std::vector<std::byte>, unison::Error> bytes = unison::session::readReplayFile(options->file);
+    if (options->command == unison::replay::ReplayCommand::Diff)
+    {
+        return diff(*options);
+    }
+
+    const tl::expected<std::vector<std::byte>, unison::Error> bytes = unison::session::readFileBytes(options->file);
 
     if (!bytes.has_value())
     {

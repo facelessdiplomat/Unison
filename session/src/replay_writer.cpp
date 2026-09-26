@@ -70,15 +70,13 @@ void ReplayWriter::writeChecksum(const VerifiedChecksum& checksum)
            });
 }
 
-void ReplayWriter::frameVerified(std::uint32_t frameNumber,
-                                 const sim::FrameInputs& inputs,
-                                 std::optional<std::uint64_t> checksum)
+void ReplayWriter::frameVerified(const VerifiedFrame& frame)
 {
-    writeFrame(frameNumber, inputs);
+    writeFrame(frame.frameNumber, frame.inputs);
 
-    if (checksum.has_value())
+    if (frame.checksum.has_value())
     {
-        writeChecksum(VerifiedChecksum{frameNumber, *checksum});
+        writeChecksum(VerifiedChecksum{frame.frameNumber, *frame.checksum});
     }
 }
 

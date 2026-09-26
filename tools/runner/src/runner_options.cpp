@@ -31,6 +31,10 @@ cxxopts::Options describedOptions()
     add("tick-rate", "ticks per second", cxxopts::value<std::uint16_t>()->default_value("60"));
     add("checksum-interval", "verified frames between checksums", cxxopts::value<std::uint32_t>()->default_value("1"));
     add("record", "file the run is recorded into", cxxopts::value<std::string>()->default_value(""));
+    add("dump-dir", "folder desync dumps go into, none when empty", cxxopts::value<std::string>()->default_value("."));
+    add("fault",
+        "client starting a health point off, none when negative",
+        cxxopts::value<std::int32_t>()->default_value("-1"));
     add("help", "lists these options");
 
     return options;
@@ -58,6 +62,8 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
     read.tickRate = parsed["tick-rate"].as<std::uint16_t>();
     read.checksumInterval = parsed["checksum-interval"].as<std::uint32_t>();
     read.recordPath = parsed["record"].as<std::string>();
+    read.dumpDirectory = parsed["dump-dir"].as<std::string>();
+    const std::int32_t fault = parsed["fault"].as<std::int32_t>();
     read.isHelpAsked = parsed.count("help") > 0;
 
     if (read.players == 0 || read.players > net::kMaxSlots)
@@ -86,6 +92,13 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
     {
         return refused("--checksum-interval takes one frame at least");
     }
+
+    if (fault >= 0 && static_cast<std::uint32_t>(fault) >= read.players)
+    {
+        return refused("--fault takes a client of the match, from 0 to one fewer than --players");
+    }
+
+    read.faultyClient = fault >= 0 ? std::optional{static_cast<std::uint32_t>(fault)} : std::nullopt;
 
     return read;
 }

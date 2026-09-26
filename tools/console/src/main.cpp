@@ -16,9 +16,12 @@
 #include <unison/net/enet_transport.hpp>
 #include <unison/net/millisecond_timer.hpp>
 #include <unison/net/session_config.hpp>
+#include <unison/session/desync_dumper.hpp>
+#include <unison/session/file_bytes.hpp>
 #include <unison/session/networked_session.hpp>
-#include <unison/session/replay_file.hpp>
 #include <unison/session/replay_writer.hpp>
+#include <unison/session/verified_frame_fan_out.hpp>
+#include <unison/session/verified_frame_receiver.hpp>
 #include <unison/sim/asset_hash.hpp>
 #include <unison/sim/pipeline_hash.hpp>
 #include <unison/view/event_dispatcher.hpp>
@@ -29,11 +32,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <format>
 #include <limits>
 #include <optional>
 #include <span>
 #include <thread>
+#include <vector>
 
 namespace
 {
@@ -213,30 +218,119 @@ void playUntilStopped(const unison::console::ConsoleOptions& options,
     }
 }
 
-[[nodiscard]] bool keepRecording(const unison::console::ConsoleOptions& options,
-                                 const std::optional<unison::session::ReplayWriter>& recording)
+class MatchKeeping
 {
-    if (!recording.has_value())
+public:
+    MatchKeeping(const unison::console::ConsoleOptions& options, const unison::net::SessionConfig& config)
+        : options{options}, recording{recordingFor(options, config)}, dumper{dumperFor(options)},
+          verifiedFrames{receiversOf(recording, dumper)}
     {
+    }
+
+    MatchKeeping(const MatchKeeping&) = delete;
+    MatchKeeping& operator=(const MatchKeeping&) = delete;
+    MatchKeeping(MatchKeeping&&) = delete;
+    MatchKeeping& operator=(MatchKeeping&&) = delete;
+
+    [[nodiscard]] unison::session::IVerifiedFrameReceiver* receiver()
+    {
+        return &verifiedFrames;
+    }
+
+    [[nodiscard]] bool keep(const unison::session::NetworkedSession& networked) const
+    {
+        const bool isReplayKept = keepReplay();
+        const bool isDumpKept = keepDesyncDump(networked);
+
+        return isReplayKept && isDumpKept;
+    }
+
+private:
+    static std::optional<unison::session::ReplayWriter> recordingFor(const unison::console::ConsoleOptions& options,
+                                                                     const unison::net::SessionConfig& config)
+    {
+        return options.recordPath.empty() ? std::nullopt : std::optional{unison::session::ReplayWriter{config}};
+    }
+
+    static std::optional<unison::session::DesyncDumper> dumperFor(const unison::console::ConsoleOptions& options)
+    {
+        return options.dumpDirectory.empty() ? std::nullopt
+                                             : std::optional{unison::session::DesyncDumper{options.dumpDirectory}};
+    }
+
+    static std::vector<unison::session::IVerifiedFrameReceiver*>
+    receiversOf(std::optional<unison::session::ReplayWriter>& recording,
+                std::optional<unison::session::DesyncDumper>& dumper)
+    {
+        std::vector<unison::session::IVerifiedFrameReceiver*> receivers;
+
+        if (recording.has_value())
+        {
+            receivers.push_back(&*recording);
+        }
+
+        if (dumper.has_value())
+        {
+            receivers.push_back(&*dumper);
+        }
+
+        return receivers;
+    }
+
+    [[nodiscard]] bool keepReplay() const
+    {
+        if (!recording.has_value())
+        {
+            return true;
+        }
+
+        const tl::expected<void, unison::Error> written =
+            unison::session::writeFileBytes(options.recordPath, recording->bytes());
+
+        if (!written.has_value())
+        {
+            unison::logMessage(unison::LogLevel::Error,
+                               std::format("unison_console: {}: {}", written.error().message(), options.recordPath));
+
+            return false;
+        }
+
+        unison::logMessage(unison::LogLevel::Info,
+                           std::format("unison_console: recorded the match into {}", options.recordPath));
+
         return true;
     }
 
-    const tl::expected<void, unison::Error> written =
-        unison::session::writeReplayFile(options.recordPath, recording->bytes());
-
-    if (!written.has_value())
+    [[nodiscard]] bool keepDesyncDump(const unison::session::NetworkedSession& networked) const
     {
-        unison::logMessage(unison::LogLevel::Error,
-                           std::format("unison_console: {}: {}", written.error().message(), options.recordPath));
+        const std::optional<unison::net::Desync> desync = networked.lastDesync();
 
-        return false;
+        if (!dumper.has_value() || !desync.has_value())
+        {
+            return true;
+        }
+
+        const tl::expected<std::filesystem::path, unison::Error> dumped =
+            dumper->dump(desync->frame, networked.localSlot());
+
+        if (!dumped.has_value())
+        {
+            unison::logMessage(unison::LogLevel::Error, std::format("unison_console: {}", dumped.error().message()));
+
+            return false;
+        }
+
+        unison::logMessage(unison::LogLevel::Info,
+                           std::format("unison_console: dumped the snapshot of the desync into {}", dumped->string()));
+
+        return true;
     }
 
-    unison::logMessage(unison::LogLevel::Info,
-                       std::format("unison_console: recorded the match into {}", options.recordPath));
-
-    return true;
-}
+    const unison::console::ConsoleOptions& options;
+    std::optional<unison::session::ReplayWriter> recording;
+    std::optional<unison::session::DesyncDumper> dumper;
+    unison::session::VerifiedFrameFanOut verifiedFrames;
+};
 
 tl::expected<unison::net::EnetConnection, unison::Error> connectToRelay(const unison::console::ConsoleOptions& options)
 {
@@ -283,20 +377,14 @@ int main(int argc, char** argv)
     }
 
     const unison::net::SteadyClock clock;
-    std::optional<unison::session::ReplayWriter> recording;
-
-    if (!options->recordPath.empty())
-    {
-        recording.emplace(config);
-    }
-
+    MatchKeeping keeping{*options, config};
     unison::session::NetworkedSession networked{match.frame(),
                                                 match.pipeline(),
                                                 config,
                                                 *connected->transport,
                                                 connected->server,
                                                 kNoInputDelay,
-                                                recording.has_value() ? &*recording : nullptr};
+                                                keeping.receiver()};
     unison::view::EventDispatcher dispatcher;
     unison::view::SessionRunner runner{networked, dispatcher, clock, config.tickRate};
 
@@ -306,7 +394,7 @@ int main(int argc, char** argv)
     logStatus(lastStatus);
     const int exitCode = unison::console::exitCodeOf(lastStatus);
 
-    if (!keepRecording(*options, recording) && exitCode == 0)
+    if (!keeping.keep(networked) && exitCode == 0)
     {
         return 1;
     }
