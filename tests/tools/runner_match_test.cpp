@@ -5,10 +5,14 @@
 #include <unison/net/session_config.hpp>
 #include <unison/runner/client_outcome.hpp>
 #include <unison/runner/runner_options.hpp>
+#include <unison/session/replay_reader.hpp>
 #include <unison/session/rollback_stats.hpp>
+#include <unison/sim/frame_inputs.hpp>
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
+#include <variant>
 #include <vector>
 
 TEST_CASE("two players over a flawless network verify every frame of the run")
@@ -178,4 +182,66 @@ TEST_CASE("a player joining a run late starts from a snapshot, verifies every fr
     REQUIRE(outcome.clients.back().startFrame > options.lateJoinFrame);
     REQUIRE(outcome.clients.front().startFrame == 0U);
     REQUIRE(outcome.framesCompared >= options.frames - outcome.clients.back().startFrame);
+}
+
+TEST_CASE("a player that drops and comes back with its token plays on in its slot and agrees with the others")
+{
+    unison::runner::RunnerOptions options;
+    options.players = 3;
+    options.frames = 300;
+    options.drop = unison::runner::Drop{1, 100, 1};
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.isComplete);
+    REQUIRE_FALSE(outcome.disagreement.has_value());
+    REQUIRE(outcome.clients[1].hasComeBack);
+    REQUIRE(outcome.clients[1].slot == 1U);
+    REQUIRE(outcome.clients[1].startFrame > options.drop->frame + options.tickRate - 10U);
+    REQUIRE_FALSE(outcome.clients[0].hasComeBack);
+}
+
+TEST_CASE("nobody plays the slot of a player while it is away, which the others see dropped")
+{
+    unison::runner::RunnerOptions options;
+    options.frames = 300;
+    options.recordPath = "match.replay";
+    options.drop = unison::runner::Drop{1, 100, 1};
+    unison::runner::RunnerMatch match{options};
+    REQUIRE(match.play().isComplete);
+    auto reader = unison::session::ReplayReader::open(match.replay());
+    REQUIRE(reader.has_value());
+    std::optional<unison::sim::InputFlags> awayFlags;
+
+    while (!reader->isAtEnd() && !awayFlags.has_value())
+    {
+        const auto record = reader->next();
+        REQUIRE(record.has_value());
+        const auto* frame = std::get_if<unison::session::ReplayFrame>(&*record);
+
+        if (frame != nullptr && frame->frameNumber == options.drop->frame + 30U)
+        {
+            awayFlags = frame->inputs.flagsAt(1);
+        }
+    }
+
+    REQUIRE(awayFlags == unison::sim::InputFlags::Dropped);
+}
+
+TEST_CASE("the others wait for nothing from a player while it is away, their frames confirmed as fast as before")
+{
+    constexpr std::uint32_t kDeepestOnAFlawlessNetwork = 3;
+    unison::runner::RunnerOptions options;
+    options.players = 3;
+    options.frames = 300;
+    options.drop = unison::runner::Drop{1, 100, 1};
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.isComplete);
+    REQUIRE(outcome.hostFrames < options.frames + 20U);
+    REQUIRE(outcome.clients[0].rollbacks.deepestRollback <= kDeepestOnAFlawlessNetwork);
+    REQUIRE(outcome.clients[2].rollbacks.deepestRollback <= kDeepestOnAFlawlessNetwork);
 }

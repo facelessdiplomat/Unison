@@ -144,3 +144,15 @@ TEST_CASE("the report of a run names every player that joined late and the frame
     REQUIRE(report.find("slot 1 joined late, from a snapshot of frame 312") != std::string::npos);
     REQUIRE(report.find("slot 0 joined late") == std::string::npos);
 }
+
+TEST_CASE("the report of a run names every player that came back and the frame of the snapshot it started from")
+{
+    unison::runner::RunOutcome outcome = flawless();
+    outcome.clients[1].startFrame = 312;
+    outcome.clients[1].hasComeBack = true;
+
+    const std::string report = unison::runner::reportOf(outcome, unison::runner::RunnerOptions{});
+
+    REQUIRE(report.find("slot 1 came back, from a snapshot of frame 312") != std::string::npos);
+    REQUIRE(report.find("joined late") == std::string::npos);
+}

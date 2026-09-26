@@ -67,7 +67,8 @@ RunnerClient::RunnerClient(net::LoopbackHub& hub,
     : endpoint{hub.join()}, link{endpoint, network}, match{config.slotCount, config.tickRate}, dumper{dumperFor(setup)},
       verifiedFrames{receiversOf(setup, dumper)},
       networked{match.frame(), match.pipeline(), config, link, relay, kNoInputDelay, &verifiedFrames},
-      runner{networked, dispatcher, clock, config.tickRate}, player{config.seed, player}
+      runner{networked, dispatcher, clock, config.tickRate}, player{config.seed, player},
+      reconnectToken{setup.reconnectToken}
 {
     if (setup.isFaulty)
     {
@@ -77,7 +78,12 @@ RunnerClient::RunnerClient(net::LoopbackHub& hub,
 
 void RunnerClient::join()
 {
-    networked.join();
+    networked.join(reconnectToken);
+}
+
+bool RunnerClient::hasComeBack() const
+{
+    return reconnectToken != 0;
 }
 
 void RunnerClient::playHostFrame(std::uint64_t hostFrameMicroseconds)

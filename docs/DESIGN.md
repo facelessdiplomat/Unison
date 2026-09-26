@@ -885,18 +885,22 @@ the session's event changes are.
   <client>` starts that client with the first player one health point low, to show a desync and its dumps.
   `--late-join-at <frame>` lets the last client join once the first has verified that frame, through a snapshot as
   §8.6 has it; the ledger compares the frames every client reported, the late one's from its snapshot on, and the
-  report names every client that joined late and the frame of its snapshot. Its config carries the arena's asset and
-  pipeline hashes, as the console's does, so a replay it records names what it was played with. It plays the arena
-  with every client and the relay in one process, each client's link crossing one seeded simulated network and each
-  player scripted from the seed, one host frame at a time; a run that has not verified every frame after twice as
-  many host frames and ten seconds more fails. A wiretap in front of the relay writes every checksum the clients
-  report into a ledger, and the run lasts until every client has reported the last frame it checks; the first frame
-  the clients report different checksums for is the desync, printed with every slot's checksum of it. The exit code
-  is 0 for a run that verified every frame alike within its window, 2 for a desync, 3 for a rollback deeper than the
-  prediction window, and 1 for a run that missed frames, a command line it could not read or a replay it could not
-  write; a desync outranks an overflow, and both outrank missed frames. After the verdict every run prints a table
-  of rollbacks by slot, in slot order: how many, how many per second of play, how deep on average and at most, and
-  how many ticks the client stalled with its window full, closed by a row for every client together.
+  report names every client that joined late and the frame of its snapshot. `--disconnect
+  <client>,<frame>,<seconds>` takes a client off the network once the first client has verified that frame: the
+  relay hears it leave and holds its slot, and in its place a new client over a new link, which records no replay,
+  joins with the old one's reconnect token that many seconds later and catches up from a donor's snapshot; the
+  report names it as come back, with the frame of its snapshot. Its config carries the arena's asset and pipeline
+  hashes, as the console's does, so a replay it records names what it was played with. It plays the arena with every
+  client and the relay in one process, each client's link crossing one seeded simulated network and each player
+  scripted from the seed, one host frame at a time; a run that has not verified every frame after twice as many host
+  frames and ten seconds more fails. A wiretap in front of the relay writes every checksum the clients report into a
+  ledger, and the run lasts until every client has reported the last frame it checks; the first frame the clients
+  report different checksums for is the desync, printed with every slot's checksum of it. The exit code is 0 for a
+  run that verified every frame alike within its window, 2 for a desync, 3 for a rollback deeper than the prediction
+  window, and 1 for a run that missed frames, a command line it could not read or a replay it could not write; a
+  desync outranks an overflow, and both outrank missed frames. After the verdict every run prints a table of
+  rollbacks by slot, in slot order: how many, how many per second of play, how deep on average and at most, and how
+  many ticks the client stalled with its window full, closed by a row for every client together.
 - `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard input,
   connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output. It joins
   the relay at `--host` and `--port` (127.0.0.1:7777 unless told otherwise), sending from `--from` or from

@@ -4,7 +4,10 @@
 
 #include <cxxopts.hpp>
 
+#include <cstddef>
+#include <optional>
 #include <string_view>
+#include <vector>
 
 namespace unison::runner
 {
@@ -38,6 +41,9 @@ cxxopts::Options describedOptions()
     add("late-join-at",
         "frame the first client has verified when the last one joins, none when nought",
         cxxopts::value<std::uint32_t>()->default_value("0"));
+    add("disconnect",
+        "client, frame the first client has verified and seconds of a drop, as 1,300,5",
+        cxxopts::value<std::vector<std::uint32_t>>());
     add("help", "lists these options");
 
     return options;
@@ -46,6 +52,16 @@ cxxopts::Options describedOptions()
 tl::expected<RunnerOptions, Error> refused(std::string_view why)
 {
     return tl::unexpected{Error{ErrorCode::InvalidOption, why}};
+}
+
+std::optional<Drop> dropOf(const std::vector<std::uint32_t>& values, const RunnerOptions& read)
+{
+    constexpr std::size_t kClientFrameAndSeconds = 3;
+
+    const bool isPlayable = values.size() == kClientFrameAndSeconds && read.players >= 2 && values[0] < read.players &&
+                            values[1] > 0 && values[1] < read.frames;
+
+    return isPlayable ? std::optional{Drop{values[0], values[1], values[2]}} : std::nullopt;
 }
 
 }
@@ -107,6 +123,17 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
     if (read.lateJoinFrame > 0 && (read.players < 2 || read.lateJoinFrame >= read.frames))
     {
         return refused("--late-join-at takes a match of two players at least and a frame before --frames");
+    }
+
+    if (parsed.count("disconnect") > 0)
+    {
+        read.drop = dropOf(parsed["disconnect"].as<std::vector<std::uint32_t>>(), read);
+
+        if (!read.drop.has_value())
+        {
+            return refused("--disconnect takes a client of a match of two players at least, a frame from 1 to one "
+                           "before --frames and seconds, as 1,300,5");
+        }
     }
 
     return read;

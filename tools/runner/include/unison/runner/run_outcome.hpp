@@ -32,8 +32,8 @@ struct RunOutcome
 [[nodiscard]] int exitCodeOf(const RunOutcome& outcome);
 
 /// What the runner prints about a run: how it went, for a desync the frame and every client's slot and
-/// checksum of it, every client that joined late and the frame it started from, and the rollback summary; a desync
-/// without the slot of every checksum breaks a contract.
+/// checksum of it, every client that joined late or came back after a drop and the frame it started from, and the
+/// rollback summary; a desync without the slot of every checksum breaks a contract.
 [[nodiscard]] std::string reportOf(const RunOutcome& outcome, const RunnerOptions& options);
 
 }

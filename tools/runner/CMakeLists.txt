@@ -82,6 +82,14 @@ set_tests_properties(
                LABELS fast
 )
 
+add_test(NAME runner_lets_a_player_come_back COMMAND unison_runner --players 3 --frames 600 --disconnect 1,120,5)
+
+set_tests_properties(
+    runner_lets_a_player_come_back
+    PROPERTIES PASS_REGULAR_EXPRESSION "3 players verified 600 frames.*slot 1 came back, from a snapshot of frame 4"
+               LABELS fast
+)
+
 set(UNISON_PROFILE_SECONDS 5)
 
 foreach(players IN ITEMS 2 4 8)

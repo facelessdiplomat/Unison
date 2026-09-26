@@ -1,5 +1,6 @@
 #include <unison/runner/checksum_wiretap.hpp>
 
+#include <unison/core/contract.hpp>
 #include <unison/net/message_codec.hpp>
 
 #include <algorithm>
@@ -13,6 +14,16 @@ ChecksumWiretap::ChecksumWiretap(net::IMessageReceiver& relay,
                                  std::span<const net::PeerId> clients)
     : relay{relay}, ledger{ledger}, clients{clients.begin(), clients.end()}
 {
+}
+
+void ChecksumWiretap::follow(std::size_t client, net::PeerId peer)
+{
+    UNISON_VERIFY(client < clients.size());
+
+    if (client < clients.size())
+    {
+        clients[client] = peer;
+    }
 }
 
 void ChecksumWiretap::receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message)

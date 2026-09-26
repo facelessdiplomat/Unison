@@ -19,8 +19,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <deque>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <span>
 #include <vector>
@@ -32,8 +32,10 @@ namespace unison::runner
 /// seeded simulated network, played by scripted players one host frame at a time. It ends once every client
 /// has verified the frames asked for and reported the checksums of them, or fails after twice as many host
 /// frames and ten seconds more; on its way to the relay every checksum is written into a ledger. A run with a
-/// file to record into records its first client's replay, and one with a frame to join late at lets its last client
-/// join once the first has verified that frame.
+/// file to record into records its first client's replay, one with a frame to join late at lets its last client
+/// join once the first has verified that frame, and one with a drop takes a client off the network once the first has
+/// verified the frame of the drop, in its place a new client over a new link that records no replay and joins with the
+/// old one's reconnect token the seconds of the drop later.
 class RunnerMatch
 {
 public:
@@ -57,6 +59,10 @@ private:
 
     void joinLateClientWhenDue();
 
+    void dropClientWhenDue(std::uint32_t hostFrame);
+
+    void bringClientBackWhenDue(std::uint32_t hostFrame);
+
     [[nodiscard]] bool hasEveryClientFinished() const;
 
     [[nodiscard]] std::uint32_t fewestVerifiedFrames() const;
@@ -72,11 +78,13 @@ private:
     net::SimulatedLink relayLink;
     net::RelayCore relay;
     std::optional<session::ReplayWriter> recording;
-    std::deque<RunnerClient> clients;
+    std::vector<std::unique_ptr<RunnerClient>> clients;
     ChecksumLedger ledger;
     ChecksumWiretap wiretap;
     std::uint64_t elapsedMicroseconds = 0;
     std::uint64_t networkMilliseconds = 0;
+    bool hasDropped = false;
+    std::optional<std::uint32_t> comesBackAt;
 };
 
 }

@@ -18,11 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.4.3**, a runner scenario `--disconnect <slot>,<frame>,<seconds>`: the client of a slot drops once
-  the first client has verified the frame and comes back with its token that many seconds later, in CTest. Last
-  finished: 4.4.2. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the
-  owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS.
-  3.2.3 is deferred until WSL is installed.
+- Next up: **4.5.1**, the spectator role at the relay: no slot, receives `Confirmed`, may join a running match
+  through a snapshot; a spectator's join leaves the slot count as it was. Last finished: 4.4.3. On the owner's
+  word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across
+  the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is
+  installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -45,10 +45,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 24 | 19 |
+| 4 Session features | 5 | 24 | 20 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **252** | **206** |
+| **Total** | **41** | **252** | **207** |
 
 ## Charter amendments made while planning
 
@@ -467,7 +467,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 ### 4.4 Reconnect
 - [x] 4.4.1 Reconnect token in `Welcome`; the relay holds the slot for `reconnectGrace` with the drop policy applied. Test: the slot is preserved within grace and released after. Done on 2026-09-26: every player is welcomed with a reconnect token of its own, a late joiner included, drawn by `ReconnectTokens` from `RelaySettings::reconnectTokenSeed` with the lowest bit set, so none is nought; a spectator gets none, and `unison_relay` seeds the tokens from `std::random_device`. A player whose peer goes keeps its slot for `RelaySettings::reconnectGraceMicroseconds`, 30 s by default: `Roster::holdSlotOf` keeps it in play but out of `slotsAwaitedAt`, so its frames are confirmed at once with its last input dropped, the referee judges the others without it, nothing is sent to its peer and it is never a donor. `update()` releases the slot once the grace has passed, confirmed absent from then on and free for a newcomer, and `RelayRooms::update` closes a room left without members. A joiner or a spectator that goes is let go at once, as before. Tested: tokens never nought, all different and the same for a seed; a token for a player and a late joiner and none for a spectator; frames confirmed with the held player's last input dropped; its slot given to nobody else, still held a microsecond before the grace ends and free and absent after it; the others' checksums judged without it; nothing sent to it; a room closed after the grace and a spectator's at once. Fourteen mutants of the tokens, the hold, the release, the masks, the referee, the sending and the rooms fail their cases; the lowest bit that keeps a token from nought is caught by none, since the generator would have to draw nought.
 - [x] 4.4.2 Client reconnect flow reusing the late-join path into the same slot. Test: the reconnecting client resumes with equal checksums. Done on 2026-09-26: a client that lost the relay joins again from a new session over a new connection with the token of its last welcome, `NetworkedSession::join(token)` and `reconnectToken()`. The relay hands the slot of the member holding the token to the new peer, `Roster::reclaim`, whether its old peer has gone or the relay has not seen it go yet, and the returning player catches up as a late joiner does, through a donor's snapshot and a welcome at its frame with the same token. Its slot stays in play all along, its last input repeated as dropped, and `Roster::Member::awaitedFrom` makes the relay wait for its inputs again only from the first frame it sends one for; a player catching up is never a donor. In a match that has not started it is welcomed at frame 0 at once, and a token nobody holds seats the client as any other player; a returning player with no other player in play joins Q18. Tested: the roster finds a slot by token, never by nought, reclaims it for a new peer in play but not awaited and awaits it again from its first input; the relay welcomes a returning player into its slot at frame 0 before the match and from a donor's snapshot in it, drops its input while it catches up, waits for it from its first input, never asks it for a snapshot, seats a stranger's token as any other and lets a player take its slot over from an old peer; a client keeps its token and joins with it. In the arena, a player dropped at host frame 120 and back a second later took slot 1 again from a snapshot of frame 181, verified frame 599 as the other did and agreed on every frame both reported. Eleven mutants fail their cases.
-- [ ] 4.4.3 Runner scenario `--disconnect <slot> <atFrame> <seconds>` in CTest.
+- [x] 4.4.3 Runner scenario `--disconnect <slot> <atFrame> <seconds>` in CTest. Done on 2026-09-26: `--disconnect <client>,<frame>,<seconds>` takes a runner client off the network once the first client has verified that frame. The relay hears it leave and holds its slot, and in its place a new client over a new link, which records no replay, joins with the old one's reconnect token that many seconds later and catches up from a donor's snapshot; `ChecksumWiretap::follow` writes its checksums under the same client, and the report names it as come back with the frame of its snapshot. The runner's clients became replaceable, held by `std::unique_ptr`. A drop that is not three numbers, of a client the match does not have, in a match of one player or at a frame outside 1 to one before `--frames` is refused. In CTest `runner_lets_a_player_come_back` plays three players for 600 frames, client 1 away for five seconds from frame 120, and prints `3 players verified 600 frames`, `the clients agree on the checksums of 297 frames` and `slot 1 came back, from a snapshot of frame 423`. Tested: the option and its refusals, the wiretap following a new peer, the report's line, a runner match whose returning player plays on in slot 1 from a snapshot and agrees, its slot confirmed dropped in the replay while it is away, and the others' rollbacks no deeper than on a flawless network. Never dropping, coming back without the token or not at all, the wiretap losing the client, the relay never told, and the report's line fail their cases; left untold, the relay confirmed the others' frames at the input deadline and their rollbacks went nine frames deep.
 
 ### 4.5 Spectators
 - [ ] 4.5.1 Spectator role at the relay: no slot, receives `Confirmed`, may request late-join snapshots. Test: a spectator join does not change the slot count.

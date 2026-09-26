@@ -43,6 +43,7 @@ TEST_CASE("a runner told nothing plays two players for six hundred frames on a f
     REQUIRE(options->dumpDirectory == ".");
     REQUIRE_FALSE(options->faultyClient.has_value());
     REQUIRE(options->lateJoinFrame == 0U);
+    REQUIRE_FALSE(options->drop.has_value());
     REQUIRE_FALSE(options->isHelpAsked);
 }
 
@@ -71,7 +72,9 @@ TEST_CASE("every option of the runner is read")
                                  "--fault",
                                  "3",
                                  "--late-join-at",
-                                 "300"});
+                                 "300",
+                                 "--disconnect",
+                                 "1,300,5"});
 
     REQUIRE(options.has_value());
     REQUIRE(options->players == 4U);
@@ -86,6 +89,10 @@ TEST_CASE("every option of the runner is read")
     REQUIRE(options->dumpDirectory == "dumps");
     REQUIRE(options->faultyClient == 3U);
     REQUIRE(options->lateJoinFrame == 300U);
+    REQUIRE(options->drop.has_value());
+    REQUIRE(options->drop->client == 1U);
+    REQUIRE(options->drop->frame == 300U);
+    REQUIRE(options->drop->seconds == 5U);
 }
 
 TEST_CASE("a runner asked for help says so and lists its options")
@@ -108,7 +115,12 @@ TEST_CASE("a run the runner cannot play is refused with an error naming the opti
                               Refusal{{"--checksum-interval", "0"}, "--checksum-interval"},
                               Refusal{{"--fault", "2"}, "--fault"},
                               Refusal{{"--late-join-at", "600"}, "--late-join-at"},
-                              Refusal{{"--players", "1", "--late-join-at", "10"}, "--late-join-at"}};
+                              Refusal{{"--players", "1", "--late-join-at", "10"}, "--late-join-at"},
+                              Refusal{{"--disconnect", "2,300,5"}, "--disconnect"},
+                              Refusal{{"--disconnect", "1,600,5"}, "--disconnect"},
+                              Refusal{{"--disconnect", "1,0,5"}, "--disconnect"},
+                              Refusal{{"--disconnect", "1,300"}, "--disconnect"},
+                              Refusal{{"--players", "1", "--disconnect", "0,300,5"}, "--disconnect"}};
 
     for (const Refusal& refusal : refusals)
     {

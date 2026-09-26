@@ -26,13 +26,14 @@ namespace unison::runner
 {
 
 /// What a client of a runner match does besides playing: records every frame it verifies into a receiver, when given,
-/// dumps the snapshot of a desync into a folder, when given, and starts with the first player one health point low
-/// when it is the faulty one.
+/// dumps the snapshot of a desync into a folder, when given, starts with the first player one health point low when it
+/// is the faulty one, and joins with the reconnect token of an earlier welcome when it comes back after a drop.
 struct ClientSetup
 {
     session::IVerifiedFrameReceiver* recorder = nullptr;
     std::filesystem::path dumpDirectory;
     bool isFaulty = false;
+    std::uint64_t reconnectToken = 0;
 };
 
 /// One client of a runner match: its own copy of the game, the session it plays through a link over the run's
@@ -54,7 +55,11 @@ public:
     RunnerClient(RunnerClient&&) = delete;
     RunnerClient& operator=(RunnerClient&&) = delete;
 
+    /// Asks the relay to let the client in, back into the slot its reconnect token was handed with when it has one.
     void join();
+
+    /// Whether the client comes back after a drop, with a reconnect token.
+    [[nodiscard]] bool hasComeBack() const;
 
     /// Hands the session the scripted player's next input, lets one host frame of time pass, and dumps the snapshot of
     /// the first desync the relay reports.
@@ -78,6 +83,7 @@ private:
     view::EventDispatcher dispatcher;
     view::SessionRunner runner;
     ScriptedPlayer player;
+    std::uint64_t reconnectToken;
     std::optional<tl::expected<std::filesystem::path, Error>> dumped;
 };
 

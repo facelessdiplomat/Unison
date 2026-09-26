@@ -18,6 +18,10 @@ class ChecksumWiretap final : public net::IMessageReceiver
 public:
     ChecksumWiretap(net::IMessageReceiver& relay, ChecksumLedger& ledger, std::span<const net::PeerId> clients);
 
+    /// Writes the checksums a client sends from a new peer, the one it came back on, under that client from then on; a
+    /// client the run does not have breaks a contract.
+    void follow(std::size_t client, net::PeerId peer);
+
     void receive(net::PeerId from, net::Channel channel, std::span<const std::byte> message) override;
 
     void peerArrived(net::PeerId peer) override;

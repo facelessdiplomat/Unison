@@ -105,3 +105,20 @@ TEST_CASE("a peer that arrives is reported to the relay behind the wiretap")
 
     REQUIRE(relay.arrivals == std::vector<unison::net::PeerId>{kFirst});
 }
+
+TEST_CASE("the checksums a client sends from the peer it came back on are written down under that client")
+{
+    Relay relay;
+    unison::runner::ChecksumLedger ledger{2};
+    const std::array peers{kFirst, kSecond};
+    unison::runner::ChecksumWiretap wiretap{relay, ledger, peers};
+    constexpr unison::net::PeerId kSecondBack{40};
+
+    wiretap.follow(1, kSecondBack);
+    send(wiretap, kFirst, unison::net::Checksum{1, 11});
+    send(wiretap, kSecondBack, unison::net::Checksum{1, 12});
+
+    const auto disagreement = ledger.firstDisagreement();
+    REQUIRE(disagreement.has_value());
+    REQUIRE(disagreement->checksums == std::vector<std::uint64_t>{11, 12});
+}

@@ -82,8 +82,10 @@ std::string lateJoinsOf(const RunOutcome& outcome)
     {
         if (client.startFrame > 0)
         {
-            report += std::format(
-                "unison_runner: slot {} joined late, from a snapshot of frame {}\n", client.slot, client.startFrame);
+            report += std::format("unison_runner: slot {} {}, from a snapshot of frame {}\n",
+                                  client.slot,
+                                  client.hasComeBack ? "came back" : "joined late",
+                                  client.startFrame);
         }
     }
 

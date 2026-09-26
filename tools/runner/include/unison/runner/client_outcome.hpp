@@ -10,11 +10,12 @@ namespace unison::runner
 {
 
 /// How one client of a run fared: the slot the relay gave it, the frame it started from, past nought for a client that
-/// joined late, and what rollbacks cost its session.
+/// joined late or came back after a drop, whether it came back, and what rollbacks cost its session.
 struct ClientOutcome
 {
     std::uint8_t slot = net::kNoSlot;
     std::uint32_t startFrame = 0;
+    bool hasComeBack = false;
     session::RollbackStats rollbacks;
 };
 

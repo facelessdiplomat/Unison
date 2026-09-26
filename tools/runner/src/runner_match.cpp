@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <memory>
 #include <vector>
 
 namespace unison::runner
@@ -50,33 +51,33 @@ std::optional<session::ReplayWriter> recordingFor(const RunnerOptions& options, 
     return session::ReplayWriter{config};
 }
 
-std::deque<RunnerClient> clientsFor(net::LoopbackHub& hub,
-                                    net::NetworkSimulator& network,
-                                    net::PeerId relay,
-                                    const net::SessionConfig& config,
-                                    const net::IClock& clock,
-                                    const RunnerOptions& options,
-                                    session::IVerifiedFrameReceiver* recorder)
+std::vector<std::unique_ptr<RunnerClient>> clientsFor(net::LoopbackHub& hub,
+                                                      net::NetworkSimulator& network,
+                                                      net::PeerId relay,
+                                                      const net::SessionConfig& config,
+                                                      const net::IClock& clock,
+                                                      const RunnerOptions& options,
+                                                      session::IVerifiedFrameReceiver* recorder)
 {
-    std::deque<RunnerClient> clients;
+    std::vector<std::unique_ptr<RunnerClient>> clients;
 
     for (std::uint32_t player = 0; player < config.slotCount; ++player)
     {
         const ClientSetup setup{
-            player == 0 ? recorder : nullptr, options.dumpDirectory, options.faultyClient == player};
-        clients.emplace_back(hub, network, relay, config, clock, player, setup);
+            player == 0 ? recorder : nullptr, options.dumpDirectory, options.faultyClient == player, 0};
+        clients.push_back(std::make_unique<RunnerClient>(hub, network, relay, config, clock, player, setup));
     }
 
     return clients;
 }
 
-std::vector<net::PeerId> peersOf(const std::deque<RunnerClient>& clients)
+std::vector<net::PeerId> peersOf(const std::vector<std::unique_ptr<RunnerClient>>& clients)
 {
     std::vector<net::PeerId> peers;
 
-    for (const RunnerClient& client : clients)
+    for (const std::unique_ptr<RunnerClient>& client : clients)
     {
-        peers.push_back(client.peer());
+        peers.push_back(client->peer());
     }
 
     return peers;
@@ -107,7 +108,7 @@ RunOutcome RunnerMatch::play()
 {
     for (std::size_t client = 0; client < clientsJoiningAtStart(options); ++client)
     {
-        clients[client].join();
+        clients[client]->join();
     }
 
     const std::uint64_t hostFrame = kMicrosecondsPerSecond / options.tickRate;
@@ -121,12 +122,14 @@ RunOutcome RunnerMatch::play()
         relayLink.poll(wiretap);
         relay.update();
 
-        for (RunnerClient& client : clients)
+        for (const std::unique_ptr<RunnerClient>& client : clients)
         {
-            client.playHostFrame(hostFrame);
+            client->playHostFrame(hostFrame);
         }
 
         joinLateClientWhenDue();
+        dropClientWhenDue(hostFrames);
+        bringClientBackWhenDue(hostFrames);
         ++hostFrames;
     }
 
@@ -142,11 +145,11 @@ std::vector<tl::expected<std::filesystem::path, Error>> RunnerMatch::desyncDumps
 {
     std::vector<tl::expected<std::filesystem::path, Error>> dumps;
 
-    for (const RunnerClient& client : clients)
+    for (const std::unique_ptr<RunnerClient>& client : clients)
     {
-        if (client.desyncDump().has_value())
+        if (client->desyncDump().has_value())
         {
-            dumps.push_back(*client.desyncDump());
+            dumps.push_back(*client->desyncDump());
         }
     }
 
@@ -166,8 +169,8 @@ void RunnerMatch::letTimePass(std::uint64_t microseconds)
 
 void RunnerMatch::joinLateClientWhenDue()
 {
-    RunnerClient& lateClient = clients.back();
-    const session::Session* first = clients.front().session().session();
+    RunnerClient& lateClient = *clients.back();
+    const session::Session* first = clients.front()->session().session();
     const bool isDue = options.lateJoinFrame > 0 && lateClient.session().state() == session::ConnectionState::Idle &&
                        first != nullptr && first->verifiedFrame() >= options.lateJoinFrame;
 
@@ -175,6 +178,37 @@ void RunnerMatch::joinLateClientWhenDue()
     {
         lateClient.join();
     }
+}
+
+void RunnerMatch::dropClientWhenDue(std::uint32_t hostFrame)
+{
+    const session::Session* first = clients.front()->session().session();
+    const bool isDue =
+        options.drop.has_value() && !hasDropped && first != nullptr && first->verifiedFrame() >= options.drop->frame;
+
+    if (!isDue)
+    {
+        return;
+    }
+
+    const std::uint32_t client = options.drop->client;
+    const ClientSetup setup{nullptr, options.dumpDirectory, false, clients[client]->session().reconnectToken()};
+    wiretap.peerLeft(clients[client]->peer());
+    clients[client] = std::make_unique<RunnerClient>(hub, network, relayEnd.id(), config, clock, client, setup);
+    wiretap.follow(client, clients[client]->peer());
+    comesBackAt = hostFrame + options.drop->seconds * options.tickRate;
+    hasDropped = true;
+}
+
+void RunnerMatch::bringClientBackWhenDue(std::uint32_t hostFrame)
+{
+    if (!comesBackAt.has_value() || hostFrame < *comesBackAt)
+    {
+        return;
+    }
+
+    clients[options.drop->client]->join();
+    comesBackAt.reset();
 }
 
 bool RunnerMatch::hasEveryClientFinished() const
@@ -188,9 +222,9 @@ std::uint32_t RunnerMatch::fewestVerifiedFrames() const
 {
     std::uint32_t fewest = std::numeric_limits<std::uint32_t>::max();
 
-    for (const RunnerClient& client : clients)
+    for (const std::unique_ptr<RunnerClient>& client : clients)
     {
-        const session::Session* played = client.session().session();
+        const session::Session* played = client->session().session();
 
         fewest = std::min(fewest, played == nullptr ? 0U : played->verifiedFrame());
     }
@@ -208,13 +242,14 @@ RunOutcome RunnerMatch::outcomeAfter(std::uint32_t hostFrames) const
     outcome.framesCompared = ledger.framesReportedByAll();
     outcome.disagreement = ledger.firstDisagreement();
 
-    for (const RunnerClient& client : clients)
+    for (const std::unique_ptr<RunnerClient>& client : clients)
     {
-        const session::Session* played = client.session().session();
+        const session::Session* played = client->session().session();
 
         outcome.clients.push_back(
-            ClientOutcome{client.session().localSlot(),
-                          client.session().startFrame(),
+            ClientOutcome{client->session().localSlot(),
+                          client->session().startFrame(),
+                          client->hasComeBack(),
                           played == nullptr ? session::RollbackStats{} : played->rollbackStats()});
     }
 
