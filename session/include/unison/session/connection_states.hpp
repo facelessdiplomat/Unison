@@ -9,7 +9,8 @@ namespace unison::session
 
 /// Where a client stands with the relay: not asked to join yet, waiting for its transport to reach the
 /// relay, waiting to be let in, playing in the slot it was given, playing but waiting for the relay with its
-/// prediction window full, or sent away or left behind by a relay that has gone.
+/// prediction window full, or sent away, left behind by a relay that has gone, or fallen further behind the relay than
+/// it can hold the confirmations of.
 enum class ConnectionState : std::uint8_t
 {
     Idle,

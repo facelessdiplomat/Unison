@@ -841,3 +841,31 @@ TEST_CASE("a spectator's host frames play every frame its delay behind the newes
     REQUIRE(rig.client.session()->verifiedFrame() == 8U);
     REQUIRE(caughtUp == -1);
 }
+
+TEST_CASE("a client told of a frame confirmed further ahead than its session can hold is left behind, disconnected")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+    rig.playWithMove(0);
+
+    rig.confirm(1'000, unison::test::scriptedSessionInputs(1'000));
+    rig.client.update(rig.now);
+
+    REQUIRE(rig.client.state() == ConnectionState::Disconnected);
+}
+
+TEST_CASE("a client told again of a frame it has verified plays on")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+    rig.confirm(1, unison::test::scriptedSessionInputs(1));
+    rig.playWithMove(0);
+
+    rig.confirm(1, unison::test::scriptedSessionInputs(1));
+    rig.playWithMove(0);
+
+    REQUIRE(rig.client.session()->verifiedFrame() == 1U);
+    REQUIRE(rig.client.state() != ConnectionState::Disconnected);
+}

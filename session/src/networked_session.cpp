@@ -293,10 +293,17 @@ void NetworkedSession::handle(const net::Confirmed& confirmed)
 
     for (std::uint32_t offset = 0; offset < confirmed.frameCount; ++offset)
     {
+        const std::uint32_t frameNumber = confirmed.firstFrame + offset;
         const std::span<const std::byte> slots = confirmed.slots.subspan(offset * frameSize, frameSize);
+        const bool isHeld =
+            played->confirm(frameNumber, inputsOfConfirmedFrame(slots, config.slotCount, config.inputSize));
 
-        static_cast<void>(played->confirm(confirmed.firstFrame + offset,
-                                          inputsOfConfirmedFrame(slots, config.slotCount, config.inputSize)));
+        if (!isHeld && frameNumber > played->verifiedFrame())
+        {
+            connection.moveTo(ConnectionState::Disconnected);
+
+            return;
+        }
     }
 }
 

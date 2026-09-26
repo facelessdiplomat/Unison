@@ -590,10 +590,14 @@ than a tick, the table is worth redoing with its numbers.
   out before it had run its course, however late they come back. Every pong from a started clock, those left
   out included, updates the lead a host shows: the predicted frame against the one the pong had due, less
   the half round trip since, which is how far ahead of the relay's clock the client plays.
-- A client cut off from the relay stalls once its prediction window is full, while the relay confirms its
-  frames at the deadline without it and everyone else plays on at full pace. Back on the network, it takes
-  in every confirmation it missed, the reliable resends among them, plays through them as settled frames
-  and catches up by extra ticks; its checksums agree with everyone else's all along.
+- A client cut off from the relay stalls once its prediction window is full, while the relay confirms its frames at
+  the deadline without it and everyone else plays on at full pace. Back on the network, it takes in every
+  confirmation it missed, the reliable resends among them, plays through them as settled frames and catches up by
+  extra ticks; its checksums agree with everyone else's all along. A client told of a frame confirmed further ahead
+  than its session holds confirmations for, `kConfirmationsAhead` past its window, as after a freeze of seconds that
+  no transport timeout noticed, has lost that frame for good, since the relay sends each frame reliably once: it
+  moves to `Disconnected`, left behind, so that its host comes back into its slot from a snapshot (§8.6) rather than
+  stalling for good.
 - Optional local input delay (default 0) trades responsiveness for fewer rollbacks; `maxPrediction` and
   input delay together allow lockstep-like tuning without new code paths. With a delay of `d` a tick samples
   the local input for frame `P + 1 + d`, and the first `d` frames of a session play the neutral input for the
