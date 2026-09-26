@@ -697,3 +697,24 @@ TEST_CASE("a late joiner handed bytes that are no snapshot is disconnected")
     REQUIRE(rig.client.state() == ConnectionState::Disconnected);
     REQUIRE(rig.client.session() == nullptr);
 }
+
+TEST_CASE("a client let in at the start of a match starts from frame nought")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+
+    rig.playWithMove(0);
+
+    REQUIRE(rig.client.startFrame() == 0U);
+}
+
+TEST_CASE("a late joiner starts from the frame of the snapshot it is welcomed at")
+{
+    Rig rig;
+    welcomeLate(rig, kSnapshotFrame + 3, scriptedSnapshotAt(kSnapshotFrame));
+
+    rig.playWithMove(0);
+
+    REQUIRE(rig.client.startFrame() == kSnapshotFrame);
+}

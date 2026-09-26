@@ -74,6 +74,22 @@ std::string verdictOf(const RunOutcome& outcome, const RunnerOptions& options)
                        outcome.framesCompared);
 }
 
+std::string lateJoinsOf(const RunOutcome& outcome)
+{
+    std::string report;
+
+    for (const ClientOutcome& client : outcome.clients)
+    {
+        if (client.startFrame > 0)
+        {
+            report += std::format(
+                "unison_runner: slot {} joined late, from a snapshot of frame {}\n", client.slot, client.startFrame);
+        }
+    }
+
+    return report;
+}
+
 }
 
 int exitCodeOf(const RunOutcome& outcome)
@@ -93,7 +109,7 @@ int exitCodeOf(const RunOutcome& outcome)
 
 std::string reportOf(const RunOutcome& outcome, const RunnerOptions& options)
 {
-    return verdictOf(outcome, options) + rollbackSummaryOf(outcome.clients, options.tickRate);
+    return verdictOf(outcome, options) + lateJoinsOf(outcome) + rollbackSummaryOf(outcome.clients, options.tickRate);
 }
 
 }

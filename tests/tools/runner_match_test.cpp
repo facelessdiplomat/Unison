@@ -162,3 +162,20 @@ TEST_CASE("every client of a run reports the frames it played and the rollbacks 
         REQUIRE(client.rollbacks.rollbacks > 0U);
     }
 }
+
+TEST_CASE("a player joining a run late starts from a snapshot, verifies every frame and agrees with the others")
+{
+    unison::runner::RunnerOptions options;
+    options.players = 3;
+    options.frames = 300;
+    options.lateJoinFrame = 100;
+    unison::runner::RunnerMatch match{options};
+
+    const unison::runner::RunOutcome outcome = match.play();
+
+    REQUIRE(outcome.isComplete);
+    REQUIRE_FALSE(outcome.disagreement.has_value());
+    REQUIRE(outcome.clients.back().startFrame > options.lateJoinFrame);
+    REQUIRE(outcome.clients.front().startFrame == 0U);
+    REQUIRE(outcome.framesCompared >= options.frames - outcome.clients.back().startFrame);
+}

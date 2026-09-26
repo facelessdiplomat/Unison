@@ -32,7 +32,8 @@ namespace unison::runner
 /// seeded simulated network, played by scripted players one host frame at a time. It ends once every client
 /// has verified the frames asked for and reported the checksums of them, or fails after twice as many host
 /// frames and ten seconds more; on its way to the relay every checksum is written into a ledger. A run with a
-/// file to record into records its first client's replay.
+/// file to record into records its first client's replay, and one with a frame to join late at lets its last client
+/// join once the first has verified that frame.
 class RunnerMatch
 {
 public:
@@ -53,6 +54,8 @@ public:
 
 private:
     void letTimePass(std::uint64_t microseconds);
+
+    void joinLateClientWhenDue();
 
     [[nodiscard]] bool hasEveryClientFinished() const;
 

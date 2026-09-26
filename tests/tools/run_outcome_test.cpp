@@ -133,3 +133,14 @@ TEST_CASE("the report of every run closes with its rollback summary")
     REQUIRE(flawlessReport.find("mean depth") != std::string::npos);
     REQUIRE(desyncReport.find("mean depth") != std::string::npos);
 }
+
+TEST_CASE("the report of a run names every player that joined late and the frame of the snapshot it started from")
+{
+    unison::runner::RunOutcome outcome = flawless();
+    outcome.clients[1].startFrame = 312;
+
+    const std::string report = unison::runner::reportOf(outcome, unison::runner::RunnerOptions{});
+
+    REQUIRE(report.find("slot 1 joined late, from a snapshot of frame 312") != std::string::npos);
+    REQUIRE(report.find("slot 0 joined late") == std::string::npos);
+}

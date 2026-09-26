@@ -157,6 +157,11 @@ std::uint8_t NetworkedSession::localSlot() const
     return givenSlot;
 }
 
+std::uint32_t NetworkedSession::startFrame() const
+{
+    return welcomedFrame;
+}
+
 const Session* NetworkedSession::session() const
 {
     return played.has_value() ? &*played : nullptr;
@@ -190,11 +195,11 @@ void NetworkedSession::handle(const net::Welcome& welcome)
     }
 
     givenSlot = welcome.slot;
+    welcomedFrame = welcome.startFrame;
     newestConfirmed = std::max(newestConfirmed, welcome.confirmedFrame);
 
     if (welcome.startFrame > 0)
     {
-        snapshotFrame = welcome.startFrame;
         awaitedSnapshot.emplace();
 
         return;
@@ -217,7 +222,7 @@ void NetworkedSession::handle(const net::SnapshotChunk& chunk)
 void NetworkedSession::startFromSnapshot()
 {
     const std::vector<std::byte> bytes = awaitedSnapshot->bytes();
-    const bool isOfTheWelcome = awaitedSnapshot->frame() == snapshotFrame;
+    const bool isOfTheWelcome = awaitedSnapshot->frame() == welcomedFrame;
     awaitedSnapshot.reset();
 
     sim::FrameSnapshot snapshot;

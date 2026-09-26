@@ -100,6 +100,10 @@ public:
     /// The slot the relay gave this client, `kNoSlot` before it has given one.
     [[nodiscard]] std::uint8_t localSlot() const;
 
+    /// The frame the relay let this client in at: nought for a client that joined a match at its start, the frame of
+    /// the snapshot it restores for one that joined late.
+    [[nodiscard]] std::uint32_t startFrame() const;
+
     /// The session the client plays, or nothing before the relay has let the client in.
     [[nodiscard]] const Session* session() const;
 
@@ -157,7 +161,7 @@ private:
     std::vector<ConnectionState> changes;
     std::uint8_t givenSlot = net::kNoSlot;
     std::optional<Session> played;
-    std::uint32_t snapshotFrame = 0;
+    std::uint32_t welcomedFrame = 0;
     std::optional<SnapshotAssembler> awaitedSnapshot;
     std::uint32_t newestConfirmed = 0;
     bool isCatchingUp = false;

@@ -74,6 +74,14 @@ set_tests_properties(
                                                       "dumped the snapshot of the desync" LABELS fast
 )
 
+add_test(NAME runner_lets_a_player_join_late COMMAND unison_runner --players 3 --frames 600 --late-join-at 300)
+
+set_tests_properties(
+    runner_lets_a_player_join_late
+    PROPERTIES PASS_REGULAR_EXPRESSION "3 players verified 600 frames.*slot 2 joined late, from a snapshot of frame 3"
+               LABELS fast
+)
+
 set(UNISON_PROFILE_SECONDS 5)
 
 foreach(players IN ITEMS 2 4 8)

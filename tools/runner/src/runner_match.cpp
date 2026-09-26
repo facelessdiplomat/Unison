@@ -87,6 +87,11 @@ std::uint32_t lastFrameChecked(const RunnerOptions& options)
     return options.frames / options.checksumInterval * options.checksumInterval;
 }
 
+std::size_t clientsJoiningAtStart(const RunnerOptions& options)
+{
+    return options.lateJoinFrame > 0 ? options.players - 1U : options.players;
+}
+
 }
 
 RunnerMatch::RunnerMatch(const RunnerOptions& options)
@@ -100,9 +105,9 @@ RunnerMatch::RunnerMatch(const RunnerOptions& options)
 
 RunOutcome RunnerMatch::play()
 {
-    for (RunnerClient& client : clients)
+    for (std::size_t client = 0; client < clientsJoiningAtStart(options); ++client)
     {
-        client.join();
+        clients[client].join();
     }
 
     const std::uint64_t hostFrame = kMicrosecondsPerSecond / options.tickRate;
@@ -121,6 +126,7 @@ RunOutcome RunnerMatch::play()
             client.playHostFrame(hostFrame);
         }
 
+        joinLateClientWhenDue();
         ++hostFrames;
     }
 
@@ -158,6 +164,19 @@ void RunnerMatch::letTimePass(std::uint64_t microseconds)
     networkMilliseconds = dueMilliseconds;
 }
 
+void RunnerMatch::joinLateClientWhenDue()
+{
+    RunnerClient& lateClient = clients.back();
+    const session::Session* first = clients.front().session().session();
+    const bool isDue = options.lateJoinFrame > 0 && lateClient.session().state() == session::ConnectionState::Idle &&
+                       first != nullptr && first->verifiedFrame() >= options.lateJoinFrame;
+
+    if (isDue)
+    {
+        lateClient.join();
+    }
+}
+
 bool RunnerMatch::hasEveryClientFinished() const
 {
     const std::uint32_t lastChecked = lastFrameChecked(options);
@@ -193,8 +212,10 @@ RunOutcome RunnerMatch::outcomeAfter(std::uint32_t hostFrames) const
     {
         const session::Session* played = client.session().session();
 
-        outcome.clients.push_back(ClientOutcome{
-            client.session().localSlot(), played == nullptr ? session::RollbackStats{} : played->rollbackStats()});
+        outcome.clients.push_back(
+            ClientOutcome{client.session().localSlot(),
+                          client.session().startFrame(),
+                          played == nullptr ? session::RollbackStats{} : played->rollbackStats()});
     }
 
     return outcome;

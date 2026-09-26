@@ -35,6 +35,9 @@ cxxopts::Options describedOptions()
     add("fault",
         "client starting a health point off, none when negative",
         cxxopts::value<std::int32_t>()->default_value("-1"));
+    add("late-join-at",
+        "frame the first client has verified when the last one joins, none when nought",
+        cxxopts::value<std::uint32_t>()->default_value("0"));
     add("help", "lists these options");
 
     return options;
@@ -64,6 +67,7 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
     read.recordPath = parsed["record"].as<std::string>();
     read.dumpDirectory = parsed["dump-dir"].as<std::string>();
     const std::int32_t fault = parsed["fault"].as<std::int32_t>();
+    read.lateJoinFrame = parsed["late-join-at"].as<std::uint32_t>();
     read.isHelpAsked = parsed.count("help") > 0;
 
     if (read.players == 0 || read.players > net::kMaxSlots)
@@ -99,6 +103,11 @@ tl::expected<RunnerOptions, Error> parseRunnerOptions(std::span<const char* cons
     }
 
     read.faultyClient = fault >= 0 ? std::optional{static_cast<std::uint32_t>(fault)} : std::nullopt;
+
+    if (read.lateJoinFrame > 0 && (read.players < 2 || read.lateJoinFrame >= read.frames))
+    {
+        return refused("--late-join-at takes a match of two players at least and a frame before --frames");
+    }
 
     return read;
 }
