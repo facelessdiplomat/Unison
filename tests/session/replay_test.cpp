@@ -13,6 +13,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <variant>
 #include <vector>
@@ -137,6 +138,25 @@ TEST_CASE("a replay reads back as the config and the records it was written with
     REQUIRE(isFrame(records[0], 1, inputsOf(1, 2)));
     REQUIRE(isChecksum(records[1], checksum));
     REQUIRE(isFrame(records[2], 2, inputsOf(3, 4)));
+}
+
+TEST_CASE("a replay written as a session verifies frames holds each frame and the checksum taken of it")
+{
+    const unison::session::VerifiedChecksum checksum{2, 0x0123456789ABCDEFULL};
+    unison::session::ReplayWriter writer{replayConfig()};
+    unison::session::IVerifiedFrameReceiver& receiver = writer;
+    receiver.frameVerified(1, inputsOf(1, 2), std::nullopt);
+    receiver.frameVerified(2, inputsOf(3, 4), checksum.checksum);
+
+    tl::expected<unison::session::ReplayReader, unison::Error> reader =
+        unison::session::ReplayReader::open(writer.bytes());
+    REQUIRE(reader.has_value());
+    const std::vector<unison::session::ReplayRecord> records = recordsOf(*reader);
+
+    REQUIRE(records.size() == 3U);
+    REQUIRE(isFrame(records[0], 1, inputsOf(1, 2)));
+    REQUIRE(isFrame(records[1], 2, inputsOf(3, 4)));
+    REQUIRE(isChecksum(records[2], checksum));
 }
 
 TEST_CASE("bytes that do not open with the replay magic are refused")

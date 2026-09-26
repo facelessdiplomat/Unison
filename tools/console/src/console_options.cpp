@@ -24,6 +24,7 @@ cxxopts::Options describedOptions()
     add("name", "name this console shows", cxxopts::value<std::string>()->default_value("player"));
     add("players", "players in the match, the same for all", cxxopts::value<std::uint32_t>()->default_value("2"));
     add("run-for", "seconds to run, 0 until stopped", cxxopts::value<std::uint32_t>()->default_value("0"));
+    add("record", "file the match is recorded into", cxxopts::value<std::string>()->default_value(""));
     add("help", "lists these options");
 
     return options;
@@ -43,6 +44,7 @@ tl::expected<ConsoleOptions, Error> parseConsoleOptions(std::span<const char* co
     read.name = parsed["name"].as<std::string>();
     read.players = parsed["players"].as<std::uint32_t>();
     read.runForSeconds = parsed["run-for"].as<std::uint32_t>();
+    read.recordPath = parsed["record"].as<std::string>();
     read.isHelpAsked = parsed.count("help") > 0;
 
     if (read.players == 0 || read.players > net::kMaxSlots)

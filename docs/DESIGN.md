@@ -663,6 +663,13 @@ checksums nor events, so once warmed up it takes nothing from the heap and a rep
 constant memory. A frame that does not follow the last one played is refused: the frames' order is the
 player's to check, not the reader's.
 
+A client records a replay as its session verifies frames. The session tells the `IVerifiedFrameReceiver` it
+was given of every frame it verifies, in order and before the frame leaves its window: the frame's number, the
+inputs the relay settled for it and, when the config's interval falls on it, its checksum. `ReplayWriter` is
+such a receiver. `--record <file>` records the runner's first client or the console's own session and writes
+the file once the match ends; `writeReplayFile` and `readReplayFile` move a replay between memory and a file
+whole.
+
 ---
 
 ## 9. Networking
@@ -812,8 +819,9 @@ the session's event changes are.
   checksum the clients report into a ledger, and the run lasts until every client has reported the last frame
   it checks; the first frame the clients report different checksums for is the desync, printed with every
   slot's checksum of it. The exit code is 0 for a run that verified every frame alike within its window,
-  2 for a desync, 3 for a rollback deeper than the prediction window, and 1 for a run that missed frames or a
-  command line it could not read; a desync outranks an overflow, and both outrank missed frames. After the
+  2 for a desync, 3 for a rollback deeper than the prediction window, and 1 for a run that missed frames, a
+  command line it could not read or a replay it could not write; a desync outranks an overflow, and both outrank
+  missed frames. After the
   verdict every run prints a table of rollbacks by slot, in slot order: how many, how many per second of play,
   how deep on average and at most, and how many ticks the client stalled with its window full, closed by a row
   for every client together.
@@ -832,7 +840,9 @@ the session's event changes are.
   view.
   It runs on the real clock until Ctrl+C, `--run-for` seconds, a disconnect, which ends it with exit code 1,
   or a desync the relay reports, which ends it with exit code 2 whatever else happened and puts the frame and
-  the slots out of step at the end of the status line. `--spectate` comes with spectators (4.5.3). The keyboard is read without
+  the slots out of step at the end of the status line. With `--record` it writes the replay of the frames it
+  verified into a file when it ends, and a replay it could not write turns an exit code of 0 into 1.
+  `--spectate` comes with spectators (4.5.3). The keyboard is read without
   blocking from Windows' console input, which reports keys going down and up while the window has focus, and
   a lost focus lets every key go: W and S move forward and back, A and D to the sides, Space jumps, F fires,
   and Q and E turn the aim half a turn a second for as long as they are held, by the time held rather than by

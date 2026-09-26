@@ -24,8 +24,10 @@ Session::Session(sim::Frame& frame,
                  const sim::SystemPipeline& pipeline,
                  const net::SessionConfig& config,
                  std::size_t localSlot,
-                 std::uint32_t inputDelayFrames)
+                 std::uint32_t inputDelayFrames,
+                 IVerifiedFrameReceiver* verifiedFrames)
     : liveFrame{frame}, systemPipeline{pipeline}, config{config}, inputDelay{inputDelayFrames},
+      verifiedFrameReceiver{verifiedFrames},
       inputTimeline{config.slotCount, localSlot, predictionWindowFor(config) + inputDelayFrames + kConfirmationsAhead},
       snapshotRing{predictionWindowFor(config)}, eventHistory{predictionWindowFor(config)}, verified{frame.frameNumber},
       predicted{frame.frameNumber}
@@ -182,9 +184,18 @@ void Session::advanceVerified()
         ++verified;
         eventHistory.release(verified, pendingEventChanges);
 
-        if (verified % config.checksumInterval == 0)
+        const std::optional<std::uint64_t> checksum =
+            verified % config.checksumInterval == 0 ? std::optional{sim::checksumOf(snapshotRing.snapshotAt(verified))}
+                                                    : std::nullopt;
+
+        if (checksum.has_value())
         {
-            pendingChecksums.push_back(VerifiedChecksum{verified, sim::checksumOf(snapshotRing.snapshotAt(verified))});
+            pendingChecksums.push_back(VerifiedChecksum{verified, *checksum});
+        }
+
+        if (verifiedFrameReceiver != nullptr)
+        {
+            verifiedFrameReceiver->frameVerified(verified, inputTimeline.inputsAt(verified), checksum);
         }
     }
 

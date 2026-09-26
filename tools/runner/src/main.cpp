@@ -4,10 +4,43 @@
 
 #include <arena/assets.hpp>
 
+#include <unison/session/replay_file.hpp>
+
 #include <cstddef>
 #include <cstdio>
 #include <span>
 #include <string>
+
+namespace
+{
+
+[[nodiscard]] bool keepRecording(const unison::runner::RunnerOptions& options, const unison::runner::RunnerMatch& match)
+{
+    if (options.recordPath.empty())
+    {
+        return true;
+    }
+
+    const tl::expected<void, unison::Error> written =
+        unison::session::writeReplayFile(options.recordPath, match.replay());
+
+    if (!written.has_value())
+    {
+        std::fprintf(stderr,
+                     "unison_runner: %.*s: %s\n",
+                     static_cast<int>(written.error().message().size()),
+                     written.error().message().data(),
+                     options.recordPath.c_str());
+
+        return false;
+    }
+
+    std::printf("unison_runner: recorded the run into %s\n", options.recordPath.c_str());
+
+    return true;
+}
+
+}
 
 int main(int argc, char** argv)
 {
@@ -44,6 +77,11 @@ int main(int argc, char** argv)
     const std::string report = unison::runner::reportOf(outcome, *options);
 
     std::fputs(report.c_str(), exitCode == 0 ? stdout : stderr);
+
+    if (!keepRecording(*options, match) && exitCode == 0)
+    {
+        return 1;
+    }
 
     return exitCode;
 }

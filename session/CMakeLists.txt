@@ -6,6 +6,7 @@ add_library(
     src/local_input.cpp
     src/networked_session.cpp
     src/repeat_last_input_predictor.cpp
+    src/replay_file.cpp
     src/replay_player.cpp
     src/replay_reader.cpp
     src/replay_writer.cpp

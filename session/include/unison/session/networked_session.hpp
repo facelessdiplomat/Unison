@@ -47,12 +47,15 @@ inline constexpr std::uint64_t kPingIntervalMicroseconds = 100'000;
 class NetworkedSession final : public net::IMessageReceiver
 {
 public:
+    /// A receiver, when given, hears of every frame the session verifies once the relay has let the client in,
+    /// and must outlive the client.
     NetworkedSession(sim::Frame& frame,
                      const sim::SystemPipeline& pipeline,
                      const net::SessionConfig& config,
                      net::ITransport& transport,
                      net::PeerId relay,
-                     std::uint32_t inputDelayFrames = 0);
+                     std::uint32_t inputDelayFrames = 0,
+                     IVerifiedFrameReceiver* verifiedFrames = nullptr);
 
     /// Asks the relay to let this client play the config it was made with.
     void join();
@@ -134,6 +137,7 @@ private:
     net::ITransport& transport;
     net::PeerId relay;
     std::uint32_t inputDelay;
+    IVerifiedFrameReceiver* verifiedFrameReceiver;
     net::Outbox outbox;
     TimeSync pace;
     ConnectionState connection = ConnectionState::Idle;

@@ -9,6 +9,7 @@
 #include <unison/net/network_simulator.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/session/networked_session.hpp>
+#include <unison/session/verified_frame_receiver.hpp>
 #include <unison/view/event_dispatcher.hpp>
 #include <unison/view/session_runner.hpp>
 
@@ -19,7 +20,7 @@ namespace unison::runner
 
 /// One client of a runner match: its own copy of the game, the session it plays through a link over the run's
 /// simulated network, the session runner that ticks it from the host's time, and the scripted player at its
-/// controls.
+/// controls. A receiver, when given, hears of every frame the client verifies.
 class RunnerClient
 {
 public:
@@ -28,7 +29,8 @@ public:
                  net::PeerId relay,
                  const net::SessionConfig& config,
                  const net::IClock& clock,
-                 std::uint32_t player);
+                 std::uint32_t player,
+                 session::IVerifiedFrameReceiver* verifiedFrames = nullptr);
 
     RunnerClient(const RunnerClient&) = delete;
     RunnerClient& operator=(const RunnerClient&) = delete;

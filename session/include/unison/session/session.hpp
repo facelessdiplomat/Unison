@@ -7,6 +7,7 @@
 #include <unison/session/rollback_stats.hpp>
 #include <unison/session/snapshot_ring.hpp>
 #include <unison/session/verified_checksum.hpp>
+#include <unison/session/verified_frame_receiver.hpp>
 #include <unison/sim/frame.hpp>
 #include <unison/sim/system_pipeline.hpp>
 
@@ -31,12 +32,14 @@ class Session
 {
 public:
     /// An input delay makes every tick play the local input it samples that many frames later, trading
-    /// responsiveness for fewer rollbacks; until then the local player plays the neutral input.
+    /// responsiveness for fewer rollbacks; until then the local player plays the neutral input. A receiver, when
+    /// given, hears of every frame the session verifies and must outlive it.
     Session(sim::Frame& frame,
             const sim::SystemPipeline& pipeline,
             const net::SessionConfig& config,
             std::size_t localSlot,
-            std::uint32_t inputDelayFrames = 0);
+            std::uint32_t inputDelayFrames = 0,
+            IVerifiedFrameReceiver* verifiedFrames = nullptr);
 
     Session(const Session&) = delete;
     Session& operator=(const Session&) = delete;
@@ -93,6 +96,7 @@ private:
     const sim::SystemPipeline& systemPipeline;
     net::SessionConfig config;
     std::uint32_t inputDelay;
+    IVerifiedFrameReceiver* verifiedFrameReceiver;
     InputTimeline inputTimeline;
     SnapshotRing snapshotRing;
     EventHistory eventHistory;

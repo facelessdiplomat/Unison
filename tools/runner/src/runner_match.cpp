@@ -33,17 +33,28 @@ net::NetworkConditions conditionsFor(const RunnerOptions& options)
     return net::NetworkConditions{options.latencyMilliseconds, options.jitterMilliseconds, options.lossRate};
 }
 
+std::optional<session::ReplayWriter> recordingFor(const RunnerOptions& options, const net::SessionConfig& config)
+{
+    if (options.recordPath.empty())
+    {
+        return std::nullopt;
+    }
+
+    return session::ReplayWriter{config};
+}
+
 std::deque<RunnerClient> clientsFor(net::LoopbackHub& hub,
                                     net::NetworkSimulator& network,
                                     net::PeerId relay,
                                     const net::SessionConfig& config,
-                                    const net::IClock& clock)
+                                    const net::IClock& clock,
+                                    session::IVerifiedFrameReceiver* recorder)
 {
     std::deque<RunnerClient> clients;
 
     for (std::uint32_t player = 0; player < config.slotCount; ++player)
     {
-        clients.emplace_back(hub, network, relay, config, clock, player);
+        clients.emplace_back(hub, network, relay, config, clock, player, player == 0 ? recorder : nullptr);
     }
 
     return clients;
@@ -70,9 +81,9 @@ std::uint32_t lastFrameChecked(const RunnerOptions& options)
 
 RunnerMatch::RunnerMatch(const RunnerOptions& options)
     : options{options}, config{configFor(options)}, network{conditionsFor(options), options.seed}, relayEnd{hub.join()},
-      relayLink{relayEnd, network}, relay{relayLink, clock, config},
-      clients{clientsFor(hub, network, relayEnd.id(), config, clock)}, ledger{clients.size()},
-      wiretap{relay, ledger, peersOf(clients)}
+      relayLink{relayEnd, network}, relay{relayLink, clock, config}, recording{recordingFor(options, config)},
+      clients{clientsFor(hub, network, relayEnd.id(), config, clock, recording.has_value() ? &*recording : nullptr)},
+      ledger{clients.size()}, wiretap{relay, ledger, peersOf(clients)}
 {
 }
 
@@ -103,6 +114,11 @@ RunOutcome RunnerMatch::play()
     }
 
     return outcomeAfter(hostFrames);
+}
+
+std::span<const std::byte> RunnerMatch::replay() const
+{
+    return recording.has_value() ? recording->bytes() : std::span<const std::byte>{};
 }
 
 void RunnerMatch::letTimePass(std::uint64_t microseconds)

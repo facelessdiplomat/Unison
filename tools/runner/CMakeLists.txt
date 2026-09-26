@@ -46,6 +46,21 @@ set_tests_properties(
     runner_plays_two_players_for_600_frames PROPERTIES PASS_REGULAR_EXPRESSION "2 players verified 600 frames" LABELS fast
 )
 
+add_test(
+    NAME runner_records_a_replay
+    COMMAND unison_runner --frames 120 --record "${CMAKE_CURRENT_BINARY_DIR}/runner_records_a_replay.replay"
+)
+
+set_tests_properties(runner_records_a_replay PROPERTIES PASS_REGULAR_EXPRESSION "recorded the run into" LABELS fast)
+
+add_test(
+    NAME runner_reports_a_replay_it_cannot_write
+    COMMAND
+        unison_runner --frames 120 --record "${CMAKE_CURRENT_BINARY_DIR}/no_such_folder/match.replay"
+)
+
+set_tests_properties(runner_reports_a_replay_it_cannot_write PROPERTIES WILL_FAIL TRUE LABELS fast)
+
 set(UNISON_PROFILE_SECONDS 5)
 
 foreach(players IN ITEMS 2 4 8)

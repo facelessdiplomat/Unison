@@ -136,12 +136,14 @@ add_executable(
     session/local_input_test.cpp
     session/networked_session_test.cpp
     session/repeat_last_input_predictor_test.cpp
+    session/replay_file_test.cpp
     session/replay_player_test.cpp
     session/replay_test.cpp
     session/session_allocation_test.cpp
     session/session_checksum_test.cpp
     session/session_events_test.cpp
     session/session_input_delay_test.cpp
+    session/session_recording_test.cpp
     session/session_rollback_test.cpp
     session/session_test.cpp
     session/snapshot_ring_test.cpp
@@ -254,6 +256,7 @@ add_executable(
     arena/weapons_test.cpp
     support/allocation_probe.cpp
     tools/runner_match_test.cpp
+    tools/runner_replay_test.cpp
     tools/scripted_player_test.cpp
 )
 

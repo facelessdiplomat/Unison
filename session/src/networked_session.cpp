@@ -14,9 +14,10 @@ NetworkedSession::NetworkedSession(sim::Frame& frame,
                                    const net::SessionConfig& config,
                                    net::ITransport& transport,
                                    net::PeerId relay,
-                                   std::uint32_t inputDelayFrames)
+                                   std::uint32_t inputDelayFrames,
+                                   IVerifiedFrameReceiver* verifiedFrames)
     : frame{frame}, pipeline{pipeline}, config{config}, transport{transport}, relay{relay},
-      inputDelay{inputDelayFrames}, outbox{transport}, pace{config.tickRate}
+      inputDelay{inputDelayFrames}, verifiedFrameReceiver{verifiedFrames}, outbox{transport}, pace{config.tickRate}
 {
 }
 
@@ -157,7 +158,7 @@ void NetworkedSession::handle(const net::Welcome& welcome)
     }
 
     givenSlot = welcome.slot;
-    played.emplace(frame, pipeline, config, givenSlot, inputDelay);
+    played.emplace(frame, pipeline, config, givenSlot, inputDelay, verifiedFrameReceiver);
     moveTo(ConnectionState::Playing);
 }
 

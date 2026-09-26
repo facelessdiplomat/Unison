@@ -17,6 +17,8 @@
 #include <unison/net/millisecond_timer.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/session/networked_session.hpp>
+#include <unison/session/replay_file.hpp>
+#include <unison/session/replay_writer.hpp>
 #include <unison/sim/asset_hash.hpp>
 #include <unison/sim/pipeline_hash.hpp>
 #include <unison/view/event_dispatcher.hpp>
@@ -39,6 +41,7 @@ namespace
 constexpr std::uint64_t kMicrosecondsPerSecond = 1'000'000;
 constexpr std::uint64_t kMicrosecondsPerScreen = 100'000;
 constexpr std::chrono::milliseconds kIdleBetweenFrames{1};
+constexpr std::uint32_t kNoInputDelay = 0;
 
 volatile std::sig_atomic_t isStopAsked = 0;
 
@@ -210,6 +213,31 @@ void playUntilStopped(const unison::console::ConsoleOptions& options,
     }
 }
 
+[[nodiscard]] bool keepRecording(const unison::console::ConsoleOptions& options,
+                                 const std::optional<unison::session::ReplayWriter>& recording)
+{
+    if (!recording.has_value())
+    {
+        return true;
+    }
+
+    const tl::expected<void, unison::Error> written =
+        unison::session::writeReplayFile(options.recordPath, recording->bytes());
+
+    if (!written.has_value())
+    {
+        unison::logMessage(unison::LogLevel::Error,
+                           std::format("unison_console: {}: {}", written.error().message(), options.recordPath));
+
+        return false;
+    }
+
+    unison::logMessage(unison::LogLevel::Info,
+                       std::format("unison_console: recorded the match into {}", options.recordPath));
+
+    return true;
+}
+
 tl::expected<unison::net::EnetConnection, unison::Error> connectToRelay(const unison::console::ConsoleOptions& options)
 {
     const std::optional<unison::net::EnetAddress> from =
@@ -255,8 +283,20 @@ int main(int argc, char** argv)
     }
 
     const unison::net::SteadyClock clock;
-    unison::session::NetworkedSession networked{
-        match.frame(), match.pipeline(), config, *connected->transport, connected->server};
+    std::optional<unison::session::ReplayWriter> recording;
+
+    if (!options->recordPath.empty())
+    {
+        recording.emplace(config);
+    }
+
+    unison::session::NetworkedSession networked{match.frame(),
+                                                match.pipeline(),
+                                                config,
+                                                *connected->transport,
+                                                connected->server,
+                                                kNoInputDelay,
+                                                recording.has_value() ? &*recording : nullptr};
     unison::view::EventDispatcher dispatcher;
     unison::view::SessionRunner runner{networked, dispatcher, clock, config.tickRate};
 
@@ -264,6 +304,12 @@ int main(int argc, char** argv)
 
     const unison::console::ConsoleStatus lastStatus = statusOf(*options, networked, 0);
     logStatus(lastStatus);
+    const int exitCode = unison::console::exitCodeOf(lastStatus);
 
-    return unison::console::exitCodeOf(lastStatus);
+    if (!keepRecording(*options, recording) && exitCode == 0)
+    {
+        return 1;
+    }
+
+    return exitCode;
 }

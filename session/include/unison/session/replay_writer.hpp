@@ -2,9 +2,11 @@
 
 #include <unison/net/session_config.hpp>
 #include <unison/session/replay_format.hpp>
+#include <unison/session/verified_frame_receiver.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -12,11 +14,17 @@ namespace unison::session
 {
 
 /// Writes a match as a replay: the header of its config at once, then frames and checksums in the order they
-/// are given. A config no session can play breaks a contract.
-class ReplayWriter
+/// are given, or as a session verifies them when it is the session's receiver. A config no session can play
+/// breaks a contract.
+class ReplayWriter final : public IVerifiedFrameReceiver
 {
 public:
     explicit ReplayWriter(const net::SessionConfig& config);
+
+    /// Writes the frame, then its checksum when the session took one.
+    void frameVerified(std::uint32_t frameNumber,
+                       const sim::FrameInputs& inputs,
+                       std::optional<std::uint64_t> checksum) override;
 
     /// Appends a frame: its number, then every slot's flags and as many bytes of its input as the config says.
     void writeFrame(std::uint32_t frameNumber, const sim::FrameInputs& inputs);
