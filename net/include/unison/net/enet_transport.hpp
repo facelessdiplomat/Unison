@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unison/core/error.hpp>
+#include <unison/net/round_trip_meter.hpp>
 #include <unison/net/transport.hpp>
 
 #include <tl/expected.hpp>
@@ -36,7 +37,7 @@ struct EnetConnection;
 /// has gone is dropped, as the network would drop it. A peer that says goodbye or stays silent for longer
 /// than the peer timeout is reported gone on the next poll, and a transport that goes away says goodbye to
 /// its peers.
-class EnetTransport final : public ITransport
+class EnetTransport final : public ITransport, public IRoundTripMeter
 {
     struct Passkey
     {
@@ -74,6 +75,9 @@ public:
     void send(PeerId to, Channel channel, std::span<const std::byte> message) override;
 
     void poll(IMessageReceiver& receiver) override;
+
+    /// ENet's own smoothed round trip to a connected peer.
+    [[nodiscard]] std::optional<std::uint64_t> roundTripMicroseconds(PeerId peer) const override;
 
 private:
     std::unique_ptr<Host> host;

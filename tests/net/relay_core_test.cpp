@@ -3,6 +3,7 @@
 #include <unison/net/loopback_hub.hpp>
 #include <unison/net/message_codec.hpp>
 #include <unison/net/network_simulator.hpp>
+#include <unison/net/round_trip_meter.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -12,7 +13,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -776,4 +779,106 @@ TEST_CASE("a pong before the first input of the match names no frame due")
 
     const unison::net::Pong pong = onlyReplyAs<unison::net::Pong>(Match::repliesOf(match.first));
     REQUIRE(pong.dueFrame == 0U);
+}
+
+namespace
+{
+
+class FixedRoundTrips final : public unison::net::IRoundTripMeter
+{
+public:
+    void set(unison::net::PeerId peer, std::uint64_t microseconds)
+    {
+        measured.emplace_back(peer, microseconds);
+    }
+
+    [[nodiscard]] std::optional<std::uint64_t> roundTripMicroseconds(unison::net::PeerId peer) const override
+    {
+        const auto found = std::ranges::find(measured, peer, &std::pair<unison::net::PeerId, std::uint64_t>::first);
+
+        return found == measured.end() ? std::nullopt : std::optional{found->second};
+    }
+
+private:
+    std::vector<std::pair<unison::net::PeerId, std::uint64_t>> measured;
+};
+
+struct RunningMatch
+{
+    RunningMatch()
+        : endpoint{hub.join()},
+          core{endpoint, clock, threeSlotsOfTwoBytes(), unison::net::RelaySettings{}, &roundTrips}, first{hub.join()},
+          second{hub.join()}, joiner{hub.join()}
+    {
+        hello(first);
+        hello(second);
+        sendInputs(first, 1, inputOf(1));
+        sendInputs(second, 1, inputOf(2));
+        static_cast<void>(Match::repliesOf(first));
+        static_cast<void>(Match::repliesOf(second));
+    }
+
+    void hello(unison::net::LoopbackEndpoint& client)
+    {
+        sendMessage(client, endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+        endpoint.poll(core);
+    }
+
+    void sendInputs(unison::net::LoopbackEndpoint& client, std::uint32_t frame, std::span<const std::byte> inputs)
+    {
+        sendMessage(client, endpoint.id(), unison::net::Input{frame, 2, 1, inputs});
+        endpoint.poll(core);
+    }
+
+    unison::net::LoopbackHub hub;
+    unison::net::ManualClock clock;
+    FixedRoundTrips roundTrips;
+    unison::net::LoopbackEndpoint& endpoint;
+    unison::net::RelayCore core;
+    unison::net::LoopbackEndpoint& first;
+    unison::net::LoopbackEndpoint& second;
+    unison::net::LoopbackEndpoint& joiner;
+};
+
+std::vector<unison::net::SnapshotRequest> snapshotRequestsIn(const Replies& replies)
+{
+    std::vector<unison::net::SnapshotRequest> requests;
+
+    for (const std::vector<std::byte>& reply : replies)
+    {
+        const auto decoded = unison::net::decode(reply);
+
+        if (decoded.has_value() && std::holds_alternative<unison::net::SnapshotRequest>(*decoded))
+        {
+            requests.push_back(std::get<unison::net::SnapshotRequest>(*decoded));
+        }
+    }
+
+    return requests;
+}
+
+}
+
+TEST_CASE("a player joining a running room makes the relay ask the player with the lowest round trip for a snapshot")
+{
+    RunningMatch match;
+    match.roundTrips.set(match.first.id(), 40'000);
+    match.roundTrips.set(match.second.id(), 10'000);
+
+    match.hello(match.joiner);
+
+    const std::vector<unison::net::SnapshotRequest> toSecond = snapshotRequestsIn(Match::repliesOf(match.second));
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(match.first)).empty());
+    REQUIRE(toSecond.size() == 1U);
+    REQUIRE(toSecond.front().frame == 2U);
+}
+
+TEST_CASE("the relay asks the player in the lowest slot for a snapshot when no round trip is measured")
+{
+    RunningMatch match;
+
+    match.hello(match.joiner);
+
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(match.first)).size() == 1U);
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(match.second)).empty());
 }

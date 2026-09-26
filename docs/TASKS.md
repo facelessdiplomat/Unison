@@ -18,10 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.3.1**, late-join at the relay: a `Hello` into a running room picks the donor with the lowest round
-  trip and sends it a `SnapshotRequest`. Last finished: 4.2.4. On the owner's word of 2026-09-26 Phase 4 goes on
-  while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until
-  X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **4.3.2**, the donor's side: a client asked for a snapshot serialises the first frame it verifies at or
+  after the one asked for and sends it in `SnapshotChunk`s that reassemble to the snapshot. Last finished: 4.3.1.
+  On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on
+  Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS. 3.2.3 is deferred
+  until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,10 +45,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 20 | 9 |
+| 4 Session features | 5 | 20 | 10 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **248** | **196** |
+| **Total** | **41** | **248** | **197** |
 
 ## Charter amendments made while planning
 
@@ -453,7 +454,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] 4.2.4 Desync dumps: on `Desync`, clients write `desync_<frame>_<slot>.snapshot`; `unison_replay diff a b` prints the report. Test: a runner with an injected fault produces dumps that diff to the injected field. Done on 2026-09-26: a session's receiver now hears of each verified frame with its snapshot too, and `VerifiedFrameFanOut` hands one frame to several receivers. `DesyncDumper` keeps the serialised snapshots of the frames checksummed in the last 128 frames, longer than the relay keeps a frame waiting, and writes the one of a desync's frame into `desync_<frame>_<slot>.snapshot` in its folder. The runner's clients and the console dump a desync into `--dump-dir`, the working folder unless told otherwise, and the runner's `--fault <client>` starts that client with the first player one health point low. `unison_replay diff a b` prints that two snapshots are alike, exit code 0, or the part, entity, byte and field they first differ in, exit code 2. `writeReplayFile` and `readReplayFile` became `writeFileBytes` and `readFileBytes`, since dumps are files too. Tested: a runner with client 1 faulty writes two dumps whose first difference is Health, in its field points; in CTest `runner_dumps_the_snapshots_of_a_desync` then `replay_diffs_the_dumps_of_a_desync` show the same through the tools; the dumper writes, keeps nothing unchecksummed and lets old frames go; the fan-out reaches every receiver; the options and reports of the three tools. Keeping old frames or disabling the fault fails their cases. By hand a faulty runner's dumps diff as Health of entity 10 at byte 0, in its field points, and a dump diffed with itself is alike.
 
 ### 4.3 Late-join
-- [ ] 4.3.1 Relay: `Hello` into a running room selects a donor (lowest RTT) and sends `SnapshotRequest(frame)`. Test: donor chosen, request issued.
+- [x] 4.3.1 Relay: `Hello` into a running room selects a donor (lowest RTT) and sends `SnapshotRequest(frame)`. Test: donor chosen, request issued. Done on 2026-09-26: a player's `Hello` into a room the relay has confirmed a frame of makes the relay send `SnapshotRequest` for the frame after the newest it confirmed to a donor: the player with the lowest round trip an `IRoundTripMeter` measures, the lowest slot among equals or where nothing is measured. `EnetTransport` is such a meter, giving ENet's smoothed round trip to a connected peer; the relay tool will hand it to the rooms with the rest of late-join. The joiner is still welcomed at once, as before: holding its slot out of play while it catches up and welcoming it with the snapshot come with 4.3.3, since a joiner that waited for a snapshot nobody sends yet would have broken joining a match a moment old, which the ENet match test does and which failed when tried. Tested: with round trips of 40 and 10 ms the second player is asked for frame 2, with none measured the first is, and a connected ENet peer has a round trip where an unknown one has none; ignoring the measure fails the first case.
 - [ ] 4.3.2 Donor client: serialises verified frame `F` and streams `SnapshotChunk`s. Test: chunks reassemble to the serialised snapshot.
 - [ ] 4.3.3 Relay input log retention: confirmed inputs since `F` forwarded to the joiner. Test: no gap between the snapshot frame and live frames.
 - [ ] 4.3.4 Joiner: restore, fast-forward at up to 8× until inside the prediction window, then play. Test: joiner checksums equal the others from `F` onward.

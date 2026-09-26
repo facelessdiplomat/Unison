@@ -8,11 +8,13 @@
 #include <unison/net/outbox.hpp>
 #include <unison/net/protocol.hpp>
 #include <unison/net/roster.hpp>
+#include <unison/net/round_trip_meter.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/net/transport.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -35,15 +37,17 @@ inline constexpr std::uint32_t kRedundantConfirmations = 4;
 /// turns away a client that speaks another protocol, would play another config or finds every slot taken.
 /// It confirms a frame once every player has sent an input for it, or at the deadline without the missing
 /// ones, sends the confirmation with the frames confirmed just before it to everyone, answers a ping with the
-/// frame its clock has due, and tells everyone which players' checksums part ways with the rest. It never
-/// simulates, and it answers through its transport.
+/// frame its clock has due, and tells everyone which players' checksums part ways with the rest. When a player joins a
+/// running match, the player with the lowest round trip the meter, when given, measures is asked for a snapshot. It
+/// never simulates, and it answers through its transport.
 class RelayCore final : public IMessageReceiver
 {
 public:
     RelayCore(ITransport& transport,
               const IClock& clock,
               const SessionConfig& config,
-              const RelaySettings& settings = RelaySettings{});
+              const RelaySettings& settings = RelaySettings{},
+              const IRoundTripMeter* roundTrips = nullptr);
 
     void receive(PeerId from, Channel channel, std::span<const std::byte> message) override;
 
@@ -73,6 +77,10 @@ private:
 
     void admit(PeerId peer, std::uint8_t slot);
 
+    [[nodiscard]] bool isRunning() const;
+
+    [[nodiscard]] std::optional<PeerId> donorFor(PeerId joiner) const;
+
     void turnAway(PeerId peer, LeaveReason reason);
 
     void confirmReadyFrames();
@@ -86,6 +94,7 @@ private:
     const IClock& clock;
     SessionConfig config;
     RelaySettings settings;
+    const IRoundTripMeter* roundTrips;
     std::uint64_t configHash;
     Roster roster;
     Outbox outbox;

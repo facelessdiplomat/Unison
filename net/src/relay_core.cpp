@@ -4,6 +4,7 @@
 #include <unison/net/message_codec.hpp>
 
 #include <algorithm>
+#include <limits>
 #include <optional>
 #include <variant>
 
@@ -20,10 +21,11 @@ constexpr std::uint32_t kPendingFrames = 128;
 RelayCore::RelayCore(ITransport& transport,
                      const IClock& clock,
                      const SessionConfig& config,
-                     const RelaySettings& settings)
-    : clock{clock}, config{config}, settings{settings}, configHash{hashOf(config)}, roster{config.slotCount},
-      outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames}, matchClock{config.tickRate},
-      confirmedLog{confirmedFrameSize(config.slotCount, config.inputSize)},
+                     const RelaySettings& settings,
+                     const IRoundTripMeter* roundTrips)
+    : clock{clock}, config{config}, settings{settings}, roundTrips{roundTrips}, configHash{hashOf(config)},
+      roster{config.slotCount}, outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames},
+      matchClock{config.tickRate}, confirmedLog{confirmedFrameSize(config.slotCount, config.inputSize)},
       confirmedSlots(confirmedFrameSize(config.slotCount, config.inputSize)),
       framesPerDatagram{confirmedFramesPerDatagram(config.slotCount, config.inputSize)}
 {
@@ -92,6 +94,13 @@ void RelayCore::handle(PeerId from, const Hello& hello)
     }
 
     admit(from, slot);
+
+    const std::optional<PeerId> donor = isRunning() ? donorFor(from) : std::nullopt;
+
+    if (donor.has_value())
+    {
+        outbox.send(*donor, Channel::Reliable, SnapshotRequest{confirmedLog.lastFrame() + 1});
+    }
 }
 
 void RelayCore::handle(PeerId from, const Input& input)
@@ -196,6 +205,39 @@ void RelayCore::admit(PeerId peer, std::uint8_t slot)
 {
     roster.admit(peer, slot);
     outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, 0});
+}
+
+bool RelayCore::isRunning() const
+{
+    return confirmedLog.lastFrame() > 0;
+}
+
+std::optional<PeerId> RelayCore::donorFor(PeerId joiner) const
+{
+    std::optional<Roster::Member> donor;
+    std::uint64_t donorRoundTrip = std::numeric_limits<std::uint64_t>::max();
+
+    for (const Roster::Member& member : roster.members())
+    {
+        if (member.peer == joiner || member.slot == kNoSlot)
+        {
+            continue;
+        }
+
+        const std::optional<std::uint64_t> measured =
+            roundTrips == nullptr ? std::nullopt : roundTrips->roundTripMicroseconds(member.peer);
+        const std::uint64_t roundTrip = measured.value_or(std::numeric_limits<std::uint64_t>::max());
+        const bool isBetter = !donor.has_value() || roundTrip < donorRoundTrip ||
+                              (roundTrip == donorRoundTrip && member.slot < donor->slot);
+
+        if (isBetter)
+        {
+            donor = member;
+            donorRoundTrip = roundTrip;
+        }
+    }
+
+    return donor.has_value() ? std::optional{donor->peer} : std::nullopt;
 }
 
 void RelayCore::turnAway(PeerId peer, LeaveReason reason)

@@ -5,6 +5,7 @@
 #include <enet/enet.h>
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 namespace unison::net
@@ -116,6 +117,13 @@ struct EnetTransport::Host
     }
 
     [[nodiscard]] Peer* find(PeerId id)
+    {
+        const auto found = std::ranges::find(peers, id, &Peer::id);
+
+        return found != peers.end() ? &*found : nullptr;
+    }
+
+    [[nodiscard]] const Peer* find(PeerId id) const
     {
         const auto found = std::ranges::find(peers, id, &Peer::id);
 
@@ -249,6 +257,19 @@ EnetTransport::~EnetTransport() = default;
 std::uint16_t EnetTransport::port() const
 {
     return host->handle->address.port;
+}
+
+std::optional<std::uint64_t> EnetTransport::roundTripMicroseconds(PeerId peer) const
+{
+    constexpr std::uint64_t kMicrosecondsPerMillisecond = 1'000;
+    const Host::Peer* known = std::as_const(*host).find(peer);
+
+    if (known == nullptr || !known->isConnected)
+    {
+        return std::nullopt;
+    }
+
+    return std::uint64_t{known->connection->roundTripTime} * kMicrosecondsPerMillisecond;
 }
 
 void EnetTransport::send(PeerId to, Channel channel, std::span<const std::byte> message)

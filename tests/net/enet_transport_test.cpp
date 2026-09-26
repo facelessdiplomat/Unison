@@ -504,3 +504,21 @@ TEST_CASE("two clients of a listening transport go by different names")
     REQUIRE(fromSecond.has_value());
     REQUIRE(fromFirst->from != fromSecond->from);
 }
+
+TEST_CASE("a transport measures the round trip to a peer it is connected to and to no other")
+{
+    const std::unique_ptr<unison::net::EnetTransport> server = listeningServer();
+    const unison::net::EnetConnection client = connectionTo(*server);
+    Inbox atServer;
+    Inbox atClient;
+    const auto giveUpAt = std::chrono::steady_clock::now() + kPatience;
+
+    while ((atServer.arrivals.empty() || atClient.arrivals.empty()) && std::chrono::steady_clock::now() < giveUpAt)
+    {
+        server->poll(atServer);
+        client.transport->poll(atClient);
+    }
+
+    REQUIRE(client.transport->roundTripMicroseconds(client.server).has_value());
+    REQUIRE_FALSE(client.transport->roundTripMicroseconds(unison::net::PeerId{0xFFFF}).has_value());
+}

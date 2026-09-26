@@ -641,9 +641,15 @@ than a tick, the table is worth redoing with its numbers.
 
 ### 8.6 Late-join, reconnect, spectators
 
-- **Late-join**: the relay picks a donor client, requests a serialised snapshot of verified frame `F`
-  (`serializeSnapshot`: registry + physics + globals), streams it in chunks over the reliable channel to the
-  joiner together with confirmed inputs since `F`; the joiner restores and fast-forwards at up to `N×` speed.
+- **Late-join**: a player's `Hello` into a running room, one the relay has confirmed a frame of, takes the lowest
+  free slot as a member still catching up, whose slot the relay confirms frames without, so the match plays on
+  unslowed. The relay picks a donor, the player with the lowest round trip as its transport measures it
+  (`IRoundTripMeter`, ENet's peer round trip), the lowest slot among equals or where nothing is measured, as
+  in-process, and sends it `SnapshotRequest` for the frame after the newest it has confirmed (a room with no player
+  left to ask welcomes the joiner from frame 0, as a room that has not started does); the donor answers with the
+  first frame it verifies at or after that one. The donor serialises that verified frame `F` (`serializeSnapshot`:
+  registry + physics + globals), which streams in chunks over the reliable channel to the joiner together with
+  confirmed inputs since `F`; the joiner restores and fast-forwards at up to `N×` speed.
 - **Reconnect**: same mechanism; the relay holds the slot for `reconnectGrace` (default 30 s) and applies the
   drop policy to the absent player's inputs meanwhile.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay.
