@@ -842,14 +842,16 @@ message go unanswered, and so does a `Ping` from a peer that is not in the match
 once on the unreliable channel with its own stamp, the newest frame the relay has confirmed and the frame its
 `MatchClock` has due (§8.3), and the sender works out the round trip from its own clock.
 
-A client plays through a `NetworkedSession`. It says hello when the host asks it to join, plays a `Session`
-in the slot the `Welcome` names, and on every host frame takes in what the relay sent and pings it when a
-ping is due (§8.3). On every tick it ticks the session, sends the input of its newest frame with up to three
-before it that the relay has not confirmed yet (`K = 4`) on the unreliable channel, and sends the checksums
-of the frames it verified on the reliable one, through an `Outbox` of its own. Every frame a confirmation carries is settled in turn; one the
-session no longer holds, as the relay's repeats and reliable resends often are, is dropped, and one it has
-settled already changes nothing. Anything from a peer other than the relay is dropped too. A `Desync` is
-kept for the host to read.
+A client plays through a `NetworkedSession`. It says hello when the host asks it to join, plays a `Session` in the
+slot the `Welcome` names, and on every host frame takes in what the relay sent and pings it when a ping is due
+(§8.3). On every tick it ticks the session, sends the input of its newest frame with up to three before it that the
+relay has not confirmed yet (`K = 4`) on the unreliable channel, and sends the checksums of the frames it verified
+on the reliable one, through an `Outbox` of its own. Every frame a confirmation carries is settled in turn; one the
+session no longer holds, as the relay's repeats and reliable resends often are, is dropped, and one it has settled
+already changes nothing. Anything from a peer other than the relay is dropped too. A `Desync` is kept for the host
+to read. It keeps its states in `ConnectionStates`, the snapshot a late joiner waits for in `AwaitedSnapshot` and
+how far such a client is behind in `CatchUp`; `newestInputsOf` writes the inputs it sends and
+`inputsOfConfirmedFrame` reads a confirmed frame's.
 
 Where the client stands is a `ConnectionState`: `Idle` until the host asks it to join, `Connecting` while its
 hello waits for the transport to reach the relay, `Joining` once the transport has (an in-process transport

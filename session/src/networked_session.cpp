@@ -2,7 +2,7 @@
 
 #include <unison/core/contract.hpp>
 #include <unison/net/message_codec.hpp>
-#include <unison/session/snapshot_serializer.hpp>
+#include <unison/session/confirmed_inputs.hpp>
 #include <unison/sim/frame_snapshot.hpp>
 
 #include <algorithm>
@@ -47,7 +47,7 @@ void NetworkedSession::join(std::uint64_t reconnectToken)
     outbox.send(
         relay, net::Channel::Reliable, net::Hello{net::kProtocolVersion, config, net::Role::Player, reconnectToken});
 
-    moveTo(ConnectionState::Connecting);
+    connection.moveTo(ConnectionState::Connecting);
 }
 
 void NetworkedSession::setLocalInput(std::span<const std::byte> input)
@@ -67,7 +67,7 @@ void NetworkedSession::update(std::uint64_t now)
     updatedAt = now;
     transport.poll(*this);
 
-    if (isInMatch() && now >= nextPingAt)
+    if (connection.isInMatch() && now >= nextPingAt)
     {
         outbox.send(relay, net::Channel::Unreliable, net::Ping{now});
         nextPingAt = now + kPingIntervalMicroseconds;
@@ -76,17 +76,17 @@ void NetworkedSession::update(std::uint64_t now)
 
 void NetworkedSession::tick()
 {
-    if (!isInMatch())
+    if (!connection.isInMatch())
     {
         return;
     }
 
     played->setLocalInput(localInput);
     played->tick();
-    moveTo(played->isStalled() ? ConnectionState::Stalled : ConnectionState::Playing);
-    isCatchingUp = isCatchingUp && played->predictedFrame() < newestConfirmed;
+    connection.moveTo(played->isStalled() ? ConnectionState::Stalled : ConnectionState::Playing);
+    catchUp.update(played->predictedFrame());
 
-    if (!isCatchingUp)
+    if (!catchUp.isBehind())
     {
         sendInputs();
     }
@@ -96,13 +96,10 @@ void NetworkedSession::tick()
 
 std::int32_t NetworkedSession::takeTickCorrection()
 {
-    if (isCatchingUp && played->predictedFrame() < newestConfirmed)
-    {
-        return static_cast<std::int32_t>(
-            std::min<std::uint32_t>(kCatchUpExtraTicks, newestConfirmed - played->predictedFrame()));
-    }
+    const std::optional<std::int32_t> extraTicks =
+        played.has_value() ? catchUp.extraTicks(played->predictedFrame()) : std::nullopt;
 
-    return pace.takeCorrection(updatedAt);
+    return extraTicks.has_value() ? *extraTicks : pace.takeCorrection(updatedAt);
 }
 
 void NetworkedSession::receive(net::PeerId from, net::Channel, std::span<const std::byte> message)
@@ -124,48 +121,48 @@ void NetworkedSession::receive(net::PeerId from, net::Channel, std::span<const s
 
 void NetworkedSession::peerArrived(net::PeerId peer)
 {
-    if (peer == relay && connection == ConnectionState::Connecting)
+    if (peer == relay && connection.current() == ConnectionState::Connecting)
     {
-        moveTo(ConnectionState::Joining);
+        connection.moveTo(ConnectionState::Joining);
     }
 }
 
 void NetworkedSession::peerLeft(net::PeerId peer)
 {
-    if (peer == relay && connection != ConnectionState::Idle)
+    if (peer == relay && connection.current() != ConnectionState::Idle)
     {
-        moveTo(ConnectionState::Disconnected);
+        connection.moveTo(ConnectionState::Disconnected);
     }
 }
 
 ConnectionState NetworkedSession::state() const
 {
-    return connection;
+    return connection.current();
 }
 
 std::span<const ConnectionState> NetworkedSession::connectionChanges() const
 {
-    return changes;
+    return connection.changes();
 }
 
 void NetworkedSession::clearConnectionChanges()
 {
-    changes.clear();
+    connection.clearChanges();
 }
 
 std::uint8_t NetworkedSession::localSlot() const
 {
-    return givenSlot;
+    return welcomed.has_value() ? welcomed->slot : net::kNoSlot;
 }
 
 std::uint32_t NetworkedSession::startFrame() const
 {
-    return welcomedFrame;
+    return welcomed.has_value() ? welcomed->startFrame : 0;
 }
 
 std::uint64_t NetworkedSession::reconnectToken() const
 {
-    return welcomedToken;
+    return welcomed.has_value() ? welcomed->reconnectToken : 0;
 }
 
 const Session* NetworkedSession::session() const
@@ -193,58 +190,59 @@ std::optional<net::Desync> NetworkedSession::lastDesync() const
 
 void NetworkedSession::handle(const net::Welcome& welcome)
 {
-    const bool isWaitingToBeLetIn = connection == ConnectionState::Connecting || connection == ConnectionState::Joining;
+    const bool isWaitingToBeLetIn =
+        connection.current() == ConnectionState::Connecting || connection.current() == ConnectionState::Joining;
 
     if (!isWaitingToBeLetIn || welcome.slot >= config.slotCount)
     {
         return;
     }
 
-    givenSlot = welcome.slot;
-    welcomedFrame = welcome.startFrame;
-    welcomedToken = welcome.reconnectToken;
-    newestConfirmed = std::max(newestConfirmed, welcome.confirmedFrame);
+    welcomed = welcome;
+    catchUp.hear(welcome.confirmedFrame);
 
     if (welcome.startFrame > 0)
     {
-        awaitedSnapshot.emplace();
+        awaitedSnapshot.emplace(welcome.startFrame);
 
         return;
     }
 
-    played.emplace(frame, pipeline, config, givenSlot, inputDelay, &verifiedFrames);
-    moveTo(ConnectionState::Playing);
+    played.emplace(frame, pipeline, config, welcome.slot, inputDelay, &verifiedFrames);
+    connection.moveTo(ConnectionState::Playing);
 }
 
 void NetworkedSession::handle(const net::SnapshotChunk& chunk)
 {
-    if (!awaitedSnapshot.has_value() || !awaitedSnapshot->add(chunk) || !awaitedSnapshot->isComplete())
+    if (!awaitedSnapshot.has_value())
     {
         return;
     }
 
-    startFromSnapshot();
+    const std::optional<tl::expected<sim::FrameSnapshot, Error>> snapshot = awaitedSnapshot->take(chunk);
+
+    if (!snapshot.has_value())
+    {
+        return;
+    }
+
+    awaitedSnapshot.reset();
+    startFrom(*snapshot);
 }
 
-void NetworkedSession::startFromSnapshot()
+void NetworkedSession::startFrom(const tl::expected<sim::FrameSnapshot, Error>& snapshot)
 {
-    const std::vector<std::byte> bytes = awaitedSnapshot->bytes();
-    const bool isOfTheWelcome = awaitedSnapshot->frame() == welcomedFrame;
-    awaitedSnapshot.reset();
-
-    sim::FrameSnapshot snapshot;
-
-    if (!isOfTheWelcome || !deserializeSnapshot(bytes, snapshot).has_value())
+    if (!snapshot.has_value())
     {
-        moveTo(ConnectionState::Disconnected);
+        connection.moveTo(ConnectionState::Disconnected);
 
         return;
     }
 
-    sim::restoreSnapshot(snapshot, frame);
-    played.emplace(frame, pipeline, config, givenSlot, inputDelay, &verifiedFrames);
-    isCatchingUp = true;
-    moveTo(ConnectionState::Playing);
+    sim::restoreSnapshot(*snapshot, frame);
+    played.emplace(frame, pipeline, config, welcomed->slot, inputDelay, &verifiedFrames);
+    catchUp.start();
+    connection.moveTo(ConnectionState::Playing);
 }
 
 void NetworkedSession::handle(const net::Confirmed& confirmed)
@@ -256,10 +254,10 @@ void NetworkedSession::handle(const net::Confirmed& confirmed)
 
     if (confirmed.frameCount > 0)
     {
-        newestConfirmed = std::max(newestConfirmed, confirmed.firstFrame + confirmed.frameCount - 1U);
+        catchUp.hear(confirmed.firstFrame + confirmed.frameCount - 1U);
     }
 
-    if (!isInMatch())
+    if (!connection.isInMatch())
     {
         return;
     }
@@ -268,13 +266,16 @@ void NetworkedSession::handle(const net::Confirmed& confirmed)
 
     for (std::uint32_t offset = 0; offset < confirmed.frameCount; ++offset)
     {
-        settle(confirmed.firstFrame + offset, confirmed.slots.subspan(offset * frameSize, frameSize));
+        const std::span<const std::byte> slots = confirmed.slots.subspan(offset * frameSize, frameSize);
+
+        static_cast<void>(played->confirm(confirmed.firstFrame + offset,
+                                          inputsOfConfirmedFrame(slots, config.slotCount, config.inputSize)));
     }
 }
 
 void NetworkedSession::handle(const net::Pong& pong)
 {
-    if (!isInMatch())
+    if (!connection.isInMatch())
     {
         return;
     }
@@ -284,7 +285,7 @@ void NetworkedSession::handle(const net::Pong& pong)
 
 void NetworkedSession::handle(const net::Kick&)
 {
-    moveTo(ConnectionState::Disconnected);
+    connection.moveTo(ConnectionState::Disconnected);
 }
 
 void NetworkedSession::handle(const net::Desync& desync)
@@ -294,66 +295,21 @@ void NetworkedSession::handle(const net::Desync& desync)
 
 void NetworkedSession::handle(const net::SnapshotRequest& request)
 {
-    if (isInMatch())
+    if (connection.isInMatch())
     {
         donor.request(request.frame);
     }
 }
 
-void NetworkedSession::moveTo(ConnectionState next)
-{
-    if (next == connection)
-    {
-        return;
-    }
-
-    connection = next;
-    changes.push_back(next);
-}
-
-bool NetworkedSession::isInMatch() const
-{
-    return connection == ConnectionState::Playing || connection == ConnectionState::Stalled;
-}
-
-void NetworkedSession::settle(std::uint32_t frameNumber, std::span<const std::byte> slots)
-{
-    const std::size_t stride = 1U + config.inputSize;
-    sim::FrameInputs inputs;
-
-    for (std::size_t slot = 0; slot < config.slotCount; ++slot)
-    {
-        const std::span<const std::byte> entry = slots.subspan(slot * stride, stride);
-
-        inputs.setBytes(slot, entry.subspan(1), static_cast<sim::InputFlags>(std::to_integer<std::uint8_t>(entry[0])));
-    }
-
-    static_cast<void>(played->confirm(frameNumber, inputs));
-}
-
 void NetworkedSession::sendInputs()
 {
-    const std::uint32_t newest = played->predictedFrame() + inputDelay;
-    const std::uint32_t oldestRepeated = newest < kRedundantInputs ? 1U : newest + 1U - kRedundantInputs;
-    const std::uint32_t oldest = std::max(played->verifiedFrame() + 1U, oldestRepeated);
+    const std::optional<net::Input> newest =
+        newestInputsOf(*played, welcomed->slot, inputDelay, config.inputSize, inputBatch);
 
-    if (newest < oldest)
+    if (newest.has_value())
     {
-        return;
+        outbox.send(relay, net::Channel::Unreliable, *newest);
     }
-
-    const std::uint32_t count = newest - oldest + 1U;
-    const std::size_t inputSize = config.inputSize;
-    const std::span<std::byte> batch = std::span{inputBatch}.first(count * inputSize);
-
-    for (std::uint32_t offset = 0; offset < count; ++offset)
-    {
-        std::ranges::copy(played->inputs().inputsAt(oldest + offset).bytesAt(givenSlot).first(inputSize),
-                          batch.subspan(offset * inputSize).begin());
-    }
-
-    outbox.send(
-        relay, net::Channel::Unreliable, net::Input{oldest, config.inputSize, static_cast<std::uint8_t>(count), batch});
 }
 
 void NetworkedSession::sendChecksums()

@@ -1,5 +1,9 @@
 add_library(
     unison_session STATIC
+    src/awaited_snapshot.cpp
+    src/catch_up.cpp
+    src/confirmed_inputs.cpp
+    src/connection_states.cpp
     src/desync_dumper.cpp
     src/event_history.cpp
     src/file_bytes.cpp
@@ -7,6 +11,7 @@ add_library(
     src/input_timeline.cpp
     src/local_input.cpp
     src/networked_session.cpp
+    src/newest_inputs.cpp
     src/repeat_last_input_predictor.cpp
     src/replay_player.cpp
     src/replay_reader.cpp

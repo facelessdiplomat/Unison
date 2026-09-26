@@ -132,6 +132,10 @@ add_executable(
     net/relay_core_test.cpp
     net/roster_test.cpp
     net/session_config_test.cpp
+    session/awaited_snapshot_test.cpp
+    session/catch_up_test.cpp
+    session/confirmed_inputs_test.cpp
+    session/connection_states_test.cpp
     session/desync_dumper_test.cpp
     session/event_history_test.cpp
     session/file_bytes_test.cpp
@@ -139,6 +143,7 @@ add_executable(
     session/input_timeline_test.cpp
     session/local_input_test.cpp
     session/networked_session_test.cpp
+    session/newest_inputs_test.cpp
     session/repeat_last_input_predictor_test.cpp
     session/replay_player_test.cpp
     session/replay_test.cpp

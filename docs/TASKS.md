@@ -20,7 +20,7 @@ needs from earlier tasks is ticked.
 
 - Next up: **4.5.2**, the spectator session mode: a client that spectates plays only the frames the relay has
   confirmed, optionally a number of frames behind the newest, so `P == V` always, and its checksums equal the
-  players'. Last finished: 4.5.1. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3
+  players'. Last finished: 4.5.4. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3
   wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows
   and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
@@ -45,10 +45,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 24 | 21 |
+| 4 Session features | 5 | 25 | 22 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **252** | **208** |
+| **Total** | **41** | **253** | **209** |
 
 ## Charter amendments made while planning
 
@@ -471,6 +471,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 
 ### 4.5 Spectators
 - [x] 4.5.1 Spectator role at the relay: no slot, receives `Confirmed`, may request late-join snapshots. Test: a spectator join does not change the slot count. Done on 2026-09-26: a spectator's `Hello` takes no slot and gets no reconnect token; into a running match it is caught up as a late joiner is, from a donor's snapshot and a welcome at its frame with `kNoSlot`, through the same `seat` a player's hello goes through, and `Roster::admitJoining` takes a spectator that catches up without a slot. The relay's donor choice moved out of `RelayCore`, which had grown past 300 lines, into `nearestAwaitedPlayer` beside the roster: the player the relay waits for, neither away nor catching up, nearest by round trip, never a spectator. The hello's refusals moved into `refusalOf`. Tested: a spectator joining a running match is asked a snapshot for and welcomed at its frame without a slot or token, leaves every slot to the players and is never asked for a snapshot however near it is; the donor choice picks the lowest round trip, then the lowest slot, and never a spectator, a player catching up or one away. Seven mutants fail their cases.
+- [x] 4.5.4 (+) `NetworkedSession` split below the 300 lines of `CLAUDE.md` 3 before the spectator mode adds to it: late-join brought its source to 369. The catch-up after a snapshot goes into `CatchUp`, the snapshot a welcomed client waits for into `AwaitedSnapshot`, and the batch of newest inputs a client sends into `newestInputsOf`, each with tests of its own. Found in 4.5.2. Test: the session's tests pass unchanged, and each piece's own. Done on 2026-09-26: five pieces left `NetworkedSession`, each with tests of its own. `CatchUp` holds how far a client that started from a snapshot is behind and the extra ticks it asks for; `AwaitedSnapshot` gathers the chunks of the snapshot a welcome named and gives the snapshot, or an error for another frame's or bytes the reader refuses; `newestInputsOf` writes the batch of newest inputs a client sends, with `kRedundantInputs`; `inputsOfConfirmedFrame` reads a confirmed frame's slots; `ConnectionStates` keeps where the client stands and every state it moved into, with `ConnectionState`. The session keeps the relay's `Welcome` whole where it kept three of its fields. Its source went from 369 lines to 325, 258 of them code, what stays being the facade a host plays the client through. Tested: the session's tests pass unchanged, and 21 cases test the pieces.
 - [ ] 4.5.2 Spectator session mode: verified-only with optional delay. Test: `P == V` always; checksums equal the players'.
 - [ ] 4.5.3 `--spectate` in the console and a runner scenario in CTest.
 

@@ -1,17 +1,23 @@
 #pragma once
 
+#include <unison/core/error.hpp>
 #include <unison/net/outbox.hpp>
 #include <unison/net/protocol.hpp>
 #include <unison/net/session_config.hpp>
 #include <unison/net/transport.hpp>
+#include <unison/session/awaited_snapshot.hpp>
+#include <unison/session/catch_up.hpp>
+#include <unison/session/connection_states.hpp>
+#include <unison/session/newest_inputs.hpp>
 #include <unison/session/session.hpp>
-#include <unison/session/snapshot_chunks.hpp>
 #include <unison/session/snapshot_donor.hpp>
 #include <unison/session/time_sync.hpp>
 #include <unison/session/verified_frame_fan_out.hpp>
 #include <unison/sim/frame.hpp>
 #include <unison/sim/frame_inputs.hpp>
 #include <unison/sim/system_pipeline.hpp>
+
+#include <tl/expected.hpp>
 
 #include <array>
 #include <cstddef>
@@ -22,26 +28,6 @@
 
 namespace unison::session
 {
-
-/// Where a client stands with the relay: not asked to join yet, waiting for its transport to reach the
-/// relay, waiting to be let in, playing in the slot it was given, playing but waiting for the relay with its
-/// prediction window full, or sent away or left behind by a relay that has gone.
-enum class ConnectionState : std::uint8_t
-{
-    Idle,
-    Connecting,
-    Joining,
-    Playing,
-    Stalled,
-    Disconnected
-};
-
-/// How many of its newest inputs a client sends in every input message, so that a message lost on the way
-/// costs nothing as long as the next one arrives.
-inline constexpr std::uint32_t kRedundantInputs = 4;
-
-/// How many ticks a late joiner adds to a host frame at most while it catches up, so it plays eight frames in one.
-inline constexpr std::int32_t kCatchUpExtraTicks = 7;
 
 /// How often a playing client pings the relay to time the round trip and to see how far ahead it runs.
 inline constexpr std::uint64_t kPingIntervalMicroseconds = 100'000;
@@ -135,18 +121,12 @@ private:
 
     void handle(const net::SnapshotChunk& chunk);
 
-    void startFromSnapshot();
+    void startFrom(const tl::expected<sim::FrameSnapshot, Error>& snapshot);
 
     template <typename T>
     void handle(const T&)
     {
     }
-
-    void settle(std::uint32_t frameNumber, std::span<const std::byte> slots);
-
-    void moveTo(ConnectionState next);
-
-    [[nodiscard]] bool isInMatch() const;
 
     void sendInputs();
 
@@ -162,15 +142,11 @@ private:
     SnapshotDonor donor;
     VerifiedFrameFanOut verifiedFrames;
     TimeSync pace;
-    ConnectionState connection = ConnectionState::Idle;
-    std::vector<ConnectionState> changes;
-    std::uint8_t givenSlot = net::kNoSlot;
+    ConnectionStates connection;
+    std::optional<net::Welcome> welcomed;
     std::optional<Session> played;
-    std::uint32_t welcomedFrame = 0;
-    std::uint64_t welcomedToken = 0;
-    std::optional<SnapshotAssembler> awaitedSnapshot;
-    std::uint32_t newestConfirmed = 0;
-    bool isCatchingUp = false;
+    std::optional<AwaitedSnapshot> awaitedSnapshot;
+    CatchUp catchUp;
     std::optional<net::Desync> reportedDesync;
     std::uint64_t updatedAt = 0;
     std::uint64_t nextPingAt = 0;
