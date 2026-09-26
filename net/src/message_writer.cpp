@@ -122,4 +122,13 @@ std::uint32_t confirmedFramesPerDatagram(std::uint8_t slotCount, std::uint8_t in
     return static_cast<std::uint32_t>(std::min(kMostFrames, (kMaxDatagramSize - kHeaderSize) / frameSize));
 }
 
+std::size_t snapshotBytesPerChunk()
+{
+    constexpr std::size_t kHeaderSize = sizeof(std::uint8_t) + sizeof(SnapshotChunk::frame) +
+                                        sizeof(SnapshotChunk::chunkIndex) + sizeof(SnapshotChunk::chunkCount) +
+                                        sizeof(std::uint32_t);
+
+    return kMaxDatagramSize - kHeaderSize;
+}
+
 }

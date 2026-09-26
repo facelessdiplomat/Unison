@@ -648,8 +648,11 @@ than a tick, the table is worth redoing with its numbers.
   in-process, and sends it `SnapshotRequest` for the frame after the newest it has confirmed (a room with no player
   left to ask welcomes the joiner from frame 0, as a room that has not started does); the donor answers with the
   first frame it verifies at or after that one. The donor serialises that verified frame `F` (`serializeSnapshot`:
-  registry + physics + globals), which streams in chunks over the reliable channel to the joiner together with
-  confirmed inputs since `F`; the joiner restores and fast-forwards at up to `N×` speed.
+  registry + physics + globals) and sends it to the relay over the reliable channel in numbered `SnapshotChunk`s of
+  as many bytes as a datagram carries (`snapshotBytesPerChunk`); `SnapshotAssembler` gathers them in any order,
+  refusing a chunk of another frame or count, a repeat, and a snapshot of more than 4096 chunks. The snapshot
+  reaches the joiner together with the confirmed inputs since `F`; the joiner restores and fast-forwards at up to
+  `N×` speed.
 - **Reconnect**: same mechanism; the relay holds the slot for `reconnectGrace` (default 30 s) and applies the
   drop policy to the absent player's inputs meanwhile.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay.

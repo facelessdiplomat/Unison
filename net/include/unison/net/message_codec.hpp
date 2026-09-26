@@ -23,4 +23,7 @@ namespace unison::net
 /// The most frames of this many slots of this input size one `Confirmed` carries within `kMaxDatagramSize`.
 [[nodiscard]] std::uint32_t confirmedFramesPerDatagram(std::uint8_t slotCount, std::uint8_t inputSize);
 
+/// The most bytes of a serialised snapshot one `SnapshotChunk` carries within `kMaxDatagramSize`.
+[[nodiscard]] std::size_t snapshotBytesPerChunk();
+
 }

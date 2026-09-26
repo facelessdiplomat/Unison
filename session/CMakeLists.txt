@@ -14,6 +14,8 @@ add_library(
     src/replay_writer.cpp
     src/rollback_stats.cpp
     src/session.cpp
+    src/snapshot_chunks.cpp
+    src/snapshot_donor.cpp
     src/snapshot_ring.cpp
     src/snapshot_serializer.cpp
     src/state_diff.cpp

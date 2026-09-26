@@ -148,6 +148,7 @@ add_executable(
     session/session_recording_test.cpp
     session/session_rollback_test.cpp
     session/session_test.cpp
+    session/snapshot_chunks_test.cpp
     session/snapshot_ring_test.cpp
     session/snapshot_serializer_test.cpp
     session/state_diff_test.cpp

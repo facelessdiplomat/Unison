@@ -306,3 +306,18 @@ TEST_CASE("a batch of confirmed frames whose bytes disagree with its sizes break
 
     REQUIRE(probe.failureCount() == 1U);
 }
+
+TEST_CASE("as many snapshot bytes as a chunk holds fit in a datagram, and one more does not")
+{
+    const std::size_t fitting = unison::net::snapshotBytesPerChunk();
+    const std::vector<std::byte> bytes(fitting + 1U);
+    std::vector<std::byte> datagram(unison::net::kMaxDatagramSize);
+
+    const auto fits =
+        unison::net::encode(unison::net::SnapshotChunk{1, 0, 1, std::span{bytes}.first(fitting)}, datagram);
+    const auto overflows = unison::net::encode(unison::net::SnapshotChunk{1, 0, 1, bytes}, datagram);
+
+    REQUIRE(fitting >= 1U);
+    REQUIRE(fits.has_value());
+    REQUIRE_FALSE(overflows.has_value());
+}

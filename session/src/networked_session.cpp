@@ -5,9 +5,27 @@
 
 #include <algorithm>
 #include <variant>
+#include <vector>
 
 namespace unison::session
 {
+
+namespace
+{
+
+std::vector<IVerifiedFrameReceiver*> receiversOf(SnapshotDonor& donor, IVerifiedFrameReceiver* host)
+{
+    std::vector<IVerifiedFrameReceiver*> receivers{&donor};
+
+    if (host != nullptr)
+    {
+        receivers.push_back(host);
+    }
+
+    return receivers;
+}
+
+}
 
 NetworkedSession::NetworkedSession(sim::Frame& frame,
                                    const sim::SystemPipeline& pipeline,
@@ -15,9 +33,10 @@ NetworkedSession::NetworkedSession(sim::Frame& frame,
                                    net::ITransport& transport,
                                    net::PeerId relay,
                                    std::uint32_t inputDelayFrames,
-                                   IVerifiedFrameReceiver* verifiedFrames)
+                                   IVerifiedFrameReceiver* receiver)
     : frame{frame}, pipeline{pipeline}, config{config}, transport{transport}, relay{relay},
-      inputDelay{inputDelayFrames}, verifiedFrameReceiver{verifiedFrames}, outbox{transport}, pace{config.tickRate}
+      inputDelay{inputDelayFrames}, outbox{transport}, donor{outbox, relay},
+      verifiedFrames{receiversOf(donor, receiver)}, pace{config.tickRate}
 {
 }
 
@@ -158,7 +177,7 @@ void NetworkedSession::handle(const net::Welcome& welcome)
     }
 
     givenSlot = welcome.slot;
-    played.emplace(frame, pipeline, config, givenSlot, inputDelay, verifiedFrameReceiver);
+    played.emplace(frame, pipeline, config, givenSlot, inputDelay, &verifiedFrames);
     moveTo(ConnectionState::Playing);
 }
 
@@ -195,6 +214,14 @@ void NetworkedSession::handle(const net::Kick&)
 void NetworkedSession::handle(const net::Desync& desync)
 {
     reportedDesync = desync;
+}
+
+void NetworkedSession::handle(const net::SnapshotRequest& request)
+{
+    if (isInMatch())
+    {
+        donor.request(request.frame);
+    }
 }
 
 void NetworkedSession::moveTo(ConnectionState next)

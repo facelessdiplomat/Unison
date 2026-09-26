@@ -1,5 +1,10 @@
 #include <unison/session/networked_session.hpp>
 
+#include <unison/session/snapshot_chunks.hpp>
+#include <unison/session/snapshot_serializer.hpp>
+#include <unison/sim/frame_checksum.hpp>
+#include <unison/sim/frame_snapshot.hpp>
+
 #include <unison/net/loopback_hub.hpp>
 #include <unison/net/message_codec.hpp>
 #include <unison/net/outbox.hpp>
@@ -505,4 +510,35 @@ TEST_CASE("a pong tells the client how long the round trip to the relay took")
     rig.client.update(rig.now);
 
     REQUIRE(rig.client.timeSync().roundTripMicroseconds() == 40'000U);
+}
+
+TEST_CASE("a client asked for a snapshot sends the first frame it verifies from then on in chunks of that frame")
+{
+    Rig rig;
+    rig.client.join();
+    rig.welcome(kLocalSlot);
+    rig.relayOutbox.send(rig.clientEnd.id(), unison::net::Channel::Reliable, unison::net::SnapshotRequest{2});
+
+    for (std::uint32_t frame = 1; frame <= 3; ++frame)
+    {
+        rig.confirm(frame, unison::test::scriptedSessionInputs(frame));
+        rig.playWithMove(unison::test::scriptedSessionInput(frame, kLocalSlot).moveX);
+    }
+
+    const Mailbox& mail = rig.relayMail();
+    unison::session::SnapshotAssembler assembler;
+
+    for (const unison::net::SnapshotChunk& chunk : mail.all<unison::net::SnapshotChunk>())
+    {
+        REQUIRE(assembler.add(chunk));
+    }
+
+    REQUIRE(assembler.isComplete());
+    REQUIRE(assembler.frame() == 2U);
+    unison::sim::FrameSnapshot snapshot;
+    REQUIRE(unison::session::deserializeSnapshot(assembler.bytes(), snapshot).has_value());
+    const std::vector<unison::net::Checksum> checksums = mail.all<unison::net::Checksum>();
+    const auto reported = std::ranges::find(checksums, 2U, &unison::net::Checksum::frame);
+    REQUIRE(reported != checksums.end());
+    REQUIRE(unison::sim::checksumOf(snapshot) == reported->checksum);
 }

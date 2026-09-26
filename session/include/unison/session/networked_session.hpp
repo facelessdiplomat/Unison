@@ -5,7 +5,9 @@
 #include <unison/net/session_config.hpp>
 #include <unison/net/transport.hpp>
 #include <unison/session/session.hpp>
+#include <unison/session/snapshot_donor.hpp>
 #include <unison/session/time_sync.hpp>
+#include <unison/session/verified_frame_fan_out.hpp>
 #include <unison/sim/frame.hpp>
 #include <unison/sim/frame_inputs.hpp>
 #include <unison/sim/system_pipeline.hpp>
@@ -55,7 +57,7 @@ public:
                      net::ITransport& transport,
                      net::PeerId relay,
                      std::uint32_t inputDelayFrames = 0,
-                     IVerifiedFrameReceiver* verifiedFrames = nullptr);
+                     IVerifiedFrameReceiver* receiver = nullptr);
 
     /// Asks the relay to let this client play the config it was made with.
     void join();
@@ -116,6 +118,8 @@ private:
 
     void handle(const net::Desync& desync);
 
+    void handle(const net::SnapshotRequest& request);
+
     template <typename T>
     void handle(const T&)
     {
@@ -137,8 +141,9 @@ private:
     net::ITransport& transport;
     net::PeerId relay;
     std::uint32_t inputDelay;
-    IVerifiedFrameReceiver* verifiedFrameReceiver;
     net::Outbox outbox;
+    SnapshotDonor donor;
+    VerifiedFrameFanOut verifiedFrames;
     TimeSync pace;
     ConnectionState connection = ConnectionState::Idle;
     std::vector<ConnectionState> changes;
