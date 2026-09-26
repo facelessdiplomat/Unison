@@ -48,9 +48,7 @@ void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message
 
 void RelayCore::peerLeft(PeerId peer)
 {
-    const bool playsItsSlot = roster.slotOf(peer) != kNoSlot && !roster.isJoining(peer);
-
-    if (playsItsSlot)
+    if (roster.isInPlay(peer))
     {
         roster.holdSlotOf(peer, clock.nowMicroseconds() + settings.reconnectGraceMicroseconds);
     }
@@ -108,6 +106,13 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
+    if (roster.slotOfToken(hello.reconnectToken) != kNoSlot)
+    {
+        readmit(from, hello.reconnectToken);
+
+        return;
+    }
+
     const std::uint8_t slot = roster.freeSlot();
 
     if (slot == kNoSlot)
@@ -140,7 +145,7 @@ void RelayCore::handle(PeerId from, const Input& input)
         return;
     }
 
-    if (roster.isJoining(from))
+    if (roster.isCatchingUp(from))
     {
         roster.startPlaying(from, std::max(input.firstFrame, inputs.nextFrame()));
     }
@@ -233,6 +238,23 @@ void RelayCore::admit(PeerId peer, std::uint8_t slot)
     outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, reconnectToken});
 }
 
+void RelayCore::readmit(PeerId peer, std::uint64_t reconnectToken)
+{
+    roster.reclaim(reconnectToken, peer);
+    const std::uint8_t slot = roster.slotOf(peer);
+    const std::optional<PeerId> donor = isRunning() ? nearestPlayerInPlay() : std::nullopt;
+
+    if (donor.has_value())
+    {
+        lateJoins.await(peer, slot, reconnectToken, *donor);
+
+        return;
+    }
+
+    roster.startPlaying(peer, inputs.nextFrame());
+    outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, reconnectToken});
+}
+
 bool RelayCore::isRunning() const
 {
     return confirmedLog.lastFrame() > 0;
@@ -245,10 +267,10 @@ std::optional<PeerId> RelayCore::nearestPlayerInPlay() const
 
     for (const Roster::Member& member : roster.members())
     {
-        const bool playsTheMatch =
-            member.slot != kNoSlot && member.playsFrom != Roster::kNotPlayingYet && !member.heldUntil.has_value();
+        const bool isAwaited =
+            member.slot != kNoSlot && member.awaitedFrom != Roster::kNotPlayingYet && !member.heldUntil.has_value();
 
-        if (!playsTheMatch)
+        if (!isAwaited)
         {
             continue;
         }

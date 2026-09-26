@@ -53,6 +53,22 @@ T onlyReplyAs(const Replies& replies)
     return std::get<T>(*decoded);
 }
 
+unison::net::Welcome welcomeIn(const Replies& replies)
+{
+    const auto welcome =
+        std::ranges::find_if(replies,
+                             [](const std::vector<std::byte>& reply)
+                             {
+                                 const auto decoded = unison::net::decode(reply);
+
+                                 return decoded.has_value() && std::holds_alternative<unison::net::Welcome>(*decoded);
+                             });
+
+    REQUIRE(welcome != replies.end());
+
+    return std::get<unison::net::Welcome>(*unison::net::decode(*welcome));
+}
+
 unison::net::SessionConfig twoPlayers()
 {
     unison::net::SessionConfig config;
@@ -203,8 +219,8 @@ struct Match
         sendMessage(first, relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
         sendMessage(second, relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
         relay.endpoint.poll(relay.core);
-        static_cast<void>(repliesOf(first));
-        static_cast<void>(repliesOf(second));
+        firstToken = welcomeIn(repliesOf(first)).reconnectToken;
+        secondToken = welcomeIn(repliesOf(second)).reconnectToken;
     }
 
     static Replies repliesOf(unison::net::ITransport& client)
@@ -226,6 +242,8 @@ struct Match
     Relay relay;
     unison::net::LoopbackEndpoint& first;
     unison::net::LoopbackEndpoint& second;
+    std::uint64_t firstToken = 0;
+    std::uint64_t secondToken = 0;
 };
 
 std::array<std::byte, 2> inputOf(std::uint8_t value)
@@ -797,8 +815,8 @@ struct RunningMatch
         hello(second);
         sendInputs(first, 1, inputOf(1));
         sendInputs(second, 1, inputOf(2));
-        static_cast<void>(Match::repliesOf(first));
-        static_cast<void>(Match::repliesOf(second));
+        firstToken = welcomeIn(Match::repliesOf(first)).reconnectToken;
+        secondToken = welcomeIn(Match::repliesOf(second)).reconnectToken;
     }
 
     void hello(unison::net::LoopbackEndpoint& client)
@@ -828,6 +846,8 @@ struct RunningMatch
     unison::net::LoopbackEndpoint& first;
     unison::net::LoopbackEndpoint& second;
     unison::net::LoopbackEndpoint& joiner;
+    std::uint64_t firstToken = 0;
+    std::uint64_t secondToken = 0;
 };
 
 std::vector<unison::net::SnapshotRequest> snapshotRequestsIn(const Replies& replies)
@@ -1335,4 +1355,134 @@ TEST_CASE("a player whose peer has gone is sent nothing while its slot is held")
 
     REQUIRE_FALSE(confirmationsIn(Match::repliesOf(match.first)).empty());
     REQUIRE(Match::repliesOf(match.second).empty());
+}
+
+namespace
+{
+
+unison::net::Hello helloBackWith(std::uint64_t reconnectToken)
+{
+    unison::net::Hello hello = helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player);
+    hello.reconnectToken = reconnectToken;
+
+    return hello;
+}
+
+}
+
+TEST_CASE("a player back with its token before the match has started is welcomed into its slot at frame nought")
+{
+    Match match;
+    match.relay.core.peerLeft(match.second.id());
+    unison::net::LoopbackEndpoint& back = match.relay.hub.join();
+
+    sendMessage(back, match.relay.endpoint.id(), helloBackWith(match.secondToken));
+    match.relay.endpoint.poll(match.relay.core);
+
+    const unison::net::Welcome welcome = onlyReplyAs<unison::net::Welcome>(Match::repliesOf(back));
+    REQUIRE(welcome.slot == 1U);
+    REQUIRE(welcome.startFrame == 0U);
+    REQUIRE(welcome.reconnectToken == match.secondToken);
+}
+
+TEST_CASE("a player back with its token in a running match is caught up into its slot from a donor's snapshot")
+{
+    RunningMatch match;
+    match.core.peerLeft(match.second.id());
+    unison::net::LoopbackEndpoint& back = match.hub.join();
+    sendMessage(back, match.endpoint.id(), helloBackWith(match.secondToken));
+    match.endpoint.poll(match.core);
+    const std::vector<unison::net::SnapshotRequest> toFirst = snapshotRequestsIn(Match::repliesOf(match.first));
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    const unison::net::Welcome welcome = welcomeIn(Match::repliesOf(back));
+    REQUIRE(toFirst.size() == 1U);
+    REQUIRE(welcome.slot == 1U);
+    REQUIRE(welcome.startFrame == 1U);
+    REQUIRE(welcome.reconnectToken == match.secondToken);
+}
+
+TEST_CASE("a player back from a drop is not waited for until its first input, its last input dropped meanwhile")
+{
+    RunningMatch match;
+    match.core.peerLeft(match.second.id());
+    unison::net::LoopbackEndpoint& back = match.hub.join();
+    sendMessage(back, match.endpoint.id(), helloBackWith(match.secondToken));
+    match.endpoint.poll(match.core);
+    static_cast<void>(Match::repliesOf(match.first));
+
+    match.sendInputs(match.first, 2, inputOf(5));
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    const std::array<std::byte, 3> repeated{std::byte{2}, std::byte{2}, std::byte{2}};
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(newestFrameOf(confirmations[0]) == 2U);
+    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 2).subspan(3, 3), repeated));
+}
+
+TEST_CASE("a player back from a drop is waited for again from the first frame it sends an input for")
+{
+    RunningMatch match;
+    match.core.peerLeft(match.second.id());
+    unison::net::LoopbackEndpoint& back = match.hub.join();
+    sendMessage(back, match.endpoint.id(), helloBackWith(match.secondToken));
+    match.endpoint.poll(match.core);
+    match.sendInputs(back, 2, inputOf(7));
+    static_cast<void>(Match::repliesOf(match.first));
+
+    match.sendInputs(match.first, 2, inputOf(5));
+    match.sendInputs(match.first, 3, inputOf(6));
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    const std::array<std::byte, 3> present{std::byte{1}, std::byte{7}, std::byte{7}};
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(newestFrameOf(confirmations[0]) == 2U);
+    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 2).subspan(3, 3), present));
+}
+
+TEST_CASE("a player catching up after a drop is never asked for a snapshot")
+{
+    RunningMatch match;
+    match.core.peerLeft(match.second.id());
+    unison::net::LoopbackEndpoint& back = match.hub.join();
+    match.roundTrips.set(match.first.id(), 40'000);
+    match.roundTrips.set(back.id(), 10'000);
+    sendMessage(back, match.endpoint.id(), helloBackWith(match.secondToken));
+    match.endpoint.poll(match.core);
+
+    match.hello(match.joiner);
+
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(match.first)).size() == 2U);
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(back)).empty());
+}
+
+TEST_CASE("a hello with a token nobody holds is seated as any other player's")
+{
+    Match match;
+    unison::net::LoopbackEndpoint& stranger = match.relay.hub.join();
+
+    sendMessage(stranger, match.relay.endpoint.id(), helloBackWith(12345));
+    match.relay.endpoint.poll(match.relay.core);
+
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(Match::repliesOf(stranger)).slot == 2U);
+}
+
+TEST_CASE("a player back with its token takes its slot over from an old peer the relay has not seen go")
+{
+    Match match;
+    unison::net::LoopbackEndpoint& back = match.relay.hub.join();
+    sendMessage(back, match.relay.endpoint.id(), helloBackWith(match.secondToken));
+    match.relay.endpoint.poll(match.relay.core);
+    const unison::net::Welcome welcome = onlyReplyAs<unison::net::Welcome>(Match::repliesOf(back));
+
+    match.sendInputs(match.first, 1, inputOf(3));
+    match.sendInputs(back, 1, inputOf(4));
+
+    REQUIRE(welcome.slot == 1U);
+    REQUIRE(Match::repliesOf(match.second).empty());
+    REQUIRE_FALSE(confirmationsIn(Match::repliesOf(back)).empty());
 }

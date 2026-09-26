@@ -46,7 +46,8 @@ inline constexpr std::uint32_t kRedundantConfirmations = 4;
 /// running match holds its slot out of play while the player in play with the lowest round trip the meter, when given,
 /// measures sends it a snapshot, and plays from the first frame it sends an input for. Every player is welcomed with a
 /// token of its own, and one whose peer has gone keeps its slot for the reconnect grace, its inputs dropped meanwhile
-/// and its checksums waited for by nobody. It never simulates, and it answers through its transport.
+/// and its checksums waited for by nobody; back with its token, it takes the slot again and catches up as a joiner
+/// does. It never simulates, and it answers through its transport.
 class RelayCore final : public IMessageReceiver
 {
 public:
@@ -85,6 +86,8 @@ private:
     }
 
     void admit(PeerId peer, std::uint8_t slot);
+
+    void readmit(PeerId peer, std::uint64_t reconnectToken);
 
     [[nodiscard]] bool isRunning() const;
 

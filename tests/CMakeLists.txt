@@ -256,6 +256,7 @@ add_executable(
     arena/match_rules_test.cpp
     arena/networked_match_test.cpp
     arena/outage_test.cpp
+    arena/reconnect_test.cpp
     arena/respawn_test.cpp
     arena/rollback_test.cpp
     arena/session_config_golden_test.cpp

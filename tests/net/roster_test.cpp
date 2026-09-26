@@ -160,7 +160,7 @@ TEST_CASE("a member still joining holds its slot but none of the slots in play")
     roster.admitJoining(kSecond, 1);
 
     REQUIRE(roster.isMember(kSecond));
-    REQUIRE(roster.isJoining(kSecond));
+    REQUIRE(roster.isCatchingUp(kSecond));
     REQUIRE(roster.slotOf(kSecond) == 1U);
     REQUIRE(roster.freeSlot() == 2U);
     REQUIRE(roster.slotsInPlayAt(1) == 0b001U);
@@ -175,7 +175,7 @@ TEST_CASE("a member that starts playing puts its slot in play from the frame it 
 
     roster.startPlaying(kSecond, 5);
 
-    REQUIRE_FALSE(roster.isJoining(kSecond));
+    REQUIRE_FALSE(roster.isCatchingUp(kSecond));
     REQUIRE(roster.slotsInPlayAt(4) == 0b001U);
     REQUIRE(roster.slotsInPlayAt(5) == 0b011U);
 }
@@ -201,7 +201,7 @@ TEST_CASE("letting a joining player in without a slot of the match breaks a cont
     REQUIRE(probe.failureCount() == 1U);
 }
 
-TEST_CASE("putting in play a member that is not joining breaks a contract")
+TEST_CASE("putting in play a member that is not catching up breaks a contract")
 {
     unison::net::Roster roster{kTwoSlots};
     roster.admit(kFirst, 0);
@@ -256,4 +256,81 @@ TEST_CASE("held slots are released once the moment they were held until has come
     REQUIRE_FALSE(roster.isMember(kSecond));
     REQUIRE(roster.isMember(kThird));
     REQUIRE(roster.freeSlot() == 1U);
+}
+
+TEST_CASE("a slot is found by the reconnect token of the member holding it, held or not")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0, 77);
+    roster.admit(kSecond, 1, 78);
+    roster.holdSlotOf(kSecond, 1'000);
+
+    REQUIRE(roster.slotOfToken(77) == 0U);
+    REQUIRE(roster.slotOfToken(78) == 1U);
+}
+
+TEST_CASE("no slot is found for a token nobody holds, nor for nought")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0);
+    roster.admit(kSecond, 1, 78);
+
+    REQUIRE(roster.slotOfToken(79) == unison::net::kNoSlot);
+    REQUIRE(roster.slotOfToken(0) == unison::net::kNoSlot);
+}
+
+TEST_CASE("a slot reclaimed with its token belongs to the new peer, in play but not awaited until it plays again")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0, 77);
+    roster.admit(kSecond, 1, 78);
+    roster.holdSlotOf(kSecond, 1'000);
+
+    roster.reclaim(78, kThird);
+
+    REQUIRE_FALSE(roster.isMember(kSecond));
+    REQUIRE(roster.slotOf(kThird) == 1U);
+    REQUIRE(roster.isInPlay(kThird));
+    REQUIRE(roster.isCatchingUp(kThird));
+    REQUIRE(roster.slotsInPlayAt(5) == 0b11U);
+    REQUIRE(roster.slotsAwaitedAt(5) == 0b01U);
+}
+
+TEST_CASE("a member back from a drop is awaited again from the frame it plays from, its slot in play all along")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0, 77);
+    roster.admit(kSecond, 1, 78);
+    roster.holdSlotOf(kSecond, 1'000);
+    roster.reclaim(78, kThird);
+
+    roster.startPlaying(kThird, 10);
+
+    REQUIRE_FALSE(roster.isCatchingUp(kThird));
+    REQUIRE(roster.slotsInPlayAt(9) == 0b11U);
+    REQUIRE(roster.slotsAwaitedAt(9) == 0b01U);
+    REQUIRE(roster.slotsAwaitedAt(10) == 0b11U);
+}
+
+TEST_CASE("reclaiming a slot with a token nobody holds breaks a contract")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0, 77);
+    const unison::test::FatalHandlerProbe probe;
+
+    roster.reclaim(79, kSecond);
+
+    REQUIRE(probe.failureCount() == 1U);
+}
+
+TEST_CASE("a player is in play, and neither a spectator nor a joiner still catching up is")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0);
+    roster.admitJoining(kSecond, 1);
+    roster.admit(kThird, unison::net::kNoSlot);
+
+    REQUIRE(roster.isInPlay(kFirst));
+    REQUIRE_FALSE(roster.isInPlay(kSecond));
+    REQUIRE_FALSE(roster.isInPlay(kThird));
 }

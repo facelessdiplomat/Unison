@@ -42,9 +42,10 @@ NetworkedSession::NetworkedSession(sim::Frame& frame,
 {
 }
 
-void NetworkedSession::join()
+void NetworkedSession::join(std::uint64_t reconnectToken)
 {
-    outbox.send(relay, net::Channel::Reliable, net::Hello{net::kProtocolVersion, config, net::Role::Player, 0});
+    outbox.send(
+        relay, net::Channel::Reliable, net::Hello{net::kProtocolVersion, config, net::Role::Player, reconnectToken});
 
     moveTo(ConnectionState::Connecting);
 }
@@ -162,6 +163,11 @@ std::uint32_t NetworkedSession::startFrame() const
     return welcomedFrame;
 }
 
+std::uint64_t NetworkedSession::reconnectToken() const
+{
+    return welcomedToken;
+}
+
 const Session* NetworkedSession::session() const
 {
     return played.has_value() ? &*played : nullptr;
@@ -196,6 +202,7 @@ void NetworkedSession::handle(const net::Welcome& welcome)
 
     givenSlot = welcome.slot;
     welcomedFrame = welcome.startFrame;
+    welcomedToken = welcome.reconnectToken;
     newestConfirmed = std::max(newestConfirmed, welcome.confirmedFrame);
 
     if (welcome.startFrame > 0)

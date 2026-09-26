@@ -16,26 +16,42 @@ void Roster::admit(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken)
 {
     UNISON_VERIFY(slot == kNoSlot || (slot < slotCount && !isHeld(slot)));
 
-    admitted.push_back(Member{peer, slot, 0, reconnectToken, std::nullopt});
+    admitted.push_back(Member{peer, slot, 0, 0, reconnectToken, std::nullopt});
 }
 
 void Roster::admitJoining(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken)
 {
     UNISON_VERIFY(slot < slotCount && !isHeld(slot));
 
-    admitted.push_back(Member{peer, slot, kNotPlayingYet, reconnectToken, std::nullopt});
+    admitted.push_back(Member{peer, slot, kNotPlayingYet, kNotPlayingYet, reconnectToken, std::nullopt});
 }
 
 void Roster::startPlaying(PeerId peer, std::uint32_t fromFrame)
 {
     const auto member = std::ranges::find(admitted, peer, &Member::peer);
-    const bool isJoiningMember = member != admitted.end() && member->playsFrom == kNotPlayingYet;
+    const bool isCatchingUpMember = member != admitted.end() && member->awaitedFrom == kNotPlayingYet;
 
-    UNISON_VERIFY(isJoiningMember);
+    UNISON_VERIFY(isCatchingUpMember);
 
-    if (isJoiningMember)
+    if (isCatchingUpMember)
     {
-        member->playsFrom = fromFrame;
+        member->playsFrom = std::min(member->playsFrom, fromFrame);
+        member->awaitedFrom = fromFrame;
+    }
+}
+
+void Roster::reclaim(std::uint64_t reconnectToken, PeerId peer)
+{
+    const auto member = std::ranges::find(admitted, reconnectToken, &Member::reconnectToken);
+    const bool isHeldForToken = reconnectToken != 0 && member != admitted.end();
+
+    UNISON_VERIFY(isHeldForToken);
+
+    if (isHeldForToken)
+    {
+        member->peer = peer;
+        member->awaitedFrom = kNotPlayingYet;
+        member->heldUntil.reset();
     }
 }
 
@@ -78,11 +94,18 @@ bool Roster::isMember(PeerId peer) const
     return std::ranges::find(admitted, peer, &Member::peer) != admitted.end();
 }
 
-bool Roster::isJoining(PeerId peer) const
+bool Roster::isCatchingUp(PeerId peer) const
 {
     const auto member = std::ranges::find(admitted, peer, &Member::peer);
 
-    return member != admitted.end() && member->playsFrom == kNotPlayingYet;
+    return member != admitted.end() && member->awaitedFrom == kNotPlayingYet;
+}
+
+bool Roster::isInPlay(PeerId peer) const
+{
+    const auto member = std::ranges::find(admitted, peer, &Member::peer);
+
+    return member != admitted.end() && member->slot != kNoSlot && member->playsFrom != kNotPlayingYet;
 }
 
 bool Roster::isEmpty() const
@@ -95,6 +118,13 @@ std::uint8_t Roster::slotOf(PeerId peer) const
     const auto found = std::ranges::find(admitted, peer, &Member::peer);
 
     return found == admitted.end() ? kNoSlot : found->slot;
+}
+
+std::uint8_t Roster::slotOfToken(std::uint64_t reconnectToken) const
+{
+    const auto member = std::ranges::find(admitted, reconnectToken, &Member::reconnectToken);
+
+    return reconnectToken == 0 || member == admitted.end() ? kNoSlot : member->slot;
 }
 
 std::uint8_t Roster::slotsInPlayAt(std::uint32_t frame) const
@@ -114,13 +144,13 @@ std::uint8_t Roster::slotsInPlayAt(std::uint32_t frame) const
 
 std::uint8_t Roster::slotsAwaitedAt(std::uint32_t frame) const
 {
-    std::uint8_t awaited = slotsInPlayAt(frame);
+    std::uint8_t awaited = 0;
 
     for (const Member& member : admitted)
     {
-        if (member.slot != kNoSlot && member.heldUntil.has_value())
+        if (member.slot != kNoSlot && member.awaitedFrom <= frame && !member.heldUntil.has_value())
         {
-            awaited = static_cast<std::uint8_t>(awaited & ~(1U << member.slot));
+            awaited = static_cast<std::uint8_t>(awaited | (1U << member.slot));
         }
     }
 

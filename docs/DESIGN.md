@@ -670,8 +670,15 @@ than a tick, the table is worth redoing with its numbers.
   awaited, so the frames after it are confirmed as soon as the others' inputs are in, its last input repeated and
   flagged dropped (§8.4); nobody waits for its checksums, nothing is sent to its peer and it is never a donor. Once
   the grace has passed, `update()` releases the slot: it is confirmed absent from then on and free for a newcomer,
-  and a room left with no member closes. A player still joining or a spectator that goes is let go at once. Coming
-  back with the token into the held slot is 4.4.2.
+  and a room left with no member closes. A player still joining or a spectator that goes is let go at once. A client
+  that lost the relay joins again from a new session over a new connection with the token of its last welcome
+  (`NetworkedSession::join(token)`, `reconnectToken()`). The relay hands the slot of the member holding the token to
+  the new peer, whether its old peer has gone or the relay has not seen it go yet, and the returning player catches
+  up as a late joiner does: a donor's snapshot, a welcome at its frame with the same token, the frames confirmed
+  since, and no input until it has caught up; a player catching up is never a donor. Its slot stays in play all
+  along, its last input repeated as dropped, and the relay waits for its inputs again from the first frame it sends
+  one for. In a match that has not started it is welcomed at frame 0 at once, and a token nobody holds seats the
+  client as any other player.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay.
 
 A serialised snapshot is little-endian throughout. It opens with the magic `UNSS`, the format's version and a
@@ -1125,7 +1132,7 @@ player's spawn point faces; a physics state from an untrusted peer checked befor
 | Q15 | Which platform records a golden | Answered 2026-09-25 (Q-G) and amended the same day under D36: goldens are recorded on Windows and verified on the Mac, a new golden may be recorded on the Mac while Windows is out of reach and the next Windows run is its check, and none is re-recorded on one platform alone (§7.4). |
 | Q16 | An x86-64 build under Rosetta 2 as the Mac's fallback | Answered 2026-09-25 by X.6 (Q-H): not needed. Every golden recorded on Windows reproduces on arm64 in Debug and in Release, so the Mac plays natively, and x86-64 macOS stays in the backlog. |
 | Q17 | Whether Definition of Done item 2 needs two Windows machines | Answered 2026-09-25 (Q-I): no. X.8.2, the run with the relay on Windows and a console on each platform, counts for item 2 as well, and 3.4.5 is ticked from it. |
-| Q18 | What a running room with no player in play left does with the players still joining it, and with a new player's `Hello` | Open, raised 2026-09-26 in 4.3.7 for the owner. Nobody left holds the match's state, so no snapshot can come: the joiners wait for good, and a new player welcomed from frame 0 plays behind every frame the relay has confirmed. (a) Turn them away with a new `LeaveReason`, the match being over, as a Quantum room ends with its last player; the protocol's version goes to 6 and its golden is recorded again on Windows. (b) Start the room over from frame 0 with whoever is still joining, which leaves the protocol alone but gives the relay core a match to reset. (c) Leave it as it is, for the host to give up. Recommended: (a). |
+| Q18 | What a running room with no player in play left does with the players still joining it, and with a new or a returning player's `Hello` | Open, raised 2026-09-26 in 4.3.7 for the owner. Nobody left holds the match's state, so no snapshot can come: the joiners wait for good, and a new player, or one back with its token while every other player is away, is welcomed from frame 0 and plays behind every frame the relay has confirmed. (a) Turn them away with a new `LeaveReason`, the match being over, as a Quantum room ends with its last player; the protocol's version goes to 6 and its golden is recorded again on Windows. (b) Start the room over from frame 0 with whoever is still joining, which leaves the protocol alone but gives the relay core a match to reset. (c) Leave it as it is, for the host to give up. Recommended: (a). |
 
 ---
 

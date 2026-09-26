@@ -737,3 +737,26 @@ TEST_CASE("a late joiner welcomed again before its snapshot is whole restores th
     REQUIRE(rig.client.state() == ConnectionState::Playing);
     REQUIRE(rig.client.startFrame() == kSnapshotFrame);
 }
+
+TEST_CASE("a client keeps the reconnect token its welcome carried")
+{
+    Rig rig;
+    rig.client.join();
+    rig.relayOutbox.send(
+        rig.clientEnd.id(), unison::net::Channel::Reliable, unison::net::Welcome{kLocalSlot, rig.config, 0, 0, 77});
+
+    rig.playWithMove(0);
+
+    REQUIRE(rig.client.reconnectToken() == 77U);
+}
+
+TEST_CASE("a client joining with a reconnect token asks for its slot back with it")
+{
+    Rig rig;
+
+    rig.client.join(77);
+
+    const std::vector<unison::net::Hello> hellos = rig.relayMail().all<unison::net::Hello>();
+    REQUIRE(hellos.size() == 1U);
+    REQUIRE(hellos.front().reconnectToken == 77U);
+}

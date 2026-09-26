@@ -63,8 +63,9 @@ public:
                      std::uint32_t inputDelayFrames = 0,
                      IVerifiedFrameReceiver* receiver = nullptr);
 
-    /// Asks the relay to let this client play the config it was made with.
-    void join();
+    /// Asks the relay to let this client play the config it was made with; given the token of an earlier welcome, asks
+    /// for the slot that welcome gave back after a drop.
+    void join(std::uint64_t reconnectToken = 0);
 
     /// Replaces the input the local player plays from the next tick on, even before the relay's welcome. More
     /// bytes than a slot holds break a contract.
@@ -103,6 +104,10 @@ public:
     /// The frame the relay let this client in at: nought for a client that joined a match at its start, the frame of
     /// the snapshot it restores for one that joined late.
     [[nodiscard]] std::uint32_t startFrame() const;
+
+    /// The token the relay's welcome carried, which wins the slot back after a drop: nought before a welcome and for a
+    /// spectator.
+    [[nodiscard]] std::uint64_t reconnectToken() const;
 
     /// The session the client plays, or nothing before the relay has let the client in.
     [[nodiscard]] const Session* session() const;
@@ -162,6 +167,7 @@ private:
     std::uint8_t givenSlot = net::kNoSlot;
     std::optional<Session> played;
     std::uint32_t welcomedFrame = 0;
+    std::uint64_t welcomedToken = 0;
     std::optional<SnapshotAssembler> awaitedSnapshot;
     std::uint32_t newestConfirmed = 0;
     bool isCatchingUp = false;
