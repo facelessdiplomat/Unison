@@ -20,6 +20,20 @@ void ComponentRegistry::add(const ComponentInfo& component, std::string_view fil
     entries.pushBack(component);
 }
 
+void ComponentRegistry::nameFields(std::string_view component, std::span<const FieldInfo> fields, std::string_view file)
+{
+    UNISON_VERIFY(file == registrationFile);
+    UNISON_VERIFY(holds(component));
+
+    for (ComponentInfo& entry : entries)
+    {
+        if (entry.name == component && file == registrationFile)
+        {
+            entry.fields = fields;
+        }
+    }
+}
+
 std::span<const ComponentInfo> ComponentRegistry::components() const
 {
     return std::span<const ComponentInfo>{entries.begin(), entries.size()};
@@ -74,6 +88,11 @@ bool isComponentRegistered(std::string_view name)
 ComponentRegistration::ComponentRegistration(const ComponentInfo& component, std::string_view file)
 {
     componentRegistry().add(component, file);
+}
+
+FieldNaming::FieldNaming(std::string_view component, std::span<const FieldInfo> fields, std::string_view file)
+{
+    componentRegistry().nameFields(component, fields, file);
 }
 
 }

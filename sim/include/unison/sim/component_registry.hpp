@@ -7,20 +7,33 @@
 
 #include <unison/sim/padding_free.hpp>
 
+#include <boost/pfr/core.hpp>
 #include <entt/entity/registry.hpp>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace unison::sim
 {
 
+/// One field of a component as a diff names it: its name, where its bytes start in the component and how many
+/// there are.
+struct FieldInfo
+{
+    std::string_view name;
+    std::size_t offset = 0;
+    std::size_t size = 0;
+};
+
 /// What snapshots, checksums and serialised snapshots need to know about one component type: the name that
-/// identifies it across builds, the bytes one of it occupies, and the operations that need the type back.
+/// identifies it across builds, the bytes one of it occupies, the operations that need the type back, and the
+/// fields `UNISON_FIELDS` named, none until it does.
 struct ComponentInfo
 {
     std::string_view name;
@@ -31,6 +44,7 @@ struct ComponentInfo
     std::size_t (*countPool)(const entt::registry& registry) = nullptr;
     bool (*writePool)(BinaryWriter& writer, const entt::registry& registry) = nullptr;
     bool (*readPool)(BinaryReader& reader, entt::registry& registry) = nullptr;
+    std::span<const FieldInfo> fields;
 };
 
 /// The ordered list of component types a simulation is built from. The order is the order they were
@@ -43,6 +57,10 @@ public:
     static constexpr std::size_t kMaxComponents = 128;
 
     void add(const ComponentInfo& component, std::string_view file);
+
+    /// Names the fields of a component registered already, from the file that registered it; naming them from any
+    /// other file, or for a component not registered, breaks a contract.
+    void nameFields(std::string_view component, std::span<const FieldInfo> fields, std::string_view file);
 
     [[nodiscard]] std::span<const ComponentInfo> components() const;
 
@@ -168,6 +186,66 @@ bool readPoolOf(BinaryReader& reader, entt::registry& registry)
     return true;
 }
 
+/// How many names a list of them separated by commas holds.
+[[nodiscard]] constexpr std::size_t countFieldNames(std::string_view names)
+{
+    if (names.empty())
+    {
+        return 0;
+    }
+
+    std::size_t count = 1;
+
+    for (const char character : names)
+    {
+        count += character == ',' ? 1U : 0U;
+    }
+
+    return count;
+}
+
+namespace detail
+{
+
+[[nodiscard]] constexpr std::string_view trimmed(std::string_view name)
+{
+    const std::size_t first = name.find_first_not_of(' ');
+
+    return first == std::string_view::npos ? std::string_view{}
+                                           : name.substr(first, name.find_last_not_of(' ') - first + 1);
+}
+
+template <typename T, std::size_t... Index>
+[[nodiscard]] std::array<FieldInfo, sizeof...(Index)> fieldsNamed(std::string_view names, std::index_sequence<Index...>)
+{
+    constexpr std::array<std::size_t, sizeof...(Index)> sizes{sizeof(boost::pfr::tuple_element_t<Index, T>)...};
+    std::array<FieldInfo, sizeof...(Index)> fields{};
+    std::size_t offset = 0;
+
+    for (std::size_t index = 0; index < fields.size(); ++index)
+    {
+        const std::size_t comma = names.find(',');
+        fields.at(index) = FieldInfo{trimmed(names.substr(0, comma)), offset, sizes.at(index)};
+        offset += sizes.at(index);
+        names = comma == std::string_view::npos ? std::string_view{} : names.substr(comma + 1);
+    }
+
+    return fields;
+}
+
+}
+
+/// The fields of a padding-free component, named in the order they are declared: each takes the bytes of its member
+/// right after the one before. The names must outlive the program, as a string literal does.
+template <typename T>
+[[nodiscard]] std::span<const FieldInfo> fieldsOf(std::string_view names)
+{
+    static const std::array<FieldInfo, boost::pfr::tuple_size_v<T>> fields =
+        detail::fieldsNamed<T>(names, std::make_index_sequence<boost::pfr::tuple_size_v<T>>{});
+
+    return fields;
+}
+
 /// The registry UNISON_COMPONENT writes into, shared by the whole process because a static
 /// initialiser has nowhere else to write.
 [[nodiscard]] ComponentRegistry& componentRegistry();
@@ -183,6 +261,14 @@ class ComponentRegistration
 {
 public:
     ComponentRegistration(const ComponentInfo& component, std::string_view file);
+};
+
+/// Names the fields of one component in the process-wide registry as the program starts. Created by UNISON_FIELDS;
+/// there is no reason to create one directly.
+class FieldNaming
+{
+public:
+    FieldNaming(std::string_view component, std::span<const FieldInfo> fields, std::string_view file);
 };
 
 }
@@ -203,6 +289,17 @@ public:
                                      &::unison::sim::hashPoolOf<Type>,                                                 \
                                      &::unison::sim::countPoolOf<Type>,                                                \
                                      &::unison::sim::writePoolOf<Type>,                                                \
-                                     &::unison::sim::readPoolOf<Type>},                                                \
+                                     &::unison::sim::readPoolOf<Type>,                                                 \
+                                     {}},                                                                              \
             __FILE__                                                                                                   \
+    }
+
+/// Names the fields of a component registered earlier in the same file, every one of them in the order they are
+/// declared, so the difference between two snapshots names the field it falls in.
+#define UNISON_FIELDS(Type, ...)                                                                                       \
+    static_assert(::unison::sim::countFieldNames(#__VA_ARGS__) == ::boost::pfr::tuple_size_v<Type>,                    \
+                  #Type " must name each of its fields once in UNISON_FIELDS");                                        \
+    static const ::unison::sim::FieldNaming unisonFieldNaming##Type                                                    \
+    {                                                                                                                  \
+        #Type, ::unison::sim::fieldsOf<Type>(#__VA_ARGS__), __FILE__                                                   \
     }

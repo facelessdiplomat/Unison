@@ -3,6 +3,7 @@
 #include "snapshot_parts.hpp"
 
 #include <unison/session/snapshot_serializer.hpp>
+#include <unison/sim/component_registry.hpp>
 #include <unison/sim/frame_snapshot.hpp>
 
 #include <algorithm>
@@ -17,13 +18,30 @@ namespace
 
 constexpr std::size_t kIdentifierSize = sizeof(std::uint32_t);
 
+std::optional<std::string> fieldAt(std::string_view component, std::size_t byte)
+{
+    for (const sim::ComponentInfo& candidate : sim::componentRegistry().components())
+    {
+        for (const sim::FieldInfo& field :
+             candidate.name == component ? candidate.fields : std::span<const sim::FieldInfo>{})
+        {
+            if (byte >= field.offset && byte < field.offset + field.size)
+            {
+                return std::string{field.name};
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
 StateDifference differenceIn(const SnapshotPart& part, std::span<const std::byte> first, std::size_t offset)
 {
     const std::size_t within = offset - part.begin;
 
     if (part.elementSize == 0 || within < kIdentifierSize)
     {
-        return StateDifference{std::string{part.name}, std::nullopt, within};
+        return StateDifference{std::string{part.name}, std::nullopt, within, std::nullopt};
     }
 
     const std::size_t elementBegin = kIdentifierSize + (within - kIdentifierSize) / part.elementSize * part.elementSize;
@@ -31,9 +49,14 @@ StateDifference differenceIn(const SnapshotPart& part, std::span<const std::byte
     std::uint32_t entity = 0;
     std::memcpy(&entity, first.subspan(part.begin + elementBegin, kIdentifierSize).data(), kIdentifierSize);
 
-    return StateDifference{std::string{part.name},
-                           entity,
-                           inElement < kIdentifierSize ? std::nullopt : std::optional{inElement - kIdentifierSize}};
+    if (inElement < kIdentifierSize)
+    {
+        return StateDifference{std::string{part.name}, entity, std::nullopt, std::nullopt};
+    }
+
+    const std::size_t byte = inElement - kIdentifierSize;
+
+    return StateDifference{std::string{part.name}, entity, byte, fieldAt(part.name, byte)};
 }
 
 }

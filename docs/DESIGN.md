@@ -269,6 +269,10 @@ state and the same inputs, `advance` produces a bit-identical result on every cl
   entities itself, because one the game forgot would quietly stay out of every snapshot. A game is
   built as a CMake OBJECT library, because from a static library the
   linker drops the translation unit that holds the registrations: nothing references a static initialiser.
+- `UNISON_FIELDS(Type, field, ...)` names a registered component's fields, every one in the order they are declared,
+  in the file that registered it and after its `UNISON_COMPONENT`. It static-asserts that it names as many fields as
+  Boost.PFR counts, and takes each field's bytes from the member sizes, which a padding-free component lays end to
+  end; the difference between two snapshots names the field its byte falls in.
 - Math fields in components are plain POD types from `unison_core` (`Float3`, `Quaternion`: three or four
   floats, natural alignment, no padding). Jolt vector types are used for computation inside systems and
   physics code only. This keeps padding bytes out of checksums and Jolt headers out of host-facing headers.
@@ -656,9 +660,9 @@ state is carried as bytes and checked by the physics world when the snapshot is 
 `firstDifferenceOf` compares two serialised snapshots of one layout. Everything before their first differing
 byte is alike, so the layout of the first up to that byte is the layout of both, and the byte is placed in the
 part it falls in: the frame number, the step, the globals, the entity storage, a component's pool or the
-physics state. In a pool it names the entity and the offset of the byte within that entity's component, or no
-offset when the two pools hold another entity there. Two snapshots alike byte for byte do not differ, and
-bytes either reader refuses are refused.
+physics state. In a pool it names the entity, the offset of the byte within that entity's component and the
+field it falls in when the component names its fields, or no offset when the two pools hold another entity
+there. Two snapshots alike byte for byte do not differ, and bytes either reader refuses are refused.
 
 ### 8.7 Replays
 

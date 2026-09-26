@@ -70,6 +70,16 @@ TEST_CASE("a single field changed is located at its component, entity and byte")
     REQUIRE((*difference)->byte == kOffsetOfPositionY);
 }
 
+TEST_CASE("the difference names the field its byte falls in")
+{
+    const Difference difference =
+        unison::session::firstDifferenceOf(serializedScene({}), serializedScene(Scene{.secondY = kNextAfterTwo}));
+
+    REQUIRE(difference.has_value());
+    REQUIRE(difference->has_value());
+    REQUIRE((*difference)->field == "y");
+}
+
 TEST_CASE("a component held by another entity is located at the entity, with no byte")
 {
     const Difference difference =
