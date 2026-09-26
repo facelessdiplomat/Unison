@@ -5,6 +5,29 @@
 namespace unison::sim
 {
 
+std::optional<BodyIdAllocator> BodyIdAllocator::fromState(std::span<const BodyId> freeIds, std::uint32_t takenSlotCount)
+{
+    if (takenSlotCount > kMaxBodies || freeIds.size() > takenSlotCount)
+    {
+        return std::nullopt;
+    }
+
+    BodyIdAllocator allocator;
+    allocator.takenSlots = takenSlotCount;
+
+    for (const BodyId id : freeIds)
+    {
+        if (bodyIndexOf(id) >= takenSlotCount || allocator.isFree(id))
+        {
+            return std::nullopt;
+        }
+
+        allocator.freeList.pushBack(id);
+    }
+
+    return allocator;
+}
+
 BodyId BodyIdAllocator::allocate()
 {
     if (freeList.size() > 0)

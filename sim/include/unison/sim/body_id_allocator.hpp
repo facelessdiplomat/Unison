@@ -4,6 +4,7 @@
 #include <unison/core/fixed_vector.hpp>
 
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace unison::sim
@@ -15,6 +16,11 @@ namespace unison::sim
 class BodyIdAllocator
 {
 public:
+    /// An allocator that stands where one with these free ids and slots taken stood, or nothing when no allocator
+    /// could: more slots than the table holds, a free id beyond the slots taken, or one slot free twice.
+    [[nodiscard]] static std::optional<BodyIdAllocator> fromState(std::span<const BodyId> freeIds,
+                                                                  std::uint32_t takenSlotCount);
+
     [[nodiscard]] BodyId allocate();
 
     void release(BodyId id);

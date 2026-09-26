@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.2.1**, `SnapshotSerializer`: a whole frame to bytes and back, checksum-exact and independent of the
-  order EnTT's storage was touched in. Last finished: 4.1.5. On the owner's word of 2026-09-26 Phase 4 goes on
-  while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until
-  X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **4.2.2**, `StateDiff`: the first differing entity, component and byte offset between two serialised
+  snapshots. Last finished: 4.2.1. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3
+  wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows
+  and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,10 +44,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 20 | 5 |
+| 4 Session features | 5 | 20 | 6 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **248** | **192** |
+| **Total** | **41** | **248** | **193** |
 
 ## Charter amendments made while planning
 
@@ -447,7 +447,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] 4.1.5 Divergence report: first divergent frame on a tampered replay. Test: a tampered input at frame 300 is reported at the first checksum after it. Done on 2026-09-26: the verdict of `verifyReplay` names the frame of the first checksum that differs, and `unison_replay verify` prints it after the count. A scripted replay of 320 frames whose input at frame 302 was tampered with, its checksums taken from the true inputs every fourth frame, is reported at frame 304, the first checksum taken at or after the tampering; keeping every divergence instead of the first fails that case. By hand the console replay of 4.1.3 with one input byte flipped at frame 300 verifies as 14 of 17 checksums matching, the first to differ frame 300, with exit code 2. The state diff Definition of Done item 6 also asks for comes with 4.2.
 
 ### 4.2 Snapshot serialisation and state diff
-- [ ] 4.2.1 `SnapshotSerializer`: full frame to bytes and back (entity storage, pools in registration order, physics bytes, character states, globals). Test: round trip is checksum-exact and independent of EnTT storage touch order.
+- [x] 4.2.1 `SnapshotSerializer`: full frame to bytes and back (entity storage, pools in registration order, physics bytes, character states, globals). Test: round trip is checksum-exact and independent of EnTT storage touch order. Done on 2026-09-26: `serializeSnapshot` and `deserializeSnapshot` in `unison_session` are the serializer. A snapshot's bytes open with the magic `UNSS`, the version and the component layout's hash, then the frame's number and step, the globals, the registry and the physics state, as the charter's §8.6 describes; the pools are walked in registration order, never in the order EnTT's storages were first touched. Every registered component now also counts, writes and reads its pool, `writeRegistry` and `readRegistry` in `unison_sim` carry the entity storage and the pools, and `BodyIdAllocator::fromState` rebuilds an allocator or refuses a state none could be in. An arena frame after 200 scripted frames, serialised and restored into another match, checksums alike and plays the next 100 frames to the same checksums; two registries touched in different orders write the same bytes; the reader refuses another magic, version or layout, an identifier named twice, more entities alive than held, a component on a dead entity or two on one, and every length the bytes can be cut to, and answers every snapshot with one byte corrupted without breaking a contract; turning the identifier, liveness or allocator checks off fails their cases. Open: the physics state is restored under the physics world's contract, so one from an untrusted peer still ends the process; the backlog holds it.
 - [ ] 4.2.2 `StateDiff`: first differing entity, component and byte offset between two serialised snapshots. Test: a single field change is located.
 - [ ] 4.2.3 Field-name reflection `UNISON_FIELDS(...)` so diffs print field names. Test: the diff names the field.
 - [ ] 4.2.4 Desync dumps: on `Desync`, clients write `desync_<frame>_<slot>.snapshot`; `unison_replay diff a b` prints the report. Test: a runner with an injected fault produces dumps that diff to the injected field.
@@ -540,4 +540,5 @@ plugin;
 navigation (Recast for baking, Detour at runtime with deterministic math shims); authoritative-server mode;
 DSL/codegen; 2D physics module (Box2D v3); encryption / Steam relay (GameNetworkingSockets); lobbies and
 matchmaking; multiple local players per client; delta-compressed inputs for 16+ players; frame-local heap
-allocator; asset loading from files; a host's aim that starts where the player's spawn point faces.
+allocator; asset loading from files; a host's aim that starts where the player's spawn point faces; a physics
+state from an untrusted peer checked before it is restored.

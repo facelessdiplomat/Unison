@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unison/core/binary_reader.hpp>
+#include <unison/core/binary_writer.hpp>
 #include <unison/core/fixed_vector.hpp>
 #include <unison/core/hasher.hpp>
 
@@ -8,6 +10,8 @@
 #include <entt/entity/registry.hpp>
 
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <type_traits>
@@ -15,8 +19,8 @@
 namespace unison::sim
 {
 
-/// What snapshots and checksums need to know about one component type: the name that identifies it
-/// across builds, the bytes a pool of it occupies, and the one operation that needs the type back.
+/// What snapshots, checksums and serialised snapshots need to know about one component type: the name that
+/// identifies it across builds, the bytes one of it occupies, and the operations that need the type back.
 struct ComponentInfo
 {
     std::string_view name;
@@ -24,6 +28,9 @@ struct ComponentInfo
     std::size_t alignment = 0;
     void (*clonePool)(const entt::registry& source, entt::registry& destination) = nullptr;
     void (*hashPool)(Hasher& hasher, const entt::registry& registry) = nullptr;
+    std::size_t (*countPool)(const entt::registry& registry) = nullptr;
+    bool (*writePool)(BinaryWriter& writer, const entt::registry& registry) = nullptr;
+    bool (*readPool)(BinaryReader& reader, entt::registry& registry) = nullptr;
 };
 
 /// The ordered list of component types a simulation is built from. The order is the order they were
@@ -38,6 +45,10 @@ public:
     void add(const ComponentInfo& component, std::string_view file);
 
     [[nodiscard]] std::span<const ComponentInfo> components() const;
+
+    /// Folds every component's name and size in registration order, so two builds that disagree on the layout
+    /// of their pools disagree on this number.
+    [[nodiscard]] std::uint64_t layoutHash() const;
 
 private:
     [[nodiscard]] bool holds(std::string_view name) const;
@@ -93,6 +104,70 @@ void hashPoolOf(Hasher& hasher, const entt::registry& registry)
     }
 }
 
+/// How many elements one component pool holds.
+template <typename T>
+std::size_t countPoolOf(const entt::registry& registry)
+{
+    const auto* pool = registry.storage<T>();
+
+    return pool == nullptr ? 0 : pool->size();
+}
+
+/// Writes one component pool as its element count, then every identifier and value in packed order. Returns
+/// false when the writer runs out of room.
+template <typename T>
+bool writePoolOf(BinaryWriter& writer, const entt::registry& registry)
+{
+    const auto* pool = registry.storage<T>();
+    bool isWritten = writer.writeValue(static_cast<std::uint32_t>(countPoolOf<T>(registry)));
+
+    if (pool == nullptr)
+    {
+        return isWritten;
+    }
+
+    const entt::registry::common_type& entities = *pool;
+
+    for (auto first = entities.rbegin(), last = entities.rend(); isWritten && first != last; ++first)
+    {
+        isWritten = writer.writeValue(static_cast<std::uint32_t>(*first)) && writer.writeValue(pool->get(*first));
+    }
+
+    return isWritten;
+}
+
+/// Reads a pool `writePoolOf` wrote into a registry whose entities are in place already. Returns false for bytes
+/// that end early, a component on an entity that is not alive, or two on one entity.
+template <typename T>
+bool readPoolOf(BinaryReader& reader, entt::registry& registry)
+{
+    const std::optional<std::uint32_t> count = reader.readValue<std::uint32_t>();
+
+    if (!count.has_value() || *count > reader.remaining() / (sizeof(std::uint32_t) + sizeof(T)))
+    {
+        return false;
+    }
+
+    auto& pool = registry.storage<T>();
+    pool.reserve(pool.size() + *count);
+
+    for (std::uint32_t element = 0; element < *count; ++element)
+    {
+        const std::optional<std::uint32_t> identifier = reader.readValue<std::uint32_t>();
+        const std::optional<T> value = identifier.has_value() ? reader.readValue<T>() : std::nullopt;
+        const auto entity = static_cast<entt::entity>(identifier.value_or(0));
+
+        if (!value.has_value() || !registry.valid(entity) || pool.contains(entity))
+        {
+            return false;
+        }
+
+        pool.emplace(entity, *value);
+    }
+
+    return true;
+}
+
 /// The registry UNISON_COMPONENT writes into, shared by the whole process because a static
 /// initialiser has nowhere else to write.
 [[nodiscard]] ComponentRegistry& componentRegistry();
@@ -121,7 +196,13 @@ public:
     static_assert(::unison::sim::PaddingFree<Type>, #Type " must have no padding to be a component: reorder fields");  \
     static const ::unison::sim::ComponentRegistration unisonComponentRegistration##Type                                \
     {                                                                                                                  \
-        ::unison::sim::ComponentInfo{                                                                                  \
-            #Type, sizeof(Type), alignof(Type), &::unison::sim::clonePoolOf<Type>, &::unison::sim::hashPoolOf<Type>},  \
+        ::unison::sim::ComponentInfo{#Type,                                                                            \
+                                     sizeof(Type),                                                                     \
+                                     alignof(Type),                                                                    \
+                                     &::unison::sim::clonePoolOf<Type>,                                                \
+                                     &::unison::sim::hashPoolOf<Type>,                                                 \
+                                     &::unison::sim::countPoolOf<Type>,                                                \
+                                     &::unison::sim::writePoolOf<Type>,                                                \
+                                     &::unison::sim::readPoolOf<Type>},                                                \
             __FILE__                                                                                                   \
     }

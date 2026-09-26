@@ -25,6 +25,19 @@ std::span<const ComponentInfo> ComponentRegistry::components() const
     return std::span<const ComponentInfo>{entries.begin(), entries.size()};
 }
 
+std::uint64_t ComponentRegistry::layoutHash() const
+{
+    Hasher hasher;
+
+    for (const ComponentInfo& component : entries)
+    {
+        hasher.add(std::as_bytes(std::span{component.name}));
+        hasher.add(static_cast<std::uint64_t>(component.size));
+    }
+
+    return hasher.finish();
+}
+
 bool ComponentRegistry::holds(std::string_view name) const
 {
     for (const ComponentInfo& component : entries)

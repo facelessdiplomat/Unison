@@ -2,7 +2,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <cstdint>
+#include <optional>
 
 TEST_CASE("a fresh allocator counts its indices up from zero")
 {
@@ -99,4 +101,37 @@ TEST_CASE("an allocator remembers the slots it took and the ids it has back")
     REQUIRE(allocator.freeIds().size() == 2U);
     REQUIRE(allocator.freeIds()[0] == second);
     REQUIRE(allocator.freeIds()[1] == first);
+}
+
+TEST_CASE("an allocator rebuilt from its state hands out the ids the original would")
+{
+    unison::sim::BodyIdAllocator original;
+    const unison::BodyId first = original.allocate();
+    const unison::BodyId second = original.allocate();
+    static_cast<void>(original.allocate());
+    original.release(first);
+    original.release(second);
+    std::optional<unison::sim::BodyIdAllocator> rebuilt =
+        unison::sim::BodyIdAllocator::fromState(original.freeIds(), original.takenSlotCount());
+    REQUIRE(rebuilt.has_value());
+
+    const std::array<unison::BodyId, 4> fromOriginal{
+        original.allocate(), original.allocate(), original.allocate(), original.allocate()};
+    const std::array<unison::BodyId, 4> fromRebuilt{
+        rebuilt->allocate(), rebuilt->allocate(), rebuilt->allocate(), rebuilt->allocate()};
+
+    REQUIRE(fromRebuilt == fromOriginal);
+}
+
+TEST_CASE("a state no allocator could be in is refused")
+{
+    const std::array<unison::BodyId, 1> beyondTheSlotsTaken{unison::makeBodyId(5U, 0U)};
+    const std::array<unison::BodyId, 2> oneSlotFreeTwice{unison::makeBodyId(1U, 0U), unison::makeBodyId(1U, 1U)};
+    const std::array<unison::BodyId, 3> moreFreeThanTaken{
+        unison::makeBodyId(0U, 0U), unison::makeBodyId(1U, 0U), unison::makeBodyId(2U, 0U)};
+
+    REQUIRE_FALSE(unison::sim::BodyIdAllocator::fromState({}, unison::kMaxBodies + 1U).has_value());
+    REQUIRE_FALSE(unison::sim::BodyIdAllocator::fromState(beyondTheSlotsTaken, 3U).has_value());
+    REQUIRE_FALSE(unison::sim::BodyIdAllocator::fromState(oneSlotFreeTwice, 3U).has_value());
+    REQUIRE_FALSE(unison::sim::BodyIdAllocator::fromState(moreFreeThanTaken, 2U).has_value());
 }

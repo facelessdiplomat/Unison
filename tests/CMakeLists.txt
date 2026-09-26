@@ -148,6 +148,7 @@ add_executable(
     session/session_rollback_test.cpp
     session/session_test.cpp
     session/snapshot_ring_test.cpp
+    session/snapshot_serializer_test.cpp
     session/time_sync_test.cpp
     sim/advance_frame_test.cpp
     sim/asset_hash_test.cpp
@@ -176,6 +177,7 @@ add_executable(
     sim/physics_world_test.cpp
     sim/pipeline_hash_test.cpp
     sim/registry_clone_test.cpp
+    sim/registry_serialization_test.cpp
     sim/signals_test.cpp
     sim/system_pipeline_test.cpp
     support/allocation_probe.cpp
@@ -255,6 +257,7 @@ add_executable(
     arena/session_test.cpp
     arena/shot_path_test.cpp
     arena/snapshot_room_test.cpp
+    arena/snapshot_serialization_test.cpp
     arena/steady_state_allocation_test.cpp
     arena/text_map_test.cpp
     arena/weapons_test.cpp

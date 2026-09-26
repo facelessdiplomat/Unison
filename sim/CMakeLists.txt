@@ -22,6 +22,7 @@ add_library(
     src/physics_world.cpp
     src/pipeline_hash.cpp
     src/registry_clone.cpp
+    src/registry_serialization.cpp
     src/signals.cpp
     src/system_pipeline.cpp
     src/sim.cpp

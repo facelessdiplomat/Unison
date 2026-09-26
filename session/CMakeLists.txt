@@ -14,6 +14,7 @@ add_library(
     src/rollback_stats.cpp
     src/session.cpp
     src/snapshot_ring.cpp
+    src/snapshot_serializer.cpp
     src/time_sync.cpp
 )
 

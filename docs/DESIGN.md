@@ -181,7 +181,7 @@ state freely; they never mutate it except through `Session` inputs.
 |--------|------|------------------|--------------|
 | `unison_core` | static lib | Math re-exports (Jolt `Vec3`, `Quat`, `Mat44`, trig), `FixedVector<T,N>`, `FixedString<N>`, `Hasher` (XXH3), `BinaryWriter/Reader`, `FpEnvGuard`, `LogSink` callback, `AssetId` | Jolt (math only), xxHash |
 | `unison_sim` | static lib | `Frame`, `SystemPipeline`, `ISystem`, `EventBuffer`, `Signals`, `Rng`, `AssetRegistry`, `PhysicsWorld` (Jolt wrapper with deterministic body lifecycle) | EnTT, Jolt, core |
-| `unison_session` | static lib | `Session` (rollback state machine), `InputBuffer`, `SnapshotRing`, `Checksum`, `ReplayWriter/Reader`, `SnapshotSerializer` (late-join), `TimeSync` | sim, net |
+| `unison_session` | static lib | `Session` (rollback state machine), `InputBuffer`, `SnapshotRing`, `Checksum`, `ReplayWriter/Reader`, `serializeSnapshot`/`deserializeSnapshot` (late-join, desync dumps), `TimeSync` | sim, net |
 | `unison_net` | static lib | `ITransport`, `LoopbackHub` + `NetworkSimulator`, `EnetTransport`, `SessionConfig`, relay protocol messages, `RelayCore` (reusable by in-process and standalone relay) | ENet, core |
 | `unison_view` | static lib | Event dispatch with raise/cancel semantics, `EntityViewMap`, `TransformInterpolator`, read-only frame accessors | session |
 | `unison_relay` | executable | Standalone relay server over ENet, portable (Windows and macOS; Linux untried) | net |
@@ -635,11 +635,23 @@ than a tick, the table is worth redoing with its numbers.
 ### 8.6 Late-join, reconnect, spectators
 
 - **Late-join**: the relay picks a donor client, requests a serialised snapshot of verified frame `F`
-  (`SnapshotSerializer`: registry + physics + globals), streams it in chunks over the reliable channel to the
+  (`serializeSnapshot`: registry + physics + globals), streams it in chunks over the reliable channel to the
   joiner together with confirmed inputs since `F`; the joiner restores and fast-forwards at up to `N×` speed.
 - **Reconnect**: same mechanism; the relay holds the slot for `reconnectGrace` (default 30 s) and applies the
   drop policy to the absent player's inputs meanwhile.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay.
+
+A serialised snapshot is little-endian throughout. It opens with the magic `UNSS`, the format's version and a
+hash of the component layout, every registered component's name and size in registration order, so a build
+with other pools refuses it; then the frame's number and step, the globals (the generator's state, the match
+phase, the free body ids and the slots taken), the registry (the entity storage's identifiers in packed order
+and how many are alive, then every registered pool in registration order, its count and each identifier with
+its value) and the physics state with its length. Walking the pools in registration order, never in the order
+EnTT's storages were first touched, makes the bytes the same on every client that holds the same state.
+`deserializeSnapshot` refuses bytes without the magic, of another version or layout, with an impossible match
+phase or body id allocator, an identifier named twice or no storage could hold, more entities alive than held,
+a component on an entity that is not alive or two on one, and bytes that end early or run on. The physics
+state is carried as bytes and checked by the physics world when the snapshot is restored, under its contract.
 
 ### 8.7 Replays
 
@@ -1024,7 +1036,7 @@ navigation (Recast for baking, Detour at runtime with deterministic math shims);
 DSL/codegen; 2D physics module (Box2D v3, cross-platform deterministic); encryption / Steam relay via
 GameNetworkingSockets; lobbies and matchmaking; multiple local players per client; delta-compressed inputs
 for 16+ players; frame-local heap allocator; asset loading from files; a host's aim that starts where the
-player's spawn point faces.
+player's spawn point faces; a physics state from an untrusted peer checked before it is restored.
 
 ---
 

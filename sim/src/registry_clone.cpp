@@ -1,5 +1,7 @@
 #include <unison/sim/registry_clone.hpp>
 
+#include "registry_storage.hpp"
+
 #include <unison/core/contract.hpp>
 #include <unison/sim/component_registry.hpp>
 
@@ -10,16 +12,6 @@ namespace unison::sim
 
 namespace
 {
-
-void emptyStorages(entt::registry& registry)
-{
-    for (auto&& pool : registry.storage())
-    {
-        pool.second.clear();
-    }
-
-    registry.storage<entt::entity>().clear();
-}
 
 void cloneEntities(const entt::registry& source, entt::registry& destination)
 {
