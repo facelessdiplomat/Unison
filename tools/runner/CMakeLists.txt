@@ -51,7 +51,10 @@ add_test(
     COMMAND unison_runner --frames 120 --record "${CMAKE_CURRENT_BINARY_DIR}/runner_records_a_replay.replay"
 )
 
-set_tests_properties(runner_records_a_replay PROPERTIES PASS_REGULAR_EXPRESSION "recorded the run into" LABELS fast)
+set_tests_properties(
+    runner_records_a_replay PROPERTIES FIXTURES_SETUP runnerReplay PASS_REGULAR_EXPRESSION "recorded the run into"
+                                       LABELS fast
+)
 
 add_test(
     NAME runner_reports_a_replay_it_cannot_write

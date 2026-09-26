@@ -16,8 +16,8 @@ enum class ReplayRecordKind : std::uint8_t
 
 [[nodiscard]] inline bool isPlayable(const net::SessionConfig& config)
 {
-    return config.slotCount > 0 && config.slotCount <= sim::kMaxSlots && config.inputSize <= sim::kMaxInputSize &&
-           config.checksumInterval > 0;
+    return config.tickRate > 0 && config.slotCount > 0 && config.slotCount <= sim::kMaxSlots &&
+           config.inputSize <= sim::kMaxInputSize && config.checksumInterval > 0;
 }
 
 }

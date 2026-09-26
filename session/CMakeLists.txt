@@ -9,6 +9,7 @@ add_library(
     src/replay_file.cpp
     src/replay_player.cpp
     src/replay_reader.cpp
+    src/replay_verification.cpp
     src/replay_writer.cpp
     src/rollback_stats.cpp
     src/session.cpp

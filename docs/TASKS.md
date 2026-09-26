@@ -18,10 +18,10 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.1.4**, `unison_replay play | verify` with exit codes: `verify` exits 0 on a good file. Last
-  finished: 4.1.3. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the
-  owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS.
-  3.2.3 is deferred until WSL is installed.
+- Next up: **4.1.5**, the divergence report: `verify` names the first frame whose checksum differs, the first
+  checksum after a tampered input. Last finished: 4.1.4. On the owner's word of 2026-09-26 Phase 4 goes on while
+  X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2
+  plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -44,10 +44,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 20 | 3 |
+| 4 Session features | 5 | 20 | 4 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **248** | **190** |
+| **Total** | **41** | **248** | **191** |
 
 ## Charter amendments made while planning
 
@@ -443,7 +443,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [x] 4.1.1 Replay format (magic, version, `SessionConfig`, asset hash, per-frame confirmed inputs, periodic checksums) and `ReplayWriter`. Test: write then read yields identical records. Done on 2026-09-26: a replay opens with the magic `UNRP` and the format's version, then the session config as the protocol writes it, the asset hash among its fields, then frame and checksum records in the order they were written, as the charter's §8.7 now says. `ReplayWriter` builds one in memory; `ReplayReader` reads it back and refuses bytes without the magic, another version, a config with more slots or larger inputs than a frame holds, a record of no known kind and a replay that ends inside its header or a record, so the reader of 4.1.2 is in place and 4.1.2 keeps the player. The config's encoding moved into `writeSessionConfig` and `readSessionConfig`, which the protocol's codec now calls too; the protocol's golden bytes still match. Nine cases: the round trip, the six refusals and a writer for more slots than a frame holds breaking a contract; turning the reader's checks of the magic and of the config's size off fails the three cases that name them.
 - [x] 4.1.2 `ReplayReader` and `ReplayPlayer` driving a verified-only `Session`. Test: checksums match the recorded ones. Done on 2026-09-26: `ReplayReader` came with 4.1.1, so this micro-task is the player. `ReplayPlayer` confirms each frame of a replay to a `Session` before it ticks, so the session never predicts and verifies the frame at once, and hands back the checksum the session took of it when the config's interval falls on it; a frame that does not follow the last one played is refused as a malformed replay. A replay of forty frames of the scripted session, its checksums taken straight through every fourth frame, plays back to the same ten checksums, and once warmed up the player takes nothing from the heap, which it fails to do when it keeps the session's events. The reader also refuses a config no session can play, one seating no player or taking checksums on no interval, since a `Session` breaks a contract on either; turning those checks off fails their two cases. `VerifiedChecksum` compares equal field by field.
 - [x] 4.1.3 `--record` in runner and console. Test: a runner-recorded replay verifies. Done on 2026-09-26: a `Session` given an `IVerifiedFrameReceiver` tells it of every frame it verifies, in order and before the frame leaves its window, with the inputs the relay settled for it and, on the config's interval, its checksum; `NetworkedSession` passes one on to the session it plays, and `ReplayWriter` is one. `writeReplayFile` and `readReplayFile` move a replay between memory and a file whole, reporting a file they cannot open, write or read. With `--record <file>` the runner records its first client and the console its own session, and both write the file when the match ends, a desync included; a replay they cannot write turns an exit code of 0 into 1. Tested: a session confirming eight frames at once tells its receiver of all eight with their inputs and checksums; the writer as a receiver writes each frame and its checksum; the file round trip and its two failures; a replay the runner recorded over a lossy network plays back to the checksums it recorded; `runner_records_a_replay` and `runner_reports_a_replay_it_cannot_write` in CTest; the console's `--record` option. Silencing the receiver fails the session's and the runner's cases. Two consoles and a relay on localhost with `--record` wrote replays identical byte for byte, 359 frames in a row and 17 checksums, one every twenty frames.
-- [ ] 4.1.4 `unison_replay play | verify` CLI with exit codes. Test: `verify` exits 0 on a good file.
+- [x] 4.1.4 `unison_replay play | verify` CLI with exit codes. Test: `verify` exits 0 on a good file. Done on 2026-09-26: `verifyReplay` in `unison_session` plays every frame of a replay through a `ReplayPlayer` and compares every recorded checksum with the one taken of the frame just played, counting how many it compared and how many matched; a checksum of any other frame is a malformed replay. `unison_replay play <file>` and `verify <file>` build the arena for the replay's players and tick rate, refuse a replay of other assets or systems than the build's, and print the frames played and the last frame's checksum, or how many checksums match; the exit code is 0 for a replay that played through with every checksum matching, 2 for one that differs and 1 for a command line, a file or a replay the tool cannot use. The runner's config now carries the arena's asset and pipeline hashes as the console's does, and the reader refuses a config that ticks no times a second, which the arena would break a contract on. CTest records a runner replay and verifies and plays it; Catch2 covers the verification, the refusals, the options and the reports, and taking the comparison or the frame check away fails their cases. By hand the console replays of 4.1.3 verify with 17 of 17 checksums over 359 frames and play to the same last checksum, and flipping one input byte at frame 300 makes `verify` report 14 of 17 and exit 2.
 - [ ] 4.1.5 Divergence report: first divergent frame on a tampered replay. Test: a tampered input at frame 300 is reported at the first checksum after it.
 
 ### 4.2 Snapshot serialisation and state diff

@@ -652,9 +652,9 @@ then the session config written as the protocol writes it, the asset hash among 
 in the order they were written, each a kind byte and its fields: a frame, its number and every slot's flags
 byte and input of the config's size, or a checksum, the number of a verified frame and its XXH3.
 `ReplayWriter` writes one and `ReplayReader` reads it back, refusing bytes without the magic, another version
-of the format, a config no session can play, seating no player or more than a frame holds, with larger inputs
-than a slot holds or checksums on no interval, a record of no known kind and a replay that ends inside its
-header or a record.
+of the format, a config no session can play, ticking no times a second, seating no player or more than a frame
+holds, with larger inputs than a slot holds or checksums on no interval, a record of no known kind and a
+replay that ends inside its header or a record.
 
 `ReplayPlayer` plays the frames back through a `Session` handed each frame's inputs before it plays the frame,
 so the session never predicts and verifies every frame at once, taking checksums on the config's interval
@@ -669,6 +669,11 @@ inputs the relay settled for it and, when the config's interval falls on it, its
 such a receiver. `--record <file>` records the runner's first client or the console's own session and writes
 the file once the match ends; `writeReplayFile` and `readReplayFile` move a replay between memory and a file
 whole.
+
+A checksum follows the frame it was taken of. `verifyReplay` plays every frame through a `ReplayPlayer` and
+compares every checksum the replay recorded with the one the player took of the same frame, counting how many
+it compared and how many matched; a checksum of a frame the replay did not just play is a malformed replay,
+and a record the reader refuses stops it with the reader's error.
 
 ---
 
@@ -811,19 +816,19 @@ the session's event changes are.
 
 ### 10.2 Terminal hosts
 
-- `unison_runner`: CI workhorse; arguments for players, frames, seed, network simulator parameters, checksum interval,
-  replay recording; non-zero exit code on desync or window overflow; prints rollback statistics. It plays the
-  arena with every client and the relay in one process, each client's link crossing one seeded simulated
-  network and each player scripted from the seed, one host frame at a time; a run that has not verified every
-  frame after twice as many host frames and ten seconds more fails. A wiretap in front of the relay writes every
-  checksum the clients report into a ledger, and the run lasts until every client has reported the last frame
-  it checks; the first frame the clients report different checksums for is the desync, printed with every
-  slot's checksum of it. The exit code is 0 for a run that verified every frame alike within its window,
-  2 for a desync, 3 for a rollback deeper than the prediction window, and 1 for a run that missed frames, a
-  command line it could not read or a replay it could not write; a desync outranks an overflow, and both outrank
-  missed frames. After the
-  verdict every run prints a table of rollbacks by slot, in slot order: how many, how many per second of play,
-  how deep on average and at most, and how many ticks the client stalled with its window full, closed by a row
+- `unison_runner`: CI workhorse; arguments for players, frames, seed, network simulator parameters, checksum
+  interval, replay recording; non-zero exit code on desync or window overflow; prints rollback statistics. Its
+  config carries the arena's asset and pipeline hashes, as the console's does, so a replay it records names what it
+  was played with. It plays the arena with every client and the relay in one process, each client's link crossing
+  one seeded simulated network and each player scripted from the seed, one host frame at a time; a run that has not
+  verified every frame after twice as many host frames and ten seconds more fails. A wiretap in front of the relay
+  writes every checksum the clients report into a ledger, and the run lasts until every client has reported the last
+  frame it checks; the first frame the clients report different checksums for is the desync, printed with every
+  slot's checksum of it. The exit code is 0 for a run that verified every frame alike within its window, 2 for a
+  desync, 3 for a rollback deeper than the prediction window, and 1 for a run that missed frames, a command line it
+  could not read or a replay it could not write; a desync outranks an overflow, and both outrank missed frames.
+  After the verdict every run prints a table of rollbacks by slot, in slot order: how many, how many per second of
+  play, how deep on average and at most, and how many ticks the client stalled with its window full, closed by a row
   for every client together.
 - `unison_console`: text visualisation (top-down ASCII map of the arena, health, rollback/ping stats), keyboard input,
   connects to `unison_relay`. TUI library candidate: FTXUI (MIT); fallback is plain console output. It joins
@@ -858,7 +863,13 @@ the session's event changes are.
   number of their slot with an arrow for the quarter turn they look along, and below it a line for every
   player with their health, or that they wait to come back, and their kills. The map reads the arena's
   components and runs none of its code (§7.3).
-- `unison_replay`: record / play / verify / diff.
+- `unison_replay`: record / play / verify / diff. It builds the arena for the players and the tick rate of a
+  replay's config and refuses a replay recorded with other assets or systems than the build's, whose hashes the
+  config carries. `play <file>` re-simulates the replay and prints how many frames it played and the checksum of the
+  last; `verify <file>` also compares every checksum the replay recorded and prints how many of them match. The exit
+  code is 0 for a replay played through with every checksum matching, 2 for a checksum that differs, and 1 for a
+  command line it could not read, a file it could not read, a malformed replay or one of other assets or systems;
+  `diff` comes with 4.2.4.
 
 ### 10.3 Unreal Engine plugin (Phase 5)
 

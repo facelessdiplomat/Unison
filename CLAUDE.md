@@ -166,6 +166,6 @@ that check.
   "$UNISON_CLANG_FORMAT" -i session/src/snapshot_ring.cpp
   ```
 
-- The binaries sit in `build/<preset>/tools/relay`, `tools/console` and `tools/runner`. The benchmarks are run on
-  purpose, `build/<preset>/tests/unison_benchmarks "[.benchmark]"` in Release, and recorded in
-  `tests/benchmarks/baseline.md`.
+- The binaries sit in `build/<preset>/tools/relay`, `tools/console`, `tools/runner` and `tools/replay`. The
+  benchmarks are run on purpose, `build/<preset>/tests/unison_benchmarks "[.benchmark]"` in Release, and recorded
+  in `tests/benchmarks/baseline.md`.

@@ -139,6 +139,7 @@ add_executable(
     session/replay_file_test.cpp
     session/replay_player_test.cpp
     session/replay_test.cpp
+    session/replay_verification_test.cpp
     session/session_allocation_test.cpp
     session/session_checksum_test.cpp
     session/session_events_test.cpp
@@ -188,6 +189,8 @@ add_executable(
     tools/relay_options_test.cpp
     tools/relay_over_enet_test.cpp
     tools/relay_rooms_test.cpp
+    tools/replay_options_test.cpp
+    tools/replay_report_test.cpp
     tools/rollback_summary_test.cpp
     tools/run_outcome_test.cpp
     tools/runner_options_test.cpp
@@ -208,6 +211,7 @@ target_link_libraries(
     unison_determinism_canary
     unison_net
     unison_relay_core
+    unison_replay_core
     unison_runner_core
     unison_session
     unison_sim

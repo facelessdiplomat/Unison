@@ -1,6 +1,10 @@
 #include <unison/runner/runner_match.hpp>
 
 #include <arena/arena_input.hpp>
+#include <arena/arena_simulation.hpp>
+
+#include <unison/sim/asset_hash.hpp>
+#include <unison/sim/pipeline_hash.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -18,12 +22,15 @@ constexpr std::uint32_t kGraceSeconds = 10;
 
 net::SessionConfig configFor(const RunnerOptions& options)
 {
+    const arena::ArenaSimulation game{options.players, options.tickRate};
     net::SessionConfig config;
     config.tickRate = options.tickRate;
     config.slotCount = static_cast<std::uint8_t>(options.players);
     config.inputSize = sizeof(arena::ArenaInput);
     config.checksumInterval = options.checksumInterval;
     config.seed = options.seed;
+    config.assetHash = sim::hashOf(game.assets());
+    config.pipelineHash = sim::hashOf(game.pipeline());
 
     return config;
 }

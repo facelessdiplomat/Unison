@@ -34,6 +34,7 @@ add_subdirectory(samples/arena)
 
 add_subdirectory(tools/console)
 add_subdirectory(tools/relay)
+add_subdirectory(tools/replay)
 add_subdirectory(tools/runner)
 
 add_subdirectory(tests)
