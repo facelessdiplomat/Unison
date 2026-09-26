@@ -44,7 +44,16 @@ tl::expected<ReplayVerdict, Error> verifyReplay(ReplayReader& reader, ReplayPlay
         }
 
         ++verdict.checksumsCompared;
-        verdict.checksumsMatched += lastTaken->checksum == recorded->checksum ? 1U : 0U;
+
+        if (lastTaken->checksum == recorded->checksum)
+        {
+            ++verdict.checksumsMatched;
+        }
+        else if (!verdict.firstDivergentFrame.has_value())
+        {
+            verdict.firstDivergentFrame = recorded->frameNumber;
+        }
+
         lastTaken.reset();
     }
 

@@ -7,17 +7,19 @@
 #include <tl/expected.hpp>
 
 #include <cstdint>
+#include <optional>
 
 namespace unison::session
 {
 
 /// What playing a replay back found: how many frames it played, how many recorded checksums it compared with
-/// the ones those frames played to, and how many of them matched.
+/// the ones those frames played to, how many of them matched, and the frame of the first that did not.
 struct ReplayVerdict
 {
     std::uint32_t framesPlayed = 0;
     std::uint32_t checksumsCompared = 0;
     std::uint32_t checksumsMatched = 0;
+    std::optional<std::uint32_t> firstDivergentFrame;
 };
 
 /// Plays every frame the reader has left through the player and compares every checksum it reads with the one the

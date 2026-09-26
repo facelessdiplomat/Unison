@@ -32,10 +32,16 @@ int verifyExitCodeOf(const session::ReplayVerdict& verdict)
 
 std::string verifyReportOf(const session::ReplayVerdict& verdict)
 {
-    return std::format("unison_replay: {} of {} checksums match over {} frames\n",
+    const std::string firstDivergence =
+        verdict.firstDivergentFrame.has_value()
+            ? std::format("; the first to differ is frame {}", *verdict.firstDivergentFrame)
+            : std::string{};
+
+    return std::format("unison_replay: {} of {} checksums match over {} frames{}\n",
                        verdict.checksumsMatched,
                        verdict.checksumsCompared,
-                       verdict.framesPlayed);
+                       verdict.framesPlayed,
+                       firstDivergence);
 }
 
 std::string playReportOf(const session::ReplayVerdict& verdict, std::uint64_t lastChecksum)

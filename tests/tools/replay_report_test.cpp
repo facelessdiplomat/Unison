@@ -53,6 +53,16 @@ TEST_CASE("the verify report says how many checksums match over how many frames"
     REQUIRE(report == "unison_replay: 17 of 18 checksums match over 360 frames\n");
 }
 
+TEST_CASE("the verify report names the first frame whose checksum differs")
+{
+    unison::session::ReplayVerdict verdict = verdictOf(18, 17);
+    verdict.firstDivergentFrame = 300;
+
+    const std::string report = unison::replay::verifyReportOf(verdict);
+
+    REQUIRE(report == "unison_replay: 17 of 18 checksums match over 360 frames; the first to differ is frame 300\n");
+}
+
 TEST_CASE("the play report says how many frames were played and the last one's checksum")
 {
     const std::string report = unison::replay::playReportOf(verdictOf(18, 18), 0x0123456789ABCDEFULL);

@@ -51,9 +51,17 @@ public:
     sim::SystemPipeline pipeline;
 };
 
-/// A replay of the scripted session played straight through, each frame followed by its checksum on the interval;
-/// the checksum recorded for `miscountedFrame`, if it falls on the interval, is one off.
-[[nodiscard]] inline std::vector<std::byte> scriptedReplay(std::uint32_t frames, std::uint32_t miscountedFrame = 0)
+/// What a scripted replay gets wrong on purpose: the checksum it records for one frame, one off, and the input it
+/// records for one frame, whose checksums still come from the true inputs. Nought leaves either alone.
+struct ReplayTampering
+{
+    std::uint32_t miscountedChecksumAt = 0;
+    std::uint32_t tamperedInputAt = 0;
+};
+
+/// A replay of the scripted session played straight through, each frame followed by its checksum on the interval,
+/// with the tampering asked for.
+[[nodiscard]] inline std::vector<std::byte> scriptedReplay(std::uint32_t frames, const ReplayTampering& tampering = {})
 {
     ScriptedMatch match;
     session::ReplayWriter writer{scriptedReplayConfig()};
@@ -61,12 +69,22 @@ public:
     for (std::uint32_t next = 1; next <= frames; ++next)
     {
         const sim::FrameInputs inputs = scriptedSessionInputs(next);
-        writer.writeFrame(next, inputs);
+        sim::FrameInputs recorded = inputs;
+
+        if (next == tampering.tamperedInputAt)
+        {
+            recorded.set(0,
+                         inputWithMove(static_cast<std::int8_t>(inputs.get<SampleInput>(0).moveX + 1)),
+                         sim::InputFlags::Present);
+        }
+
+        writer.writeFrame(next, recorded);
         sim::advanceFrame(match.frame, match.pipeline, inputs);
 
         if (next % kScriptedReplayChecksumInterval == 0)
         {
-            const std::uint64_t checksum = sim::checksumOf(match.frame) + (next == miscountedFrame ? 1U : 0U);
+            const std::uint64_t checksum =
+                sim::checksumOf(match.frame) + (next == tampering.miscountedChecksumAt ? 1U : 0U);
             writer.writeChecksum(session::VerifiedChecksum{next, checksum});
         }
     }

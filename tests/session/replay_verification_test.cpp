@@ -19,6 +19,9 @@ namespace
 
 constexpr std::uint32_t kFrames = 40;
 constexpr std::uint32_t kMiscountedFrame = 8;
+constexpr std::uint32_t kLongReplayFrames = 320;
+constexpr std::uint32_t kTamperedFrame = 302;
+constexpr std::uint32_t kFirstChecksumAfterTheTampering = 304;
 
 tl::expected<unison::session::ReplayVerdict, unison::Error> verified(std::span<const std::byte> replay)
 {
@@ -47,17 +50,30 @@ TEST_CASE("a replay played back matches every checksum it recorded")
     REQUIRE(verdict->framesPlayed == kFrames);
     REQUIRE(verdict->checksumsCompared == kFrames / unison::test::kScriptedReplayChecksumInterval);
     REQUIRE(verdict->checksumsMatched == verdict->checksumsCompared);
+    REQUIRE_FALSE(verdict->firstDivergentFrame.has_value());
 }
 
 TEST_CASE("a checksum recorded wrong is compared and does not match")
 {
-    const std::vector<std::byte> replay = unison::test::scriptedReplay(kFrames, kMiscountedFrame);
+    const std::vector<std::byte> replay =
+        unison::test::scriptedReplay(kFrames, unison::test::ReplayTampering{.miscountedChecksumAt = kMiscountedFrame});
 
     const tl::expected<unison::session::ReplayVerdict, unison::Error> verdict = verified(replay);
 
     REQUIRE(verdict.has_value());
     REQUIRE(verdict->checksumsCompared == kFrames / unison::test::kScriptedReplayChecksumInterval);
     REQUIRE(verdict->checksumsMatched == verdict->checksumsCompared - 1U);
+}
+
+TEST_CASE("a tampered input is reported at the first checksum taken at or after its frame")
+{
+    const std::vector<std::byte> replay = unison::test::scriptedReplay(
+        kLongReplayFrames, unison::test::ReplayTampering{.tamperedInputAt = kTamperedFrame});
+
+    const tl::expected<unison::session::ReplayVerdict, unison::Error> verdict = verified(replay);
+
+    REQUIRE(verdict.has_value());
+    REQUIRE(verdict->firstDivergentFrame == kFirstChecksumAfterTheTampering);
 }
 
 TEST_CASE("a checksum of a frame the replay did not just play is refused")

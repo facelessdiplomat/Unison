@@ -19,7 +19,8 @@ checkRecordedContent(const net::SessionConfig& recorded, std::uint64_t assetHash
 /// The exit code verifying ends with: nought when every checksum compared matched, two when one did not.
 [[nodiscard]] int verifyExitCodeOf(const session::ReplayVerdict& verdict);
 
-/// What verifying prints: how many of the checksums compared match, over how many frames.
+/// What verifying prints: how many of the checksums compared match, over how many frames, and the first frame that
+/// differs.
 [[nodiscard]] std::string verifyReportOf(const session::ReplayVerdict& verdict);
 
 /// What playing prints: how many frames were played and the checksum of the last one.

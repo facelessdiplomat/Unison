@@ -672,8 +672,9 @@ whole.
 
 A checksum follows the frame it was taken of. `verifyReplay` plays every frame through a `ReplayPlayer` and
 compares every checksum the replay recorded with the one the player took of the same frame, counting how many
-it compared and how many matched; a checksum of a frame the replay did not just play is a malformed replay,
-and a record the reader refuses stops it with the reader's error.
+it compared and how many matched and naming the first frame whose checksum differs, the first checksum taken
+at or after an input that was tampered with; a checksum of a frame the replay did not just play is a malformed
+replay, and a record the reader refuses stops it with the reader's error.
 
 ---
 
@@ -866,10 +867,10 @@ the session's event changes are.
 - `unison_replay`: record / play / verify / diff. It builds the arena for the players and the tick rate of a
   replay's config and refuses a replay recorded with other assets or systems than the build's, whose hashes the
   config carries. `play <file>` re-simulates the replay and prints how many frames it played and the checksum of the
-  last; `verify <file>` also compares every checksum the replay recorded and prints how many of them match. The exit
-  code is 0 for a replay played through with every checksum matching, 2 for a checksum that differs, and 1 for a
-  command line it could not read, a file it could not read, a malformed replay or one of other assets or systems;
-  `diff` comes with 4.2.4.
+  last; `verify <file>` also compares every checksum the replay recorded and prints how many of them match and the
+  first frame that differs. The exit code is 0 for a replay played through with every checksum matching, 2 for a
+  checksum that differs, and 1 for a command line it could not read, a file it could not read, a malformed replay or
+  one of other assets or systems; `diff` comes with 4.2.4.
 
 ### 10.3 Unreal Engine plugin (Phase 5)
 
