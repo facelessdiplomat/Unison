@@ -48,7 +48,8 @@ void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message
 void RelayCore::peerLeft(PeerId peer)
 {
     roster.remove(peer);
-    lateJoins.forget(peer);
+    lateJoins.forgetJoiner(peer);
+    lateJoins.replaceDonor(peer, nearestPlayerInPlay());
     confirmReadyFrames();
 }
 
@@ -99,7 +100,7 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
-    const std::optional<PeerId> donor = isRunning() ? donorFor(from) : std::nullopt;
+    const std::optional<PeerId> donor = isRunning() ? nearestPlayerInPlay() : std::nullopt;
 
     if (!donor.has_value())
     {
@@ -218,16 +219,16 @@ bool RelayCore::isRunning() const
     return confirmedLog.lastFrame() > 0;
 }
 
-std::optional<PeerId> RelayCore::donorFor(PeerId joiner) const
+std::optional<PeerId> RelayCore::nearestPlayerInPlay() const
 {
-    std::optional<Roster::Member> donor;
-    std::uint64_t donorRoundTrip = std::numeric_limits<std::uint64_t>::max();
+    std::optional<Roster::Member> nearest;
+    std::uint64_t nearestRoundTrip = std::numeric_limits<std::uint64_t>::max();
 
     for (const Roster::Member& member : roster.members())
     {
         const bool playsTheMatch = member.slot != kNoSlot && member.playsFrom != Roster::kNotPlayingYet;
 
-        if (member.peer == joiner || !playsTheMatch)
+        if (!playsTheMatch)
         {
             continue;
         }
@@ -235,17 +236,17 @@ std::optional<PeerId> RelayCore::donorFor(PeerId joiner) const
         const std::optional<std::uint64_t> measured =
             roundTrips == nullptr ? std::nullopt : roundTrips->roundTripMicroseconds(member.peer);
         const std::uint64_t roundTrip = measured.value_or(std::numeric_limits<std::uint64_t>::max());
-        const bool isBetter = !donor.has_value() || roundTrip < donorRoundTrip ||
-                              (roundTrip == donorRoundTrip && member.slot < donor->slot);
+        const bool isNearer = !nearest.has_value() || roundTrip < nearestRoundTrip ||
+                              (roundTrip == nearestRoundTrip && member.slot < nearest->slot);
 
-        if (isBetter)
+        if (isNearer)
         {
-            donor = member;
-            donorRoundTrip = roundTrip;
+            nearest = member;
+            nearestRoundTrip = roundTrip;
         }
     }
 
-    return donor.has_value() ? std::optional{donor->peer} : std::nullopt;
+    return nearest.has_value() ? std::optional{nearest->peer} : std::nullopt;
 }
 
 void RelayCore::turnAway(PeerId peer, LeaveReason reason)

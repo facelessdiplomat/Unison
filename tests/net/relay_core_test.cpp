@@ -1107,3 +1107,74 @@ TEST_CASE("a joiner's first input naming frames confirmed without it puts its sl
 
     REQUIRE(allOf<unison::net::Desync>(Match::repliesOf(match.first)).empty());
 }
+
+TEST_CASE("a joiner whose donor leaves before the last chunk has its snapshot asked of another player in play")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+    const std::vector<std::byte> snapshot = snapshotBytes(2 * unison::net::snapshotBytesPerChunk());
+    sendMessage(match.first,
+                match.endpoint.id(),
+                unison::net::SnapshotChunk{1, 0, 2, std::span{snapshot}.first(unison::net::snapshotBytesPerChunk())});
+    match.endpoint.poll(match.core);
+    static_cast<void>(Match::repliesOf(match.second));
+
+    match.core.peerLeft(match.first.id());
+
+    const std::vector<unison::net::SnapshotRequest> toSecond = snapshotRequestsIn(Match::repliesOf(match.second));
+    REQUIRE(toSecond.size() == 1U);
+    REQUIRE(toSecond.front().frame == 2U);
+}
+
+TEST_CASE("a joiner whose donor left mid-snapshot is welcomed again with the next donor's whole snapshot")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+    const std::vector<std::byte> snapshot = snapshotBytes(2 * unison::net::snapshotBytesPerChunk());
+    const auto chunkOf = [&snapshot](std::uint32_t frame, std::uint32_t index)
+    {
+        const std::size_t size = unison::net::snapshotBytesPerChunk();
+        return unison::net::SnapshotChunk{frame, index, 2, std::span{snapshot}.subspan(index * size, size)};
+    };
+    sendMessage(match.first, match.endpoint.id(), chunkOf(1, 0));
+    match.endpoint.poll(match.core);
+    match.core.peerLeft(match.first.id());
+    match.sendInputs(match.second, 2, inputOf(4));
+    static_cast<void>(Match::repliesOf(match.joiner));
+
+    sendMessage(match.second, match.endpoint.id(), chunkOf(2, 0));
+    sendMessage(match.second, match.endpoint.id(), chunkOf(2, 1));
+    match.endpoint.poll(match.core);
+
+    const Replies atJoiner = Match::repliesOf(match.joiner);
+    const std::vector<unison::net::Welcome> welcomes = allOf<unison::net::Welcome>(atJoiner);
+    const std::vector<unison::net::SnapshotChunk> chunks = allOf<unison::net::SnapshotChunk>(atJoiner);
+    REQUIRE(welcomes.size() == 1U);
+    REQUIRE(welcomes.front().startFrame == 2U);
+    REQUIRE(chunks.size() == 2U);
+    REQUIRE(std::ranges::all_of(chunks, [](const unison::net::SnapshotChunk& chunk) { return chunk.frame == 2U; }));
+}
+
+TEST_CASE("a joiner that leaves before its snapshot comes is handed nothing of it")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+    match.core.peerLeft(match.joiner.id());
+    static_cast<void>(Match::repliesOf(match.joiner));
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    const Replies atJoiner = Match::repliesOf(match.joiner);
+    REQUIRE(allOf<unison::net::Welcome>(atJoiner).empty());
+    REQUIRE(allOf<unison::net::SnapshotChunk>(atJoiner).empty());
+}
+
+TEST_CASE("a player leaving while no joiner waits for its snapshot makes the relay ask nobody for one")
+{
+    RunningMatch match;
+
+    match.core.peerLeft(match.second.id());
+
+    REQUIRE(snapshotRequestsIn(Match::repliesOf(match.first)).empty());
+}

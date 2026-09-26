@@ -657,8 +657,10 @@ than a tick, the table is worth redoing with its numbers.
   dropped. The joiner hears the live confirmations all along. It restores `F` and plays the confirmed frames at up
   to eight a host frame (`kCatchUpExtraTicks`), sending no input until it has reached the newest frame it has heard
   confirmed; the relay puts its slot in play from the first frame of its first input, or from the next frame to
-  confirm when that one is later. A joiner whose donor leaves before the last chunk waits for good, which 4.3.7
-  settles.
+  confirm when that one is later. A joiner whose donor leaves before the last chunk has its snapshot asked of the
+  next player in play, the nearest by round trip, and is welcomed again at that snapshot's frame, the client taking
+  a newer welcome in place of one whose snapshot is not whole yet. A running room with no player in play left keeps
+  its joiners waiting and would welcome a new player from frame 0, behind the frames it has confirmed: Q18.
 - **Reconnect**: same mechanism; the relay holds the slot for `reconnectGrace` (default 30 s) and applies the
   drop policy to the absent player's inputs meanwhile.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay.
@@ -1114,6 +1116,7 @@ player's spawn point faces; a physics state from an untrusted peer checked befor
 | Q15 | Which platform records a golden | Answered 2026-09-25 (Q-G) and amended the same day under D36: goldens are recorded on Windows and verified on the Mac, a new golden may be recorded on the Mac while Windows is out of reach and the next Windows run is its check, and none is re-recorded on one platform alone (§7.4). |
 | Q16 | An x86-64 build under Rosetta 2 as the Mac's fallback | Answered 2026-09-25 by X.6 (Q-H): not needed. Every golden recorded on Windows reproduces on arm64 in Debug and in Release, so the Mac plays natively, and x86-64 macOS stays in the backlog. |
 | Q17 | Whether Definition of Done item 2 needs two Windows machines | Answered 2026-09-25 (Q-I): no. X.8.2, the run with the relay on Windows and a console on each platform, counts for item 2 as well, and 3.4.5 is ticked from it. |
+| Q18 | What a running room with no player in play left does with the players still joining it, and with a new player's `Hello` | Open, raised 2026-09-26 in 4.3.7 for the owner. Nobody left holds the match's state, so no snapshot can come: the joiners wait for good, and a new player welcomed from frame 0 plays behind every frame the relay has confirmed. (a) Turn them away with a new `LeaveReason`, the match being over, as a Quantum room ends with its last player; the protocol's version goes to 6 and its golden is recorded again on Windows. (b) Start the room over from frame 0 with whoever is still joining, which leaves the protocol alone but gives the relay core a match to reset. (c) Leave it as it is, for the host to give up. Recommended: (a). |
 
 ---
 

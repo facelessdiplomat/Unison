@@ -27,8 +27,12 @@ public:
     /// A chunk from anyone else or of a frame the log does not hold is left alone.
     void forward(PeerId from, const SnapshotChunk& chunk);
 
-    /// Stops waiting for a joiner that left, and for one whose donor left.
-    void forget(PeerId peer);
+    /// Stops waiting for a joiner that left.
+    void forgetJoiner(PeerId joiner);
+
+    /// Asks the next donor, when there is one, for the snapshot of every joiner a donor that left was to send one to,
+    /// each taking it from its first chunk on.
+    void replaceDonor(PeerId gone, std::optional<PeerId> next);
 
 private:
     struct Join
@@ -40,6 +44,8 @@ private:
         std::uint32_t chunkCount = 0;
         std::uint32_t chunksForwarded = 0;
     };
+
+    void requestSnapshot(PeerId donor);
 
     void handOn(Join& join, const SnapshotChunk& chunk);
 

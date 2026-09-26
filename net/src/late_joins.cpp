@@ -16,7 +16,7 @@ LateJoins::LateJoins(Outbox& outbox, const ConfirmedLog& confirmedLog, const Ses
 void LateJoins::await(PeerId joiner, std::uint8_t slot, PeerId donor)
 {
     joins.push_back(Join{joiner, slot, donor, std::nullopt, 0, 0});
-    outbox.send(donor, Channel::Reliable, SnapshotRequest{confirmedLog.lastFrame() + 1});
+    requestSnapshot(donor);
 }
 
 void LateJoins::forward(PeerId from, const SnapshotChunk& chunk)
@@ -37,9 +37,34 @@ void LateJoins::forward(PeerId from, const SnapshotChunk& chunk)
     std::erase_if(joins, isHandedOver);
 }
 
-void LateJoins::forget(PeerId peer)
+void LateJoins::forgetJoiner(PeerId joiner)
 {
-    std::erase_if(joins, [peer](const Join& join) { return join.joiner == peer || join.donor == peer; });
+    std::erase_if(joins, [joiner](const Join& join) { return join.joiner == joiner; });
+}
+
+void LateJoins::replaceDonor(PeerId gone, std::optional<PeerId> next)
+{
+    const bool isAnyWaiting = std::ranges::find(joins, gone, &Join::donor) != joins.end();
+
+    if (!isAnyWaiting || !next.has_value())
+    {
+        return;
+    }
+
+    for (Join& join : joins)
+    {
+        if (join.donor == gone)
+        {
+            join = Join{join.joiner, join.slot, *next, std::nullopt, 0, 0};
+        }
+    }
+
+    requestSnapshot(*next);
+}
+
+void LateJoins::requestSnapshot(PeerId donor)
+{
+    outbox.send(donor, Channel::Reliable, SnapshotRequest{confirmedLog.lastFrame() + 1});
 }
 
 void LateJoins::handOn(Join& join, const SnapshotChunk& chunk)

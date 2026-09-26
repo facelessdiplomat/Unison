@@ -83,7 +83,7 @@ private:
 
     [[nodiscard]] bool isRunning() const;
 
-    [[nodiscard]] std::optional<PeerId> donorFor(PeerId joiner) const;
+    [[nodiscard]] std::optional<PeerId> nearestPlayerInPlay() const;
 
     void turnAway(PeerId peer, LeaveReason reason);
 

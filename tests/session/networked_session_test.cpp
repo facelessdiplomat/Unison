@@ -718,3 +718,22 @@ TEST_CASE("a late joiner starts from the frame of the snapshot it is welcomed at
 
     REQUIRE(rig.client.startFrame() == kSnapshotFrame);
 }
+
+TEST_CASE("a late joiner welcomed again before its snapshot is whole restores the snapshot of the newer welcome")
+{
+    Rig rig;
+    rig.client.join();
+    rig.relayOutbox.send(rig.clientEnd.id(),
+                         unison::net::Channel::Reliable,
+                         unison::net::Welcome{kLocalSlot, rig.config, kSnapshotFrame - 1, kSnapshotFrame, 0});
+    const std::vector<std::byte> unfinished(2 * unison::net::snapshotBytesPerChunk(), std::byte{1});
+    rig.relayOutbox.send(rig.clientEnd.id(),
+                         unison::net::Channel::Reliable,
+                         unison::session::chunksOf(kSnapshotFrame - 1, unfinished).front());
+    handSnapshot(rig, kSnapshotFrame, scriptedSnapshotAt(kSnapshotFrame));
+
+    rig.client.update(rig.now);
+
+    REQUIRE(rig.client.state() == ConnectionState::Playing);
+    REQUIRE(rig.client.startFrame() == kSnapshotFrame);
+}
