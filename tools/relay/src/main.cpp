@@ -15,6 +15,7 @@
 #include <format>
 #include <limits>
 #include <memory>
+#include <random>
 #include <span>
 #include <thread>
 
@@ -30,6 +31,17 @@ volatile std::sig_atomic_t isStopAsked = 0;
 void askToStop(int)
 {
     isStopAsked = 1;
+}
+
+unison::net::RelaySettings settingsOf(const unison::relay::RelayOptions& options)
+{
+    std::random_device entropy;
+    unison::net::RelaySettings settings;
+    settings.inputDeadlineMicroseconds = options.inputDeadlineMilliseconds * kMicrosecondsPerMillisecond;
+    settings.reliableResendInterval = options.reliableResendInterval;
+    settings.reconnectTokenSeed = (std::uint64_t{entropy()} << 32U) | entropy();
+
+    return settings;
 }
 
 void printToStandardOutput(unison::LogLevel, std::string_view message)
@@ -91,12 +103,7 @@ int main(int argc, char** argv)
 
     const std::unique_ptr<unison::net::EnetTransport> transport = std::move(*listening);
     const unison::net::SteadyClock clock;
-    unison::relay::RelayRooms rooms{
-        *transport,
-        clock,
-        unison::net::RelaySettings{options->inputDeadlineMilliseconds * kMicrosecondsPerMillisecond,
-                                   options->reliableResendInterval},
-        transport.get()};
+    unison::relay::RelayRooms rooms{*transport, clock, settingsOf(*options), transport.get()};
 
     unison::logMessage(unison::LogLevel::Info,
                        std::format("unison_relay: listening on {}:{}", options->bindAddress, transport->port()));

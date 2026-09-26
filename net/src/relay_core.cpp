@@ -26,7 +26,8 @@ RelayCore::RelayCore(ITransport& transport,
     : clock{clock}, config{config}, settings{settings}, roundTrips{roundTrips}, configHash{hashOf(config)},
       roster{config.slotCount}, outbox{transport}, inputs{config.slotCount, config.inputSize, kPendingFrames},
       matchClock{config.tickRate}, confirmedLog{confirmedFrameSize(config.slotCount, config.inputSize)},
-      lateJoins{outbox, confirmedLog, config}, confirmedSlots(confirmedFrameSize(config.slotCount, config.inputSize)),
+      lateJoins{outbox, confirmedLog, config}, reconnectTokens{settings.reconnectTokenSeed},
+      confirmedSlots(confirmedFrameSize(config.slotCount, config.inputSize)),
       framesPerDatagram{confirmedFramesPerDatagram(config.slotCount, config.inputSize)}
 {
     UNISON_VERIFY(settings.reliableResendInterval > 0);
@@ -47,7 +48,17 @@ void RelayCore::receive(PeerId from, Channel, std::span<const std::byte> message
 
 void RelayCore::peerLeft(PeerId peer)
 {
-    roster.remove(peer);
+    const bool playsItsSlot = roster.slotOf(peer) != kNoSlot && !roster.isJoining(peer);
+
+    if (playsItsSlot)
+    {
+        roster.holdSlotOf(peer, clock.nowMicroseconds() + settings.reconnectGraceMicroseconds);
+    }
+    else
+    {
+        roster.remove(peer);
+    }
+
     lateJoins.forgetJoiner(peer);
     lateJoins.replaceDonor(peer, nearestPlayerInPlay());
     confirmReadyFrames();
@@ -60,6 +71,7 @@ void RelayCore::handle(PeerId from, const SnapshotChunk& chunk)
 
 void RelayCore::update()
 {
+    roster.releaseHeldSlots(clock.nowMicroseconds());
     confirmReadyFrames();
 }
 
@@ -114,8 +126,9 @@ void RelayCore::handle(PeerId from, const Hello& hello)
         return;
     }
 
-    roster.admitJoining(from, slot);
-    lateJoins.await(from, slot, *donor);
+    const std::uint64_t reconnectToken = reconnectTokens.next();
+    roster.admitJoining(from, slot, reconnectToken);
+    lateJoins.await(from, slot, reconnectToken, *donor);
 }
 
 void RelayCore::handle(PeerId from, const Input& input)
@@ -158,7 +171,7 @@ void RelayCore::handle(PeerId from, const Checksum& checksum)
     }
 
     const std::optional<std::uint8_t> minority =
-        referee.record(checksum.frame, slot, checksum.checksum, roster.slotsInPlayAt(checksum.frame));
+        referee.record(checksum.frame, slot, checksum.checksum, roster.slotsAwaitedAt(checksum.frame));
 
     if (minority.has_value() && *minority != 0U)
     {
@@ -180,7 +193,7 @@ void RelayCore::handle(PeerId from, const Ping& ping)
 
 void RelayCore::confirmReadyFrames()
 {
-    while (inputs.isNextFrameReady(roster.slotsInPlayAt(inputs.nextFrame())) ||
+    while (inputs.isNextFrameReady(roster.slotsAwaitedAt(inputs.nextFrame())) ||
            inputs.isNextFrameOverdue(clock.nowMicroseconds(), settings.inputDeadlineMicroseconds))
     {
         const std::uint32_t frame = inputs.nextFrame();
@@ -215,8 +228,9 @@ void RelayCore::sendConfirmed(Channel channel, std::uint32_t firstFrame, std::ui
 
 void RelayCore::admit(PeerId peer, std::uint8_t slot)
 {
-    roster.admit(peer, slot);
-    outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, 0});
+    const std::uint64_t reconnectToken = slot == kNoSlot ? 0 : reconnectTokens.next();
+    roster.admit(peer, slot, reconnectToken);
+    outbox.send(peer, Channel::Reliable, Welcome{slot, config, 0, 0, reconnectToken});
 }
 
 bool RelayCore::isRunning() const
@@ -231,7 +245,8 @@ std::optional<PeerId> RelayCore::nearestPlayerInPlay() const
 
     for (const Roster::Member& member : roster.members())
     {
-        const bool playsTheMatch = member.slot != kNoSlot && member.playsFrom != Roster::kNotPlayingYet;
+        const bool playsTheMatch =
+            member.slot != kNoSlot && member.playsFrom != Roster::kNotPlayingYet && !member.heldUntil.has_value();
 
         if (!playsTheMatch)
         {
@@ -263,7 +278,10 @@ void RelayCore::sendToAll(Channel channel, const Message& message)
 {
     for (const Roster::Member& member : roster.members())
     {
-        outbox.send(member.peer, channel, message);
+        if (!member.heldUntil.has_value())
+        {
+            outbox.send(member.peer, channel, message);
+        }
     }
 }
 

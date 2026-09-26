@@ -661,8 +661,17 @@ than a tick, the table is worth redoing with its numbers.
   next player in play, the nearest by round trip, and is welcomed again at that snapshot's frame, the client taking
   a newer welcome in place of one whose snapshot is not whole yet. A running room with no player in play left keeps
   its joiners waiting and would welcome a new player from frame 0, behind the frames it has confirmed: Q18.
-- **Reconnect**: same mechanism; the relay holds the slot for `reconnectGrace` (default 30 s) and applies the
-  drop policy to the absent player's inputs meanwhile.
+- **Reconnect**: same mechanism; the relay holds the slot for `reconnectGrace` (default 30 s) and applies the drop
+  policy to the absent player's inputs meanwhile. Every player is welcomed with a reconnect token of its own, a
+  joiner at the snapshot's frame included, drawn by `ReconnectTokens` from `RelaySettings::reconnectTokenSeed` and
+  never nought, which stands for none; a spectator gets none. The standalone relay takes the seed from
+  `std::random_device`, so nobody can guess another player's token. When a player's peer goes, the relay holds its
+  slot until `RelaySettings::reconnectGraceMicroseconds` has passed: the slot stays in play but is no longer
+  awaited, so the frames after it are confirmed as soon as the others' inputs are in, its last input repeated and
+  flagged dropped (§8.4); nobody waits for its checksums, nothing is sent to its peer and it is never a donor. Once
+  the grace has passed, `update()` releases the slot: it is confirmed absent from then on and free for a newcomer,
+  and a room left with no member closes. A player still joining or a spectator that goes is let go at once. Coming
+  back with the token into the held slot is 4.4.2.
 - **Spectators**: receive confirmed inputs only, run without prediction (`P = V`), optionally with an added delay.
 
 A serialised snapshot is little-endian throughout. It opens with the magic `UNSS`, the format's version and a
@@ -802,26 +811,25 @@ config rather than its hash because the relay never simulates and cannot know a 
 hashes: the standalone relay opens a room from the first `Hello` of a config, one room per config, since
 lobbies are out of scope in v1, and rooms that come and go with their players are its concern (3.2.2).
 
-`unison_relay` is that standalone relay: it listens with an `EnetTransport` on `--bind` and `--port`
-(0.0.0.0:7777 unless told otherwise) for `--max-peers` peers, and hands every message to `RelayRooms`, which
-opens a `RelayCore` for the first `Hello` of every config and passes each seated peer's messages to its room
-from then on; a peer that has said no hello is not answered. The transport is every room's round-trip meter too,
-so a late joiner's snapshot comes from the player in play with ENet's lowest round trip (§8.6). A peer that has gone
-leaves its room: the relay
-core frees its slot and confirms the frames it no longer sends inputs for with the slot absent rather than
-waiting out the deadline, and the room closes once its last peer has gone. Ctrl+C or `SIGTERM` stops the
-loop, and the transport says goodbye to every peer as it goes. The loop polls the transport, lets every room
-confirm the frames whose deadline has passed and sleeps a millisecond, on a `SteadyClock` that counts from
-start-up. While it runs, a `MillisecondTimer` asks Windows for a timer of a millisecond, as the console's loop
-does too: a sleep otherwise lasts a tick of Windows' default 15.6 ms timer, which held both loops to 64 Hz,
-kept every message waiting up to 16 ms at either end and read round trips of 16 to 32 ms on localhost.
-On macOS the timer asks for nothing, as a thread there sleeps a millisecond in about 1.3: twenty such sleeps
-took 25 to 26 ms on the Mac on 2026-09-25.
-`--input-deadline`, `--resend-interval` and `--peer-timeout` set the room's `RelaySettings` and the
-transport, and `--run-for` stops it after that many seconds. It logs through `LogSink` to standard output. Bytes that decode to no message go unanswered, and so
-does a `Ping` from a peer that is not in the match; a member's ping is answered at once on the unreliable
-channel with its own stamp, the newest frame the relay has confirmed and the frame its `MatchClock` has due
-(§8.3), and the sender works out the round trip from its own clock.
+`unison_relay` is that standalone relay: it listens with an `EnetTransport` on `--bind` and `--port` (0.0.0.0:7777
+unless told otherwise) for `--max-peers` peers, and hands every message to `RelayRooms`, which opens a `RelayCore`
+for the first `Hello` of every config and passes each seated peer's messages to its room from then on; a peer that
+has said no hello is not answered. The transport is every room's round-trip meter too, so a late joiner's snapshot
+comes from the player in play with ENet's lowest round trip (§8.6). A peer that has gone leaves its room: a player's
+slot is held for the reconnect grace, its frames confirmed dropped rather than waited for, and then released, while
+a spectator's or a joiner's place goes at once; the room closes once it has no member left, which the loop checks
+every round. The reconnect tokens are seeded from `std::random_device`. Ctrl+C or `SIGTERM` stops the loop, and the
+transport says goodbye to every peer as it goes. The loop polls the transport, lets every room confirm the frames
+whose deadline has passed and sleeps a millisecond, on a `SteadyClock` that counts from start-up. While it runs, a
+`MillisecondTimer` asks Windows for a timer of a millisecond, as the console's loop does too: a sleep otherwise
+lasts a tick of Windows' default 15.6 ms timer, which held both loops to 64 Hz, kept every message waiting up to 16
+ms at either end and read round trips of 16 to 32 ms on localhost. On macOS the timer asks for nothing, as a thread
+there sleeps a millisecond in about 1.3: twenty such sleeps took 25 to 26 ms on the Mac on 2026-09-25.
+`--input-deadline`, `--resend-interval` and `--peer-timeout` set the room's `RelaySettings` and the transport, and
+`--run-for` stops it after that many seconds. It logs through `LogSink` to standard output. Bytes that decode to no
+message go unanswered, and so does a `Ping` from a peer that is not in the match; a member's ping is answered at
+once on the unreliable channel with its own stamp, the newest frame the relay has confirmed and the frame its
+`MatchClock` has due (§8.3), and the sender works out the round trip from its own clock.
 
 A client plays through a `NetworkedSession`. It says hello when the host asks it to join, plays a `Session`
 in the slot the `Welcome` names, and on every host frame takes in what the relay sent and pings it when a

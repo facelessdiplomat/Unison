@@ -508,20 +508,22 @@ TEST_CASE("a player who has left no longer holds up the frames of the players wh
 
     const Replies replies = Match::repliesOf(match.first);
     const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
-    const std::array<std::byte, 3> absent{std::byte{0}, std::byte{0}, std::byte{0}};
+    const std::array<std::byte, 3> droppedNeutral{std::byte{2}, std::byte{0}, std::byte{0}};
     REQUIRE(confirmations.size() == 1U);
-    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 1).subspan(3, 3), absent));
+    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 1).subspan(3, 3), droppedNeutral));
 }
 
-TEST_CASE("a relay core is empty once everyone in it has left")
+TEST_CASE("a relay core is empty once everyone in it has left and the grace of their slots has passed")
 {
     Match match;
-    const bool wasEmpty = match.relay.core.isEmpty();
-
     match.relay.core.peerLeft(match.first.id());
     match.relay.core.peerLeft(match.second.id());
+    const bool isEmptyWithinTheGrace = match.relay.core.isEmpty();
 
-    REQUIRE_FALSE(wasEmpty);
+    match.relay.clock.advance(unison::net::RelaySettings{}.reconnectGraceMicroseconds);
+    match.relay.core.update();
+
+    REQUIRE_FALSE(isEmptyWithinTheGrace);
     REQUIRE(match.relay.core.isEmpty());
 }
 
@@ -811,6 +813,13 @@ struct RunningMatch
         endpoint.poll(core);
     }
 
+    void leaveForGood(unison::net::LoopbackEndpoint& client)
+    {
+        core.peerLeft(client.id());
+        clock.advance(unison::net::RelaySettings{}.reconnectGraceMicroseconds);
+        core.update();
+    }
+
     unison::net::LoopbackHub hub;
     unison::net::ManualClock clock;
     unison::test::FixedRoundTrips roundTrips;
@@ -1012,7 +1021,7 @@ TEST_CASE("the relay hands one snapshot to every player joining through the same
 {
     RunningMatch match;
     unison::net::LoopbackEndpoint& lateComer = match.hub.join();
-    match.core.peerLeft(match.second.id());
+    match.leaveForGood(match.second);
     match.hello(match.joiner);
     match.hello(lateComer);
 
@@ -1031,7 +1040,7 @@ TEST_CASE("a player joining while a snapshot is on its way is handed the next sn
 {
     RunningMatch match;
     unison::net::LoopbackEndpoint& lateComer = match.hub.join();
-    match.core.peerLeft(match.second.id());
+    match.leaveForGood(match.second);
     match.sendInputs(match.first, 2, inputOf(3));
     match.sendInputs(match.first, 3, inputOf(4));
     match.hello(match.joiner);
@@ -1077,7 +1086,7 @@ TEST_CASE("a player still joining is never asked for a snapshot")
 {
     RunningMatch match;
     unison::net::LoopbackEndpoint& lateComer = match.hub.join();
-    match.core.peerLeft(match.second.id());
+    match.leaveForGood(match.second);
     match.roundTrips.set(match.first.id(), 40'000);
     match.roundTrips.set(match.joiner.id(), 10'000);
     match.hello(match.joiner);
@@ -1190,4 +1199,140 @@ TEST_CASE("a second hello from a member changes nothing")
 
     REQUIRE(atFirst.empty());
     REQUIRE(onlyReplyAs<unison::net::Welcome>(newcomer).slot == 2U);
+}
+
+TEST_CASE("a player is welcomed with a reconnect token and a spectator without one")
+{
+    Relay relay{twoPlayers()};
+
+    const Replies player = repliesTo(relay, helloFor(twoPlayers(), unison::net::Role::Player));
+    const Replies spectator = repliesTo(relay, helloFor(twoPlayers(), unison::net::Role::Spectator));
+
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(player).reconnectToken != 0U);
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(spectator).reconnectToken == 0U);
+}
+
+TEST_CASE("every player of a room is welcomed with a reconnect token of its own")
+{
+    Relay relay{twoPlayers()};
+
+    const Replies first = repliesTo(relay, helloFor(twoPlayers(), unison::net::Role::Player));
+    const Replies second = repliesTo(relay, helloFor(twoPlayers(), unison::net::Role::Player));
+
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(first).reconnectToken !=
+            onlyReplyAs<unison::net::Welcome>(second).reconnectToken);
+}
+
+TEST_CASE("a late joiner is welcomed with a reconnect token")
+{
+    RunningMatch match;
+    match.hello(match.joiner);
+
+    sendMessage(match.first, match.endpoint.id(), unison::net::SnapshotChunk{1, 0, 1, snapshotBytes(10)});
+    match.endpoint.poll(match.core);
+
+    const std::vector<unison::net::Welcome> welcomes = allOf<unison::net::Welcome>(Match::repliesOf(match.joiner));
+    REQUIRE(welcomes.size() == 1U);
+    REQUIRE(welcomes.front().reconnectToken != 0U);
+}
+
+TEST_CASE("the slot of a player who left is held, the frames after it confirmed with its last input dropped")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(3));
+    match.sendInputs(match.second, 1, inputOf(4));
+    static_cast<void>(Match::repliesOf(match.first));
+    match.relay.core.peerLeft(match.second.id());
+
+    match.sendInputs(match.first, 2, inputOf(5));
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    const std::array<std::byte, 3> repeated{std::byte{2}, std::byte{4}, std::byte{4}};
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(newestFrameOf(confirmations[0]) == 2U);
+    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 2).subspan(3, 3), repeated));
+}
+
+TEST_CASE("a slot held for a player who left is given to nobody else")
+{
+    Match match;
+    match.relay.core.peerLeft(match.second.id());
+
+    const Replies newcomer = repliesTo(match.relay, helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(newcomer).slot == 2U);
+}
+
+TEST_CASE("a held slot is still held a microsecond before its grace has passed")
+{
+    Match match;
+    match.relay.core.peerLeft(match.second.id());
+
+    match.relay.clock.advance(unison::net::RelaySettings{}.reconnectGraceMicroseconds - 1);
+    match.relay.core.update();
+
+    const Replies newcomer = repliesTo(match.relay, helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(newcomer).slot == 2U);
+}
+
+TEST_CASE("a held slot is free for a newcomer once its grace has passed")
+{
+    Match match;
+    match.relay.core.peerLeft(match.second.id());
+
+    match.relay.clock.advance(unison::net::RelaySettings{}.reconnectGraceMicroseconds);
+    match.relay.core.update();
+
+    const Replies newcomer = repliesTo(match.relay, helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    REQUIRE(onlyReplyAs<unison::net::Welcome>(newcomer).slot == 1U);
+}
+
+TEST_CASE("a held slot is confirmed absent once its grace has passed")
+{
+    Match match;
+    match.sendInputs(match.first, 1, inputOf(3));
+    match.sendInputs(match.second, 1, inputOf(4));
+    match.relay.core.peerLeft(match.second.id());
+    match.relay.clock.advance(unison::net::RelaySettings{}.reconnectGraceMicroseconds);
+    match.relay.core.update();
+    static_cast<void>(Match::repliesOf(match.first));
+
+    match.sendInputs(match.first, 2, inputOf(5));
+
+    const Replies replies = Match::repliesOf(match.first);
+    const std::vector<unison::net::Confirmed> confirmations = confirmationsIn(replies);
+    const std::array<std::byte, 3> absent{std::byte{0}, std::byte{0}, std::byte{0}};
+    REQUIRE(confirmations.size() == 1U);
+    REQUIRE(std::ranges::equal(slotsOfFrame(confirmations[0], 2).subspan(3, 3), absent));
+}
+
+TEST_CASE("the checksums of the players who stay are judged without the player whose slot is held")
+{
+    Match match;
+    unison::net::LoopbackEndpoint& third = match.relay.hub.join();
+    sendMessage(third, match.relay.endpoint.id(), helloFor(threeSlotsOfTwoBytes(), unison::net::Role::Player));
+    match.relay.endpoint.poll(match.relay.core);
+    match.relay.core.peerLeft(third.id());
+    static_cast<void>(Match::repliesOf(match.first));
+
+    sendMessage(match.first, match.relay.endpoint.id(), unison::net::Checksum{20, 77});
+    sendMessage(match.second, match.relay.endpoint.id(), unison::net::Checksum{20, 78});
+    match.relay.endpoint.poll(match.relay.core);
+
+    const std::vector<unison::net::Desync> desyncs = desyncsIn(Match::repliesOf(match.first));
+    REQUIRE(desyncs.size() == 1U);
+    REQUIRE(desyncs.front().minoritySlots == 0b11U);
+}
+
+TEST_CASE("a player whose peer has gone is sent nothing while its slot is held")
+{
+    Match match;
+    match.relay.core.peerLeft(match.second.id());
+    static_cast<void>(Match::repliesOf(match.second));
+
+    match.sendInputs(match.first, 1, inputOf(3));
+
+    REQUIRE_FALSE(confirmationsIn(Match::repliesOf(match.first)).empty());
+    REQUIRE(Match::repliesOf(match.second).empty());
 }

@@ -84,6 +84,12 @@ struct Relay
         return client;
     }
 
+    void letTheGraceRunOut()
+    {
+        clock.advance(unison::net::RelaySettings{}.reconnectGraceMicroseconds);
+        rooms.update();
+    }
+
     void sendInput(Client& client, std::uint32_t frame)
     {
         const std::array<std::byte, 2> input{};
@@ -164,17 +170,33 @@ TEST_CASE("a peer that has said no hello is not answered and opens no room")
     REQUIRE(mail.letters.empty());
 }
 
-TEST_CASE("a room closes once its last peer has left")
+TEST_CASE("a room closes once its last peer has left and the grace of the slots it held has passed")
 {
     Relay relay;
     const Relay::Client& first = relay.join(matchOf(2));
     const Relay::Client& second = relay.join(matchOf(2));
     relay.rooms.peerLeft(first.endpoint.id());
-    const std::size_t afterOneLeft = relay.rooms.roomCount();
-
     relay.rooms.peerLeft(second.endpoint.id());
+    const std::size_t withinTheGrace = relay.rooms.roomCount();
 
-    REQUIRE(afterOneLeft == 1U);
+    relay.letTheGraceRunOut();
+
+    REQUIRE(withinTheGrace == 1U);
+    REQUIRE(relay.rooms.roomCount() == 0U);
+}
+
+TEST_CASE("a room whose only client, a spectator, has left closes at once")
+{
+    Relay relay;
+    Relay::Client& spectator = relay.clients.emplace_back(relay.hub.join());
+    spectator.outbox.send(
+        relay.endpoint.id(),
+        unison::net::Channel::Reliable,
+        unison::net::Hello{unison::net::kProtocolVersion, matchOf(2), unison::net::Role::Spectator, 0});
+    relay.endpoint.poll(relay.rooms);
+
+    relay.rooms.peerLeft(spectator.endpoint.id());
+
     REQUIRE(relay.rooms.roomCount() == 0U);
 }
 
@@ -185,6 +207,7 @@ TEST_CASE("the room count follows joins and leaves across matches")
     static_cast<void>(relay.join(matchOf(3)));
     const std::size_t withBoth = relay.rooms.roomCount();
     relay.rooms.peerLeft(ofTwo.endpoint.id());
+    relay.letTheGraceRunOut();
     const std::size_t afterTheFirstClosed = relay.rooms.roomCount();
 
     const Relay::Client& ofTwoAgain = relay.join(matchOf(2));

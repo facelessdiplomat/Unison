@@ -20,8 +20,9 @@ class LateJoins
 public:
     LateJoins(Outbox& outbox, const ConfirmedLog& confirmedLog, const SessionConfig& config);
 
-    /// Asks a donor for the snapshot of the frame after the newest confirmed one, for a joiner holding a slot.
-    void await(PeerId joiner, std::uint8_t slot, PeerId donor);
+    /// Asks a donor for the snapshot of the frame after the newest confirmed one, for a joiner holding a slot and the
+    /// reconnect token its welcome will carry.
+    void await(PeerId joiner, std::uint8_t slot, std::uint64_t reconnectToken, PeerId donor);
 
     /// Hands a donor's chunk on to every joiner waiting for that donor, each taking a snapshot from its first chunk on.
     /// A chunk from anyone else or of a frame the log does not hold is left alone.
@@ -39,6 +40,7 @@ private:
     {
         PeerId joiner{};
         std::uint8_t slot = kNoSlot;
+        std::uint64_t reconnectToken = 0;
         PeerId donor{};
         std::optional<std::uint32_t> snapshotFrame;
         std::uint32_t chunkCount = 0;

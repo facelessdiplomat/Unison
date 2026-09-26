@@ -18,11 +18,11 @@ needs from earlier tasks is ticked.
 
 ## Now
 
-- Next up: **4.4.1**, a reconnect token in `Welcome`, and the relay holds a dropped player's slot for
-  `reconnectGrace` with the drop policy applied: the slot is kept within the grace and released after it. 4.3.9
-  waits for the owner's answer to Q18. Last finished: 4.3.8. On the owner's word of 2026-09-26 Phase 4 goes on
-  while X.6.7, X.8.2 and X.8.3 wait for the owner's runs on Windows and across the LAN; 3.4.5 stays open until
-  X.8.2 plays it between Windows and macOS. 3.2.3 is deferred until WSL is installed.
+- Next up: **4.4.2**, a client reconnects with its token into its held slot through the late-join path: the relay
+  hands the slot to the new peer, a donor's snapshot catches it up, and it resumes with equal checksums. Last
+  finished: 4.4.1. On the owner's word of 2026-09-26 Phase 4 goes on while X.6.7, X.8.2 and X.8.3 wait for the
+  owner's runs on Windows and across the LAN; 3.4.5 stays open until X.8.2 plays it between Windows and macOS.
+  3.2.3 is deferred until WSL is installed.
 - Phase 2 finished on 2026-09-23 with 2.8.6: every micro-task and exit criterion ticked.
 - 2.7.7 ran between 2.8.5 and 2.8.6 on the owner's request of 2026-09-23, once 2.8.5 showed the clients
   running faster than the host's clock under jitter.
@@ -45,10 +45,10 @@ needs from earlier tasks is ticked.
 | 2 Rollback session (local) | 8 | 46 | 46 |
 | 3 Real networking | 4 | 19 | 17 |
 | X Cross-platform: macOS | 10 | 56 | 51 |
-| 4 Session features | 5 | 24 | 17 |
+| 4 Session features | 5 | 24 | 18 |
 | 5 Unreal Engine plugin | 2 | 23 | 0 |
 | 6 Hardening | 3 | 12 | 1 |
-| **Total** | **41** | **252** | **204** |
+| **Total** | **41** | **252** | **205** |
 
 ## Charter amendments made while planning
 
@@ -465,7 +465,7 @@ Plan, risks R1 to R11, decisions Q-A to Q-I and the record of the runs: `docs/CR
 - [ ] 4.3.9 (+) A running room with no player in play left does with the players joining it, and with a new player's `Hello`, what the owner answers to Q18 of `DESIGN.md` §17; today the joiners wait for good and the new player is welcomed from frame 0, behind every frame the relay has confirmed. Found in 4.3.7. Test: per the answer.
 
 ### 4.4 Reconnect
-- [ ] 4.4.1 Reconnect token in `Welcome`; the relay holds the slot for `reconnectGrace` with the drop policy applied. Test: the slot is preserved within grace and released after.
+- [x] 4.4.1 Reconnect token in `Welcome`; the relay holds the slot for `reconnectGrace` with the drop policy applied. Test: the slot is preserved within grace and released after. Done on 2026-09-26: every player is welcomed with a reconnect token of its own, a late joiner included, drawn by `ReconnectTokens` from `RelaySettings::reconnectTokenSeed` with the lowest bit set, so none is nought; a spectator gets none, and `unison_relay` seeds the tokens from `std::random_device`. A player whose peer goes keeps its slot for `RelaySettings::reconnectGraceMicroseconds`, 30 s by default: `Roster::holdSlotOf` keeps it in play but out of `slotsAwaitedAt`, so its frames are confirmed at once with its last input dropped, the referee judges the others without it, nothing is sent to its peer and it is never a donor. `update()` releases the slot once the grace has passed, confirmed absent from then on and free for a newcomer, and `RelayRooms::update` closes a room left without members. A joiner or a spectator that goes is let go at once, as before. Tested: tokens never nought, all different and the same for a seed; a token for a player and a late joiner and none for a spectator; frames confirmed with the held player's last input dropped; its slot given to nobody else, still held a microsecond before the grace ends and free and absent after it; the others' checksums judged without it; nothing sent to it; a room closed after the grace and a spectator's at once. Fourteen mutants of the tokens, the hold, the release, the masks, the referee, the sending and the rooms fail their cases; the lowest bit that keeps a token from nought is caught by none, since the generator would have to draw nought.
 - [ ] 4.4.2 Client reconnect flow reusing the late-join path into the same slot. Test: the reconnecting client resumes with equal checksums.
 - [ ] 4.4.3 Runner scenario `--disconnect <slot> <atFrame> <seconds>` in CTest.
 

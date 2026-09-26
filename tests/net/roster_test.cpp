@@ -212,3 +212,48 @@ TEST_CASE("putting in play a member that is not joining breaks a contract")
 
     REQUIRE(probe.failureCount() == 2U);
 }
+
+TEST_CASE("a member is let in with the token that wins its slot back")
+{
+    unison::net::Roster roster{kTwoSlots};
+
+    roster.admit(kFirst, 0, 77);
+    roster.admitJoining(kSecond, 1, 78);
+
+    REQUIRE(roster.members()[0].reconnectToken == 77U);
+    REQUIRE(roster.members()[1].reconnectToken == 78U);
+}
+
+TEST_CASE("a member whose slot is held keeps it in play but is not awaited")
+{
+    unison::net::Roster roster{kTwoSlots};
+    roster.admit(kFirst, 0);
+    roster.admit(kSecond, 1);
+
+    roster.holdSlotOf(kSecond, 1'000);
+
+    REQUIRE(roster.isMember(kSecond));
+    REQUIRE(roster.freeSlot() == unison::net::kNoSlot);
+    REQUIRE(roster.slotsInPlayAt(1) == 0b11U);
+    REQUIRE(roster.slotsAwaitedAt(1) == 0b01U);
+}
+
+TEST_CASE("held slots are released once the moment they were held until has come, and no sooner")
+{
+    constexpr std::uint8_t kThreeSlots = 3;
+    unison::net::Roster roster{kThreeSlots};
+    roster.admit(kFirst, 0);
+    roster.admit(kSecond, 1);
+    roster.admit(kThird, 2);
+    roster.holdSlotOf(kSecond, 1'000);
+    roster.holdSlotOf(kThird, 2'000);
+
+    roster.releaseHeldSlots(999);
+    const bool isHeldBefore = roster.isMember(kSecond);
+    roster.releaseHeldSlots(1'000);
+
+    REQUIRE(isHeldBefore);
+    REQUIRE_FALSE(roster.isMember(kSecond));
+    REQUIRE(roster.isMember(kThird));
+    REQUIRE(roster.freeSlot() == 1U);
+}

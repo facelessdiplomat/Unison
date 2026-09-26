@@ -13,6 +13,7 @@ add_library(
     src/millisecond_timer.cpp
     src/network_simulator.cpp
     src/outbox.cpp
+    src/reconnect_tokens.cpp
     src/relay_core.cpp
     src/roster.cpp
     src/session_config.cpp

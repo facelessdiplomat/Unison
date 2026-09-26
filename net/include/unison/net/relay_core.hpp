@@ -8,6 +8,7 @@
 #include <unison/net/match_clock.hpp>
 #include <unison/net/outbox.hpp>
 #include <unison/net/protocol.hpp>
+#include <unison/net/reconnect_tokens.hpp>
 #include <unison/net/roster.hpp>
 #include <unison/net/round_trip_meter.hpp>
 #include <unison/net/session_config.hpp>
@@ -23,11 +24,14 @@ namespace unison::net
 {
 
 /// How a relay treats players and a lossy network: how long it waits for a missing input once the first
-/// input for a frame has arrived, and every how many confirmed frames it sends them all again reliably.
+/// input for a frame has arrived, every how many confirmed frames it sends them all again reliably, how long it holds
+/// the slot of a player whose peer has gone, and the seed of the reconnect tokens it hands its players.
 struct RelaySettings
 {
     std::uint64_t inputDeadlineMicroseconds = 100'000;
     std::uint32_t reliableResendInterval = 10;
+    std::uint64_t reconnectGraceMicroseconds = 30'000'000;
+    std::uint64_t reconnectTokenSeed = 0;
 };
 
 /// How many of the newest confirmed frames every confirmation carries when a datagram holds them, so that a
@@ -40,8 +44,9 @@ inline constexpr std::uint32_t kRedundantConfirmations = 4;
 /// missing ones, sends the confirmation with the frames confirmed just before it to everyone, answers a ping with the
 /// frame its clock has due, and tells everyone which players' checksums part ways with the rest. A player joining a
 /// running match holds its slot out of play while the player in play with the lowest round trip the meter, when given,
-/// measures sends it a snapshot, and plays from the first frame it sends an input for. It never simulates, and it
-/// answers through its transport.
+/// measures sends it a snapshot, and plays from the first frame it sends an input for. Every player is welcomed with a
+/// token of its own, and one whose peer has gone keeps its slot for the reconnect grace, its inputs dropped meanwhile
+/// and its checksums waited for by nobody. It never simulates, and it answers through its transport.
 class RelayCore final : public IMessageReceiver
 {
 public:
@@ -107,6 +112,7 @@ private:
     ChecksumReferee referee;
     ConfirmedLog confirmedLog;
     LateJoins lateJoins;
+    ReconnectTokens reconnectTokens;
     std::vector<std::byte> confirmedSlots;
     std::uint32_t framesPerDatagram;
 };

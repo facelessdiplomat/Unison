@@ -127,6 +127,7 @@ add_executable(
     net/network_simulator_test.cpp
     net/outbox_test.cpp
     net/protocol_golden_test.cpp
+    net/reconnect_tokens_test.cpp
     net/relay_core_test.cpp
     net/roster_test.cpp
     net/session_config_test.cpp

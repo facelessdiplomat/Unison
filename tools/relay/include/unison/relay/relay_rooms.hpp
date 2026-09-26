@@ -18,7 +18,7 @@ namespace unison::relay
 
 /// The rooms of a standalone relay, one for every match its clients would play. The first hello of a match
 /// opens the room, whose relay core seats the client and answers it from then on, and the room closes once
-/// the last of its peers has gone; a peer that has said no hello is not answered.
+/// the last of its peers has gone and no slot is held for one; a peer that has said no hello is not answered.
 class RelayRooms final : public net::IMessageReceiver
 {
 public:
@@ -33,7 +33,8 @@ public:
 
     void peerLeft(net::PeerId peer) override;
 
-    /// Lets every room confirm the frames whose deadline has passed.
+    /// Lets every room confirm the frames whose deadline has passed and release the slots whose grace has passed, and
+    /// closes every room left empty.
     void update();
 
     [[nodiscard]] std::size_t roomCount() const;

@@ -75,6 +75,8 @@ void RelayRooms::update()
     {
         room.core->update();
     }
+
+    std::erase_if(rooms, [](const Room& room) { return room.core->isEmpty(); });
 }
 
 std::size_t RelayRooms::roomCount() const

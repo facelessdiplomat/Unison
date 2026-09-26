@@ -12,18 +12,18 @@ Roster::Roster(std::uint8_t slotCount) : slotCount{slotCount}
     UNISON_VERIFY(slotCount <= kMaxSlots);
 }
 
-void Roster::admit(PeerId peer, std::uint8_t slot)
+void Roster::admit(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken)
 {
     UNISON_VERIFY(slot == kNoSlot || (slot < slotCount && !isHeld(slot)));
 
-    admitted.push_back(Member{peer, slot, 0});
+    admitted.push_back(Member{peer, slot, 0, reconnectToken, std::nullopt});
 }
 
-void Roster::admitJoining(PeerId peer, std::uint8_t slot)
+void Roster::admitJoining(PeerId peer, std::uint8_t slot, std::uint64_t reconnectToken)
 {
     UNISON_VERIFY(slot < slotCount && !isHeld(slot));
 
-    admitted.push_back(Member{peer, slot, kNotPlayingYet});
+    admitted.push_back(Member{peer, slot, kNotPlayingYet, reconnectToken, std::nullopt});
 }
 
 void Roster::startPlaying(PeerId peer, std::uint32_t fromFrame)
@@ -42,6 +42,22 @@ void Roster::startPlaying(PeerId peer, std::uint32_t fromFrame)
 void Roster::remove(PeerId peer)
 {
     std::erase_if(admitted, [peer](const Member& member) { return member.peer == peer; });
+}
+
+void Roster::holdSlotOf(PeerId peer, std::uint64_t until)
+{
+    const auto member = std::ranges::find(admitted, peer, &Member::peer);
+
+    if (member != admitted.end())
+    {
+        member->heldUntil = until;
+    }
+}
+
+void Roster::releaseHeldSlots(std::uint64_t now)
+{
+    std::erase_if(admitted,
+                  [now](const Member& member) { return member.heldUntil.has_value() && *member.heldUntil <= now; });
 }
 
 std::uint8_t Roster::freeSlot() const
@@ -94,6 +110,21 @@ std::uint8_t Roster::slotsInPlayAt(std::uint32_t frame) const
     }
 
     return inPlay;
+}
+
+std::uint8_t Roster::slotsAwaitedAt(std::uint32_t frame) const
+{
+    std::uint8_t awaited = slotsInPlayAt(frame);
+
+    for (const Member& member : admitted)
+    {
+        if (member.slot != kNoSlot && member.heldUntil.has_value())
+        {
+            awaited = static_cast<std::uint8_t>(awaited & ~(1U << member.slot));
+        }
+    }
+
+    return awaited;
 }
 
 std::span<const Roster::Member> Roster::members() const

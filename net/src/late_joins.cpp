@@ -13,9 +13,9 @@ LateJoins::LateJoins(Outbox& outbox, const ConfirmedLog& confirmedLog, const Ses
 {
 }
 
-void LateJoins::await(PeerId joiner, std::uint8_t slot, PeerId donor)
+void LateJoins::await(PeerId joiner, std::uint8_t slot, std::uint64_t reconnectToken, PeerId donor)
 {
-    joins.push_back(Join{joiner, slot, donor, std::nullopt, 0, 0});
+    joins.push_back(Join{joiner, slot, reconnectToken, donor, std::nullopt, 0, 0});
     requestSnapshot(donor);
 }
 
@@ -55,7 +55,7 @@ void LateJoins::replaceDonor(PeerId gone, std::optional<PeerId> next)
     {
         if (join.donor == gone)
         {
-            join = Join{join.joiner, join.slot, *next, std::nullopt, 0, 0};
+            join = Join{join.joiner, join.slot, join.reconnectToken, *next, std::nullopt, 0, 0};
         }
     }
 
@@ -92,8 +92,9 @@ void LateJoins::welcome(Join& join, const SnapshotChunk& firstChunk)
 {
     join.snapshotFrame = firstChunk.frame;
     join.chunkCount = firstChunk.chunkCount;
-    outbox.send(
-        join.joiner, Channel::Reliable, Welcome{join.slot, config, firstChunk.frame, confirmedLog.lastFrame(), 0});
+    outbox.send(join.joiner,
+                Channel::Reliable,
+                Welcome{join.slot, config, firstChunk.frame, confirmedLog.lastFrame(), join.reconnectToken});
 }
 
 void LateJoins::sendConfirmedSince(PeerId joiner, std::uint32_t snapshotFrame)
